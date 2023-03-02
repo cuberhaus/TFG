@@ -1,3 +1,4 @@
+TFG:
 https://www.fib.upc.edu/es/estudios/grados/grado-en-ingenieria-informatica/trabajo-de-fin-de-grado
 
 Evaluación TFG:
@@ -13,5 +14,5 @@ Altres:
 https://bibliotecnica.upc.edu/es/estudiants/6-passos-que-teu-tfg/tfm-sigui-exit
 
 
-especificar qué competencias técnicas de la especialidad se tratarán: 
+Especificar qué competencias técnicas de la especialidad se tratarán: 
 https://www.fib.upc.edu/es/estudios/grados/grado-en-ingenieria-informatica/plan-de-estudios/competencias#TI
