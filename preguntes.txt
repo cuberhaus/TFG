@@ -1,0 +1,4 @@
+Preguntes TFG:
+Per a que es farien servir aquestes imatges médiques generades?
+Tema de la segmentació d'un polip en la imatge com es faria?
+Disposaria de base de dades d'imatges médiques previament?
