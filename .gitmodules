@@ -1,0 +1,3 @@
+[submodule "repos/PyTorch-GAN"]
+	path = repos/PyTorch-GAN
+	url = https://github.com/eriklindernoren/PyTorch-GAN.git
