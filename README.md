@@ -1,2 +1,3 @@
 # TFG
 Trabajo de Fin de Grado
+This project aims to develop a deep learning-based system for the detection of polyps in colonoscopy videos. It involves extensive research and learning about relevant medical image processing techniques and PyTorch, a deep learning framework. The project includes tasks such as data preprocessing, model design, training, and evaluation. Additionally, it encompasses project management aspects like defining scope, planning, budgeting, sustainability assessment, meetings, documentation, and presentation. The ultimate goal is to create an accurate and efficient tool to aid in the early detection of polyps during colonoscopies, which is crucial for colorectal cancer screening and prevention.
