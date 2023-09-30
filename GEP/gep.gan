@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><project name="TFG" company="UPC" webLink="http://" view-date="2023-08-21" view-index="0" gantt-divider-location="439" resource-divider-location="300" version="3.1.3103" locale="es_ES">
+<?xml version="1.0" encoding="UTF-8"?><project name="TFG" company="UPC" webLink="http://" view-date="2023-09-25" view-index="0" gantt-divider-location="439" resource-divider-location="300" version="3.1.3103" locale="es_ES">
     <description/>
     <view zooming-state="default:7" id="gantt-chart">
         <field id="tpd3" name="Nombre" width="241" order="0"/>
@@ -69,16 +69,26 @@
             <task id="16" name="Evaluación del modelo" meeting="false" start="2023-11-15" duration="8" complete="0" expand="true">
                 <depend id="17" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="17" name="Implementación de un modelo de aumentación" meeting="false" start="2023-11-23" duration="25" complete="0" expand="true"/>
-            <task id="18" name="Ajuste y optimización (aumentación)" meeting="false" start="2023-12-13" duration="5" complete="0" expand="true"/>
-            <task id="19" name="Evaluación del modelo (aumentación)" meeting="false" start="2023-12-13" duration="5" complete="0" expand="true"/>
+            <task id="17" name="Implementación de un modelo de aumentación" meeting="false" start="2023-11-23" duration="25" complete="0" expand="true">
+                <depend id="21" type="2" difference="0" hardness="Rubber"/>
+            </task>
+            <task id="18" name="Ajuste y optimización (aumentación)" meeting="false" start="2023-12-13" duration="5" complete="0" expand="true">
+                <depend id="21" type="2" difference="0" hardness="Rubber"/>
+            </task>
+            <task id="19" name="Evaluación del modelo (aumentación)" meeting="false" start="2023-12-13" duration="5" complete="0" expand="true">
+                <depend id="21" type="2" difference="0" hardness="Rubber"/>
+            </task>
             <task id="20" name="Guardado de modelos" meeting="false" start="2023-11-18" duration="5" complete="0" expand="true"/>
-            <task id="21" name="Experimentación" meeting="false" start="2023-12-18" duration="8" complete="0" expand="true"/>
+            <task id="21" name="Experimentación" meeting="false" start="2023-12-18" duration="8" complete="0" expand="true">
+                <depend id="22" type="2" difference="0" hardness="Rubber"/>
+            </task>
         </task>
         <task id="30" name="Documentación del proyecto" color="#99ccff" meeting="false" start="2023-09-07" duration="137" complete="0" thirdDate="2023-09-11" thirdDate-constraint="0" expand="true">
             <task id="33" name="Documentación" meeting="false" start="2023-09-07" duration="122" complete="0" expand="true"/>
-            <task id="22" name="Conclusiones" meeting="false" start="2023-12-26" duration="5" complete="0" expand="true"/>
-            <task id="32" name="Presentación" meeting="false" start="2024-01-02" duration="5" complete="0" expand="true"/>
+            <task id="22" name="Conclusiones" meeting="false" start="2023-12-26" duration="5" complete="0" expand="true">
+                <depend id="32" type="2" difference="0" hardness="Rubber"/>
+            </task>
+            <task id="32" name="Presentación" meeting="false" start="2023-12-31" duration="5" complete="0" expand="true"/>
             <task id="23" name="Lectura" meeting="false" start="2024-01-19" duration="3" complete="0" expand="true"/>
         </task>
     </tasks>
