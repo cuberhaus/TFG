@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><project name="Untitled Gantt Project" company="" webLink="http://" view-date="2023-08-28" view-index="0" gantt-divider-location="439" resource-divider-location="300" version="3.1.3103" locale="es_ES">
+<?xml version="1.0" encoding="UTF-8"?><project name="TFG" company="UPC" webLink="http://" view-date="2023-08-28" view-index="0" gantt-divider-location="439" resource-divider-location="300" version="3.1.3103" locale="es_ES">
     <description/>
     <view zooming-state="default:7" id="gantt-chart">
         <field id="tpd3" name="Nombre" width="272" order="0"/>
@@ -75,4 +75,7 @@
     <previous/>
     <roles roleset-name="Default"/>
     <roles roleset-name="SoftwareDevelopment"/>
+    <roles>
+        <role id="1" name=""/>
+    </roles>
 </project>
