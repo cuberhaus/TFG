@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?><project name="TFG" company="UPC" webLink="http://" view-date="2023-09-25" view-index="0" gantt-divider-location="439" resource-divider-location="300" version="3.1.3103" locale="es_ES">
+<?xml version="1.0" encoding="UTF-8"?><project name="TFG" company="UPC" webLink="http://" view-date="2023-10-16" view-index="0" gantt-divider-location="439" resource-divider-location="300" version="3.1.3103" locale="es_ES">
     <description/>
     <view zooming-state="default:7" id="gantt-chart">
         <field id="tpd3" name="Nombre" width="241" order="0"/>
@@ -6,7 +6,7 @@
         <field id="tpd5" name="Fecha de fin" width="60" order="2"/>
         <field id="tpd6" name="Duración" width="46" order="3"/>
         <option id="color.recent">
-            <![CDATA[#99ccff #0099ff #ffff00]]>
+            <![CDATA[#ff0000 #00cc00 #000000 #ffff00 #99ccff #0099ff]]>
         </option>
     </view>
     <view id="resource-table">
@@ -50,46 +50,46 @@
             <task id="3" name="Informe de sostenibilidad" meeting="false" start="2023-10-10" duration="7" complete="0" expand="true"/>
         </task>
         <task id="27" name="Fase Teórica" meeting="false" start="2023-09-07" duration="63" complete="0" expand="true">
-            <task id="6" name="Aprendizaje de PyTorch" meeting="false" start="2023-10-17" duration="5" complete="0" expand="true"/>
-            <task id="7" name="Estudio del Estado-del-arte" meeting="false" start="2023-09-07" duration="40" complete="0" expand="true"/>
-            <task id="8" name="Estudio de las complicaciones al entrenar modelos" meeting="false" start="2023-10-22" duration="3" complete="0" expand="true"/>
-            <task id="9" name="Elección de métricas" meeting="false" start="2023-10-25" duration="2" complete="0" expand="true"/>
-            <task id="10" name="Diseño del modelo de detección" meeting="false" start="2023-10-27" duration="5" complete="0" expand="true"/>
-            <task id="11" name="Diseño del modelo de aumentación de datos" meeting="false" start="2023-11-01" duration="5" complete="0" expand="true"/>
-            <task id="12" name="Estimación del tiempo de entrenamiento" meeting="false" start="2023-11-06" duration="3" complete="0" expand="true"/>
+            <task id="6" name="Aprendizaje de PyTorch" color="#ffff00" meeting="false" start="2023-10-17" duration="5" complete="0" thirdDate="2023-10-17" thirdDate-constraint="0" expand="true"/>
+            <task id="7" name="Estudio del Estado-del-arte" color="#ffff00" meeting="false" start="2023-09-07" duration="40" complete="0" thirdDate="2023-09-07" thirdDate-constraint="0" expand="true"/>
+            <task id="8" name="Estudio de las complicaciones al entrenar modelos" color="#ffff00" meeting="false" start="2023-10-22" duration="3" complete="0" thirdDate="2023-10-22" thirdDate-constraint="0" expand="true"/>
+            <task id="9" name="Elección de métricas" color="#ffff00" meeting="false" start="2023-10-25" duration="2" complete="0" thirdDate="2023-10-25" thirdDate-constraint="0" expand="true"/>
+            <task id="10" name="Diseño del modelo de detección" color="#ffff00" meeting="false" start="2023-10-27" duration="5" complete="0" thirdDate="2023-10-27" thirdDate-constraint="0" expand="true"/>
+            <task id="11" name="Diseño del modelo de aumentación de datos" color="#ffff00" meeting="false" start="2023-11-01" duration="5" complete="0" thirdDate="2023-11-01" thirdDate-constraint="0" expand="true"/>
+            <task id="12" name="Estimación del tiempo de entrenamiento" color="#ffff00" meeting="false" start="2023-11-06" duration="3" complete="0" thirdDate="2023-11-06" thirdDate-constraint="0" expand="true"/>
         </task>
         <task id="28" name="Fase Práctica" meeting="false" start="2023-11-09" duration="47" complete="0" expand="true">
-            <task id="13" name="Preprocesamiento de los datos" meeting="false" start="2023-11-09" duration="3" complete="0" expand="true"/>
-            <task id="14" name="Implementación de un modelo de segmentación" meeting="false" start="2023-11-11" duration="12" complete="0" expand="true">
+            <task id="13" name="Preprocesamiento de los datos" color="#00cc00" meeting="false" start="2023-11-09" duration="3" complete="0" thirdDate="2023-11-09" thirdDate-constraint="0" expand="true"/>
+            <task id="14" name="Implementación de un modelo de segmentación" color="#00cc00" meeting="false" start="2023-11-11" duration="12" complete="0" thirdDate="2023-11-11" thirdDate-constraint="0" expand="true">
                 <depend id="17" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="15" name="Ajuste y optimización" meeting="false" start="2023-11-15" duration="8" complete="0" expand="true">
+            <task id="15" name="Ajuste y optimización" color="#00cc00" meeting="false" start="2023-11-15" duration="8" complete="0" thirdDate="2023-11-15" thirdDate-constraint="0" expand="true">
                 <depend id="17" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="16" name="Evaluación del modelo" meeting="false" start="2023-11-15" duration="8" complete="0" expand="true">
+            <task id="16" name="Evaluación del modelo" color="#00cc00" meeting="false" start="2023-11-15" duration="8" complete="0" thirdDate="2023-11-15" thirdDate-constraint="0" expand="true">
                 <depend id="17" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="17" name="Implementación de un modelo de aumentación" meeting="false" start="2023-11-23" duration="25" complete="0" expand="true">
+            <task id="17" name="Implementación de un modelo de aumentación" color="#00cc00" meeting="false" start="2023-11-23" duration="25" complete="0" thirdDate="2023-11-23" thirdDate-constraint="0" expand="true">
                 <depend id="21" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="18" name="Ajuste y optimización (aumentación)" meeting="false" start="2023-12-13" duration="5" complete="0" expand="true">
+            <task id="18" name="Ajuste y optimización (aumentación)" color="#00cc00" meeting="false" start="2023-12-13" duration="5" complete="0" thirdDate="2023-12-13" thirdDate-constraint="0" expand="true">
                 <depend id="21" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="19" name="Evaluación del modelo (aumentación)" meeting="false" start="2023-12-13" duration="5" complete="0" expand="true">
+            <task id="19" name="Evaluación del modelo (aumentación)" color="#00cc00" meeting="false" start="2023-12-13" duration="5" complete="0" thirdDate="2023-12-13" thirdDate-constraint="0" expand="true">
                 <depend id="21" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="20" name="Guardado de modelos" meeting="false" start="2023-11-18" duration="5" complete="0" expand="true"/>
-            <task id="21" name="Experimentación" meeting="false" start="2023-12-18" duration="8" complete="0" expand="true">
+            <task id="20" name="Guardado de modelos" color="#00cc00" meeting="false" start="2023-11-18" duration="5" complete="0" thirdDate="2023-11-18" thirdDate-constraint="0" expand="true"/>
+            <task id="21" name="Experimentación" color="#00cc00" meeting="false" start="2023-12-18" duration="8" complete="0" thirdDate="2023-12-18" thirdDate-constraint="0" expand="true">
                 <depend id="22" type="2" difference="0" hardness="Rubber"/>
             </task>
         </task>
-        <task id="30" name="Documentación del proyecto" color="#99ccff" meeting="false" start="2023-09-07" duration="137" complete="0" thirdDate="2023-09-11" thirdDate-constraint="0" expand="true">
-            <task id="33" name="Documentación" meeting="false" start="2023-09-07" duration="122" complete="0" expand="true"/>
-            <task id="22" name="Conclusiones" meeting="false" start="2023-12-26" duration="5" complete="0" expand="true">
+        <task id="30" name="Documentación del proyecto" color="#000000" meeting="false" start="2023-09-07" duration="137" complete="0" thirdDate="2023-09-11" thirdDate-constraint="0" expand="true">
+            <task id="33" name="Documentación" color="#ff0000" meeting="false" start="2023-09-07" duration="122" complete="0" thirdDate="2023-09-07" thirdDate-constraint="0" expand="true"/>
+            <task id="22" name="Conclusiones" color="#ff0000" meeting="false" start="2023-12-26" duration="5" complete="0" thirdDate="2023-12-26" thirdDate-constraint="0" expand="true">
                 <depend id="32" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="32" name="Presentación" meeting="false" start="2023-12-31" duration="5" complete="0" expand="true"/>
-            <task id="23" name="Lectura" meeting="false" start="2024-01-19" duration="3" complete="0" expand="true"/>
+            <task id="32" name="Presentación" color="#ff0000" meeting="false" start="2023-12-31" duration="5" complete="0" thirdDate="2023-12-31" thirdDate-constraint="0" expand="true"/>
+            <task id="23" name="Lectura" color="#ff0000" meeting="false" start="2024-01-19" duration="3" complete="0" thirdDate="2024-01-19" thirdDate-constraint="0" expand="true"/>
         </task>
     </tasks>
     <resources/>
