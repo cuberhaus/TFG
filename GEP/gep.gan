@@ -1,17 +1,19 @@
-<?xml version="1.0" encoding="UTF-8"?><project name="TFG" company="UPC" webLink="http://" view-date="2023-09-11" view-index="1" gantt-divider-location="439" resource-divider-location="300" version="3.1.3103" locale="es_ES">
+<?xml version="1.0" encoding="UTF-8"?><project name="TFG" company="UPC" webLink="http://" view-date="2023-10-09" view-index="0" gantt-divider-location="480" resource-divider-location="300" version="3.3.3294" locale="en_ES">
     <description/>
     <view zooming-state="default:7" id="gantt-chart">
-        <field id="tpd3" name="Nombre" width="241" order="0"/>
-        <field id="tpd4" name="Fecha de inicio" width="73" order="1"/>
-        <field id="tpd5" name="Fecha de fin" width="60" order="2"/>
-        <field id="tpd6" name="Duración" width="46" order="3"/>
-        <option id="color.recent">
-            <![CDATA[#ff0000 #00cc00 #000000 #ffff00 #99ccff #0099ff]]>
-        </option>
+        <field id="tpd3" name="Name" width="254" order="0"/>
+        <field id="tpd4" name="Begin date" width="85" order="1"/>
+        <field id="tpd5" name="End date" width="69" order="2"/>
+        <field id="tpd6" name="Duration" width="55" order="3"/>
+        <option id="filter.completedTasks" value="false"/>
+        <option id="filter.dueTodayTasks" value="false"/>
+        <option id="filter.overdueTasks" value="false"/>
+        <option id="filter.inProgressTodayTasks" value="false"/>
+        <option id="color.recent"><![CDATA[#ff0000 #00cc00 #000000 #ffff00 #99ccff #0099ff]]></option>
     </view>
     <view id="resource-table">
-        <field id="0" name="Nombre" width="210" order="0"/>
-        <field id="1" name="Función" width="86" order="1"/>
+        <field id="0" name="Name" width="209" order="0"/>
+        <field id="1" name="Default role" width="85" order="1"/>
     </view>
     <!-- -->
     <calendars>
@@ -37,59 +39,59 @@
             <taskproperty id="tpd8" name="coordinator" type="default" valuetype="text"/>
             <taskproperty id="tpd9" name="predecessorsr" type="default" valuetype="text"/>
         </taskproperties>
-        <task id="25" name="Gestión del proyecto" meeting="false" start="2023-09-18" duration="29" complete="0" expand="true">
-            <task id="0" name="Alcance" color="#99ccff" meeting="false" start="2023-09-18" duration="9" complete="0" thirdDate="2023-09-18" thirdDate-constraint="0" expand="true">
+        <task id="25" uid="e1db3adad2a54d7cace6d4e8a0932889" name="Gestión del proyecto" meeting="false" start="2023-09-18" duration="29" complete="0" expand="true">
+            <task id="0" uid="cb402e60dce247709671f8c2a644c9a8" name="Alcance" color="#99ccff" meeting="false" start="2023-09-18" duration="9" complete="0" thirdDate="2023-09-18" thirdDate-constraint="0" expand="true">
                 <depend id="1" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="1" name="Planificación" color="#99ccff" meeting="false" start="2023-09-27" duration="6" complete="0" thirdDate="2023-09-27" thirdDate-constraint="0" expand="true">
+            <task id="1" uid="9f53f6450cb64887aea7661da6aa43fc" name="Planificación" color="#99ccff" meeting="false" start="2023-09-27" duration="6" complete="0" thirdDate="2023-09-27" thirdDate-constraint="0" expand="true">
                 <depend id="2" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="2" name="Presupuesto" color="#99ccff" meeting="false" start="2023-10-03" duration="7" complete="0" thirdDate="2023-10-03" thirdDate-constraint="0" expand="true">
+            <task id="2" uid="4ef4e5caedf34dbdba21b4bf30ac2953" name="Presupuesto" color="#99ccff" meeting="false" start="2023-10-03" duration="7" complete="0" thirdDate="2023-10-03" thirdDate-constraint="0" expand="true">
                 <depend id="3" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="3" name="Informe de sostenibilidad" color="#99ccff" meeting="false" start="2023-10-10" duration="7" complete="0" thirdDate="2023-10-10" thirdDate-constraint="0" expand="true"/>
+            <task id="3" uid="eec80b3454564d1eaf58d4be6caca2ea" name="Informe de sostenibilidad" color="#99ccff" meeting="false" start="2023-10-10" duration="7" complete="0" thirdDate="2023-10-10" thirdDate-constraint="0" expand="true"/>
         </task>
-        <task id="27" name="Fase Teórica" meeting="false" start="2023-09-07" duration="63" complete="0" expand="true">
-            <task id="6" name="Aprendizaje de PyTorch" color="#ffff00" meeting="false" start="2023-10-17" duration="5" complete="0" thirdDate="2023-10-17" thirdDate-constraint="0" expand="true"/>
-            <task id="7" name="Estudio del Estado-del-arte" color="#ffff00" meeting="false" start="2023-09-07" duration="40" complete="0" thirdDate="2023-09-07" thirdDate-constraint="0" expand="true"/>
-            <task id="8" name="Estudio de las complicaciones al entrenar modelos" color="#ffff00" meeting="false" start="2023-10-22" duration="3" complete="0" thirdDate="2023-10-22" thirdDate-constraint="0" expand="true"/>
-            <task id="9" name="Elección de métricas" color="#ffff00" meeting="false" start="2023-10-25" duration="2" complete="0" thirdDate="2023-10-25" thirdDate-constraint="0" expand="true"/>
-            <task id="10" name="Diseño del modelo de detección" color="#ffff00" meeting="false" start="2023-10-27" duration="5" complete="0" thirdDate="2023-10-27" thirdDate-constraint="0" expand="true"/>
-            <task id="11" name="Diseño del modelo de aumentación de datos" color="#ffff00" meeting="false" start="2023-11-01" duration="5" complete="0" thirdDate="2023-11-01" thirdDate-constraint="0" expand="true"/>
-            <task id="12" name="Estimación del tiempo de entrenamiento" color="#ffff00" meeting="false" start="2023-11-06" duration="3" complete="0" thirdDate="2023-11-06" thirdDate-constraint="0" expand="true"/>
+        <task id="27" uid="bbd68818d4e9481c971b2f39e5379e38" name="Fase Teórica" meeting="false" start="2023-09-07" duration="63" complete="0" expand="true">
+            <task id="6" uid="54603905271e44349400cf56dfc16ecf" name="Aprendizaje de PyTorch" color="#ffff00" meeting="false" start="2023-10-17" duration="5" complete="0" thirdDate="2023-10-17" thirdDate-constraint="0" expand="true"/>
+            <task id="7" uid="201b43fe1f7d419bb26be7c752c3e2e5" name="Estudio del Estado-del-arte" color="#ffff00" meeting="false" start="2023-09-07" duration="40" complete="0" thirdDate="2023-09-07" thirdDate-constraint="0" expand="true"/>
+            <task id="8" uid="31a2ef9fea184422b9d9c0830faeb91b" name="Estudio de las complicaciones al entrenar modelos" color="#ffff00" meeting="false" start="2023-10-22" duration="3" complete="0" thirdDate="2023-10-22" thirdDate-constraint="0" expand="true"/>
+            <task id="9" uid="6311268991ea413f8be4cd22120a1232" name="Elección de métricas" color="#ffff00" meeting="false" start="2023-10-25" duration="2" complete="0" thirdDate="2023-10-25" thirdDate-constraint="0" expand="true"/>
+            <task id="10" uid="4593efe4f514481ca5881b19600839dd" name="Diseño del modelo de detección" color="#ffff00" meeting="false" start="2023-10-21" duration="9" complete="0" thirdDate="2023-10-27" thirdDate-constraint="0" expand="true"/>
+            <task id="11" uid="3175f327f4d3441db7509fa042c7e084" name="Diseño del modelo de aumentación de datos" color="#ffff00" meeting="false" start="2023-10-30" duration="10" complete="0" thirdDate="2023-11-01" thirdDate-constraint="0" expand="true"/>
+            <task id="12" uid="2693eb35728844d2bb039aab5ddbb3a2" name="Estimación del tiempo de entrenamiento" color="#ffff00" meeting="false" start="2023-11-06" duration="3" complete="0" thirdDate="2023-11-06" thirdDate-constraint="0" expand="true"/>
         </task>
-        <task id="28" name="Fase Práctica" meeting="false" start="2023-11-09" duration="47" complete="0" expand="true">
-            <task id="13" name="Preprocesamiento de los datos" color="#00cc00" meeting="false" start="2023-11-09" duration="3" complete="0" thirdDate="2023-11-09" thirdDate-constraint="0" expand="true"/>
-            <task id="14" name="Implementación de un modelo de segmentación" color="#00cc00" meeting="false" start="2023-11-11" duration="12" complete="0" thirdDate="2023-11-11" thirdDate-constraint="0" expand="true">
+        <task id="28" uid="b33190f9c8e341c3a70ea8b5f1ffe9b0" name="Fase Práctica" meeting="false" start="2023-11-01" duration="55" complete="0" expand="true">
+            <task id="13" uid="8630d38a33e942a8a7d8cd457633f8b4" name="Preprocesamiento de los datos" color="#00cc00" meeting="false" start="2023-11-09" duration="2" complete="0" thirdDate="2023-11-09" thirdDate-constraint="0" expand="true"/>
+            <task id="14" uid="6ed2713350ea4fb5a6a07db5ce9cf71b" name="Implementación de un modelo de segmentación" color="#00cc00" meeting="false" start="2023-11-01" duration="22" complete="0" thirdDate="2023-11-11" thirdDate-constraint="0" expand="true">
                 <depend id="17" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="15" name="Ajuste y optimización" color="#00cc00" meeting="false" start="2023-11-15" duration="8" complete="0" thirdDate="2023-11-15" thirdDate-constraint="0" expand="true">
+            <task id="15" uid="c336d0d08fb24d0fb215d44871d8fb4f" name="Ajuste y optimización" color="#00cc00" meeting="false" start="2023-11-14" duration="9" complete="0" thirdDate="2023-11-15" thirdDate-constraint="0" expand="true">
                 <depend id="17" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="16" name="Evaluación del modelo" color="#00cc00" meeting="false" start="2023-11-15" duration="8" complete="0" thirdDate="2023-11-15" thirdDate-constraint="0" expand="true">
+            <task id="16" uid="639ff31cc3a0476a8121d8a06da6832e" name="Evaluación del modelo" color="#00cc00" meeting="false" start="2023-11-14" duration="9" complete="0" thirdDate="2023-11-15" thirdDate-constraint="0" expand="true">
                 <depend id="17" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="17" name="Implementación de un modelo de aumentación" color="#00cc00" meeting="false" start="2023-11-23" duration="25" complete="0" thirdDate="2023-11-23" thirdDate-constraint="0" expand="true">
+            <task id="17" uid="ff835018aaa947e8bea8e477929a16ea" name="Implementación de un modelo de aumentación" color="#00cc00" meeting="false" start="2023-11-23" duration="25" complete="0" thirdDate="2023-11-23" thirdDate-constraint="0" expand="true">
                 <depend id="21" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="18" name="Ajuste y optimización (aumentación)" color="#00cc00" meeting="false" start="2023-12-13" duration="5" complete="0" thirdDate="2023-12-13" thirdDate-constraint="0" expand="true">
+            <task id="18" uid="e91083281eea42c5bd78cfc6e483776c" name="Ajuste y optimización (aumentación)" color="#00cc00" meeting="false" start="2023-12-06" duration="12" complete="0" thirdDate="2023-12-13" thirdDate-constraint="0" expand="true">
                 <depend id="21" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="19" name="Evaluación del modelo (aumentación)" color="#00cc00" meeting="false" start="2023-12-13" duration="5" complete="0" thirdDate="2023-12-13" thirdDate-constraint="0" expand="true">
+            <task id="19" uid="7001aa2f09554b52a50408178f7ff0c5" name="Evaluación del modelo (aumentación)" color="#00cc00" meeting="false" start="2023-12-06" duration="12" complete="0" thirdDate="2023-12-13" thirdDate-constraint="0" expand="true">
                 <depend id="21" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="20" name="Guardado de modelos" color="#00cc00" meeting="false" start="2023-11-18" duration="5" complete="0" thirdDate="2023-11-18" thirdDate-constraint="0" expand="true"/>
-            <task id="21" name="Experimentación" color="#00cc00" meeting="false" start="2023-12-18" duration="8" complete="0" thirdDate="2023-12-18" thirdDate-constraint="0" expand="true">
+            <task id="20" uid="40828558bb1545ee93364d8d464c178f" name="Guardado de modelos" color="#00cc00" meeting="false" start="2023-11-18" duration="5" complete="0" thirdDate="2023-11-18" thirdDate-constraint="0" expand="true"/>
+            <task id="21" uid="180cc4ee7abf4835a2ae71130485f4b7" name="Experimentación" color="#00cc00" meeting="false" start="2023-12-18" duration="8" complete="0" thirdDate="2023-12-18" thirdDate-constraint="0" expand="true">
                 <depend id="22" type="2" difference="0" hardness="Rubber"/>
             </task>
         </task>
-        <task id="30" name="Documentación del proyecto" color="#000000" meeting="false" start="2023-09-07" duration="137" complete="0" thirdDate="2023-09-11" thirdDate-constraint="0" expand="true">
-            <task id="33" name="Documentación" color="#ff0000" meeting="false" start="2023-09-07" duration="122" complete="0" thirdDate="2023-09-07" thirdDate-constraint="0" expand="true"/>
-            <task id="22" name="Conclusiones" color="#ff0000" meeting="false" start="2023-12-26" duration="5" complete="0" thirdDate="2023-12-26" thirdDate-constraint="0" expand="true">
+        <task id="30" uid="70872c6c63f44757858f5753ae52cd17" name="Documentación del proyecto" color="#000000" meeting="false" start="2023-09-07" duration="137" complete="0" thirdDate="2023-09-11" thirdDate-constraint="0" expand="true">
+            <task id="33" uid="054765b834584f8fa782c59ec17ccc17" name="Documentación" color="#ff0000" meeting="false" start="2023-09-07" duration="122" complete="0" thirdDate="2023-09-07" thirdDate-constraint="0" expand="true"/>
+            <task id="22" uid="0155fdc5cf63455680dfb641289e2690" name="Conclusiones" color="#ff0000" meeting="false" start="2023-12-26" duration="5" complete="0" thirdDate="2023-12-26" thirdDate-constraint="0" expand="true">
                 <depend id="32" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="32" name="Presentación" color="#ff0000" meeting="false" start="2023-12-31" duration="5" complete="0" thirdDate="2023-12-31" thirdDate-constraint="0" expand="true"/>
-            <task id="23" name="Lectura" color="#ff0000" meeting="false" start="2024-01-19" duration="3" complete="0" thirdDate="2024-01-19" thirdDate-constraint="0" expand="true"/>
+            <task id="32" uid="d3a0a45aa2184d488b06941911f182db" name="Presentación" color="#ff0000" meeting="false" start="2023-12-31" duration="5" complete="0" thirdDate="2023-12-31" thirdDate-constraint="0" expand="true"/>
+            <task id="23" uid="34febba09fec4ac88e0ca5cc2b22be31" name="Lectura" color="#ff0000" meeting="false" start="2024-01-19" duration="3" complete="0" thirdDate="2024-01-19" thirdDate-constraint="0" expand="true"/>
         </task>
     </tasks>
     <resources>
@@ -103,29 +105,29 @@
         <allocation task-id="2" resource-id="0" function="Default:0" responsible="true" load="50.0"/>
         <allocation task-id="3" resource-id="0" function="Default:0" responsible="true" load="50.0"/>
         <allocation task-id="6" resource-id="0" function="Default:1" responsible="true" load="80.0"/>
-        <allocation task-id="8" resource-id="0" function="Default:0" responsible="true" load="100.0"/>
-        <allocation task-id="9" resource-id="0" function="Default:0" responsible="true" load="100.0"/>
-        <allocation task-id="10" resource-id="0" function="Default:0" responsible="true" load="100.0"/>
-        <allocation task-id="11" resource-id="0" function="Default:0" responsible="true" load="100.0"/>
-        <allocation task-id="12" resource-id="0" function="Default:0" responsible="true" load="100.0"/>
-        <allocation task-id="13" resource-id="0" function="Default:0" responsible="true" load="100.0"/>
-        <allocation task-id="14" resource-id="0" function="Default:0" responsible="true" load="100.0"/>
-        <allocation task-id="15" resource-id="0" function="Default:0" responsible="true" load="100.0"/>
-        <allocation task-id="16" resource-id="0" function="Default:0" responsible="true" load="100.0"/>
-        <allocation task-id="17" resource-id="0" function="Default:0" responsible="true" load="100.0"/>
-        <allocation task-id="18" resource-id="0" function="Default:0" responsible="true" load="100.0"/>
-        <allocation task-id="20" resource-id="0" function="Default:0" responsible="true" load="100.0"/>
-        <allocation task-id="21" resource-id="0" function="Default:0" responsible="true" load="100.0"/>
-        <allocation task-id="33" resource-id="0" function="Default:0" responsible="true" load="20.0"/>
-        <allocation task-id="22" resource-id="0" function="Default:0" responsible="true" load="100.0"/>
-        <allocation task-id="32" resource-id="0" function="Default:0" responsible="true" load="100.0"/>
+        <allocation task-id="8" resource-id="0" function="Default:0" responsible="true" load="80.0"/>
+        <allocation task-id="9" resource-id="0" function="Default:0" responsible="true" load="80.0"/>
+        <allocation task-id="10" resource-id="0" function="Default:0" responsible="true" load="80.0"/>
+        <allocation task-id="11" resource-id="0" function="Default:0" responsible="true" load="80.0"/>
+        <allocation task-id="12" resource-id="0" function="Default:0" responsible="true" load="80.0"/>
+        <allocation task-id="13" resource-id="0" function="Default:0" responsible="true" load="80.0"/>
+        <allocation task-id="14" resource-id="0" function="Default:0" responsible="true" load="60.0"/>
+        <allocation task-id="15" resource-id="0" function="Default:0" responsible="true" load="10.0"/>
+        <allocation task-id="16" resource-id="0" function="Default:0" responsible="true" load="10.0"/>
+        <allocation task-id="20" resource-id="0" function="Default:0" responsible="true" load="10.0"/>
+        <allocation task-id="21" resource-id="0" function="Default:0" responsible="true" load="80.0"/>
+        <allocation task-id="33" resource-id="0" function="Default:0" responsible="true" load="5.0"/>
+        <allocation task-id="22" resource-id="0" function="Default:0" responsible="true" load="80.0"/>
+        <allocation task-id="32" resource-id="0" function="Default:0" responsible="true" load="80.0"/>
         <allocation task-id="23" resource-id="0" function="Default:0" responsible="true" load="100.0"/>
-        <allocation task-id="7" resource-id="0" function="Default:1" responsible="true" load="30.0"/>
+        <allocation task-id="7" resource-id="0" function="Default:1" responsible="true" load="50.0"/>
+        <allocation task-id="19" resource-id="0" function="Default:1" responsible="true" load="10.0"/>
+        <allocation task-id="18" resource-id="0" function="Default:1" responsible="true" load="30.0"/>
+        <allocation task-id="17" resource-id="0" function="Default:1" responsible="true" load="60.0"/>
     </allocations>
     <vacations/>
     <previous/>
     <roles roleset-name="Default"/>
-    <roles roleset-name="SoftwareDevelopment"/>
     <roles>
         <role id="1" name=""/>
     </roles>
