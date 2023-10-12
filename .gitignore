@@ -1,1 +1,49 @@
 .DS_Store
+
+# Ignore temporary lock files
+*~lock*
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# VS Code settings folder
+.vscode/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
+
+# JetBrains Rider
+.idea/
+
+# User-specific files
+*.suo
+*.user
+*.sln.docstates
+
+# Mono debugging logs
+mono_crash.*
+
+# Windows Installer XML files
+*.wixobj
+*.wixpdb
+
+# Tye
+.tye/
+
+# Coverlet
+coverage.cobertura.xml
+coverage.opencover.xml
+coverage.*
