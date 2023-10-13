@@ -61,22 +61,22 @@
         </task>
         <task id="28" name="Fase Práctica" meeting="false" start="2023-11-01" duration="55" complete="0" expand="true">
             <task id="13" name="Preprocesamiento de los datos" color="#00cc00" meeting="false" start="2023-11-09" duration="2" complete="0" thirdDate="2023-11-09" thirdDate-constraint="0" expand="true"/>
-            <task id="14" name="Implementación de un modelo de segmentación" color="#00cc00" meeting="false" start="2023-11-01" duration="22" complete="0" thirdDate="2023-11-11" thirdDate-constraint="0" expand="true">
+            <task id="14" name="Implementación de un modelo de segmentación" color="#00cc00" meeting="false" start="2023-11-01" duration="12" complete="0" thirdDate="2023-11-11" thirdDate-constraint="0" expand="true">
                 <depend id="17" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="15" name="Ajuste y optimización" color="#00cc00" meeting="false" start="2023-11-14" duration="9" complete="0" thirdDate="2023-11-15" thirdDate-constraint="0" expand="true">
+            <task id="15" name="Ajuste y optimización" color="#00cc00" meeting="false" start="2023-11-04" duration="19" complete="0" thirdDate="2023-11-15" thirdDate-constraint="0" expand="true">
                 <depend id="17" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="16" name="Evaluación del modelo" color="#00cc00" meeting="false" start="2023-11-14" duration="9" complete="0" thirdDate="2023-11-15" thirdDate-constraint="0" expand="true">
+            <task id="16" name="Evaluación del modelo" color="#00cc00" meeting="false" start="2023-11-04" duration="19" complete="0" thirdDate="2023-11-15" thirdDate-constraint="0" expand="true">
                 <depend id="17" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="17" name="Implementación de un modelo de aumentación" color="#00cc00" meeting="false" start="2023-11-23" duration="25" complete="0" thirdDate="2023-11-23" thirdDate-constraint="0" expand="true">
+            <task id="17" name="Implementación de un modelo de aumentación" color="#00cc00" meeting="false" start="2023-11-23" duration="13" complete="0" thirdDate="2023-11-23" thirdDate-constraint="0" expand="true">
                 <depend id="21" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="18" name="Ajuste y optimización (aumentación)" color="#00cc00" meeting="false" start="2023-12-06" duration="12" complete="0" thirdDate="2023-12-13" thirdDate-constraint="0" expand="true">
+            <task id="18" name="Ajuste y optimización (aumentación)" color="#00cc00" meeting="false" start="2023-11-26" duration="22" complete="0" thirdDate="2023-12-13" thirdDate-constraint="0" expand="true">
                 <depend id="21" type="2" difference="0" hardness="Rubber"/>
             </task>
-            <task id="19" name="Evaluación del modelo (aumentación)" color="#00cc00" meeting="false" start="2023-12-06" duration="12" complete="0" thirdDate="2023-12-13" thirdDate-constraint="0" expand="true">
+            <task id="19" name="Evaluación del modelo (aumentación)" color="#00cc00" meeting="false" start="2023-11-26" duration="22" complete="0" thirdDate="2023-12-13" thirdDate-constraint="0" expand="true">
                 <depend id="21" type="2" difference="0" hardness="Rubber"/>
             </task>
             <task id="20" name="Guardado de modelos" color="#00cc00" meeting="false" start="2023-11-18" duration="5" complete="0" thirdDate="2023-11-18" thirdDate-constraint="0" expand="true"/>
