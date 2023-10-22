@@ -1,5 +1,6 @@
 data/
 img/
+MNIST/
 runs/
 .DS_Store
 Pipfile.lock
