@@ -1,4 +1,6 @@
 data/
+img/
+runs/
 .DS_Store
 Pipfile.lock
 
