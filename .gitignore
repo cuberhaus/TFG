@@ -1,3 +1,4 @@
+*.pth
 ._*
 data/
 img/
