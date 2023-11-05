@@ -2,14 +2,23 @@ import shutil
 from pathlib import Path
 
 
-def copy_files_to_cyclegan_structure(root_dir, target_dir):
+# GAN typical training structure
+# ├── datasets
+#     └── your_dataset_name
+#         ├── trainA  # Masks for training
+#         ├── trainB  # Images for training
+#         ├── testA   # Masks for testing
+#         └── testB   # Images for testing
+
+def copy_files_to_cyclegan_structure(root_dir, target_dir, mode='train'):
+    assert mode in ('train', 'test'), "Mode must be 'train' or 'test'."
     # Define the source directories
     images_root_dir = Path(root_dir) / 'Images'
     masks_root_dir = Path(root_dir) / 'Masks'
 
-    # Define the target directories
-    trainA_dir = Path(target_dir) / 'trainA'  # Masks
-    trainB_dir = Path(target_dir) / 'trainB'  # Original images
+    # Set up train or test directories based on the mode
+    trainA_dir = Path(target_dir) / f'{mode}A'
+    trainB_dir = Path(target_dir) / f'{mode}B'
 
     # Create the target directories if they don't exist
     trainA_dir.mkdir(parents=True, exist_ok=True)
@@ -56,6 +65,10 @@ def copy_files_to_cyclegan_structure(root_dir, target_dir):
 
 
 # Example usage
-root_dir = './data/TrainValid/TrainValid/'  # Replace with the path to your TrainValid directory
+# root_dir = './data/TrainValid/TrainValid/'  # Replace with the path to your TrainValid directory
+# target_dir = './data/PolypDataset/'  # Replace with the path to your target dataset directory for CycleGAN
+# copy_files_to_cyclegan_structure(root_dir, target_dir, mode='train')
+
+root_dir = './data/Test/Test/'  # Replace with the path to your TrainValid directory
 target_dir = './data/PolypDataset/'  # Replace with the path to your target dataset directory for CycleGAN
-copy_files_to_cyclegan_structure(root_dir, target_dir)
+copy_files_to_cyclegan_structure(root_dir, target_dir, mode='test')

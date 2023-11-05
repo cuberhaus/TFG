@@ -69,5 +69,6 @@ def process_all_videos(dataset_root_dir):
 
 
 # Example usage
-dataset_root_dir = './data/TrainValid/TrainValid'  # Replace with the path to your TrainValid directory
+# dataset_root_dir = './data/TrainValid/TrainValid'  # Replace with the path to your TrainValid directory
+dataset_root_dir = './data/Test/Test'  # Replace with the path to your TrainValid directory
 process_all_videos(dataset_root_dir)
