@@ -1,0 +1,68 @@
+import cv2
+import numpy as np
+import os
+
+def create_mask_from_bounding_boxes(image_shape, bounding_boxes):
+    mask = np.zeros(image_shape[:2], dtype=np.uint8)  # Assuming image_shape is in (H, W, C) format
+    for bbox in bounding_boxes:
+        x1, y1, x2, y2 = bbox
+        mask[y1:y2, x1:x2] = 255  # Or 1, if you want the mask to be in binary [0, 1]
+    return mask
+
+def parse_annotation(annotation_path):
+    with open(annotation_path, 'r') as file:
+        lines = file.readlines()
+
+    num_objects = int(lines[0].strip())
+    bounding_boxes = []
+
+    for i in range(1, num_objects + 1):
+        values = list(map(int, lines[i].strip().split()))
+        if len(values) == 4:
+            bounding_boxes.append(values)
+
+    return bounding_boxes
+
+def process_images_in_folder(images_folder, annotations_folder, mask_save_dir):
+    image_filenames = [f for f in os.listdir(images_folder) if f.endswith('.jpg')]
+
+    os.makedirs(mask_save_dir, exist_ok=True)  # Ensure the save directory exists
+
+    for image_filename in image_filenames:
+        img_path = os.path.join(images_folder, image_filename)
+        ann_path = os.path.join(annotations_folder, image_filename.replace('.jpg', '.txt'))
+
+        image = cv2.imread(img_path)
+        if image is None:
+            print(f"Warning: Image {img_path} not found or unable to open.")
+            continue
+
+        if not os.path.isfile(ann_path):
+            print(f"Warning: Annotation file {ann_path} not found.")
+            continue
+
+        bboxes = parse_annotation(ann_path)
+        mask = create_mask_from_bounding_boxes(image.shape, bboxes)
+
+        mask_filename = os.path.splitext(image_filename)[0] + "_mask.png"
+        mask_save_path = os.path.join(mask_save_dir, mask_filename)
+
+        cv2.imwrite(mask_save_path, mask)
+        print(f"Saved mask to {mask_save_path}")
+
+def process_all_videos(dataset_root_dir):
+    images_root_dir = os.path.join(dataset_root_dir, 'Images')
+    annotations_root_dir = os.path.join(dataset_root_dir, 'Annotations')
+    mask_save_dir = os.path.join(dataset_root_dir, 'Masks')
+
+    for video_number in sorted(os.listdir(images_root_dir)):
+        video_images_folder = os.path.join(images_root_dir, video_number)
+        video_annotations_folder = os.path.join(annotations_root_dir, video_number)
+        video_mask_save_dir = os.path.join(mask_save_dir, video_number)
+
+        if os.path.isdir(video_images_folder):
+            process_images_in_folder(video_images_folder, video_annotations_folder, video_mask_save_dir)
+
+# Example usage
+dataset_root_dir = './data/TrainValid/TrainValid'  # Replace with the path to your TrainValid directory
+process_all_videos(dataset_root_dir)
