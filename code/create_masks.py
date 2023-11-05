@@ -2,12 +2,14 @@ import cv2
 import numpy as np
 import os
 
+
 def create_mask_from_bounding_boxes(image_shape, bounding_boxes):
     mask = np.zeros(image_shape[:2], dtype=np.uint8)  # Assuming image_shape is in (H, W, C) format
     for bbox in bounding_boxes:
         x1, y1, x2, y2 = bbox
         mask[y1:y2, x1:x2] = 255  # Or 1, if you want the mask to be in binary [0, 1]
     return mask
+
 
 def parse_annotation(annotation_path):
     with open(annotation_path, 'r') as file:
@@ -22,6 +24,7 @@ def parse_annotation(annotation_path):
             bounding_boxes.append(values)
 
     return bounding_boxes
+
 
 def process_images_in_folder(images_folder, annotations_folder, mask_save_dir):
     image_filenames = [f for f in os.listdir(images_folder) if f.endswith('.jpg')]
@@ -50,6 +53,7 @@ def process_images_in_folder(images_folder, annotations_folder, mask_save_dir):
         cv2.imwrite(mask_save_path, mask)
         print(f"Saved mask to {mask_save_path}")
 
+
 def process_all_videos(dataset_root_dir):
     images_root_dir = os.path.join(dataset_root_dir, 'Images')
     annotations_root_dir = os.path.join(dataset_root_dir, 'Annotations')
@@ -62,6 +66,7 @@ def process_all_videos(dataset_root_dir):
 
         if os.path.isdir(video_images_folder):
             process_images_in_folder(video_images_folder, video_annotations_folder, video_mask_save_dir)
+
 
 # Example usage
 dataset_root_dir = './data/TrainValid/TrainValid'  # Replace with the path to your TrainValid directory
