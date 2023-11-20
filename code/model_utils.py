@@ -7,6 +7,18 @@ from torchvision.models.detection.retinanet import RetinaNetClassificationHead
 from torchvision.ops import box_iou
 
 
+def collate_fn(batch):
+    images, targets = zip(*batch)  # Transpose the batch (turn list of pairs into pair of lists)
+
+    images = list(image for image in images)
+    targets = list(target for target in targets)
+
+    images = torch.stack(images, dim=0)  # Stack images to create a 4D tensor
+
+    # In case of targets, we don't stack or pad because Faster R-CNN can handle varying-size targets
+    return images, targets
+
+
 def get_model(model_name, num_classes):
     if model_name == 'FasterRCNN':
         model = fasterrcnn_resnet50_fpn(weights=True, pretrained=True)
