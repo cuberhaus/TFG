@@ -14,7 +14,7 @@ import platform
 from custom_dataset import CustomDataset
 
 
-def prepare_dataset():
+def prepare_dataset(max_samples=None):
 
     # Define your data transformation (e.g., resizing, normalization, etc.)
     transform = transforms.Compose([
@@ -36,16 +36,16 @@ def prepare_dataset():
     if system_name == "Windows":
         print("Windows")
         # Create an instance of the custom dataset
-        train_dataset = CustomDataset(root_dir=train_root_dir_windows, transform=transform)
-        test_dataset = CustomDataset(root_dir=test_root_dir_windows, transform=transform)
+        train_dataset = CustomDataset(root_dir=train_root_dir_windows, transform=transform, max_samples=max_samples['train'])
+        test_dataset = CustomDataset(root_dir=test_root_dir_windows, transform=transform, max_samples=max_samples['test'])
     elif system_name == "Linux":
         print("Linux")
-        train_dataset = CustomDataset(root_dir=train_root_dir_linux, transform=transform)
-        test_dataset = CustomDataset(root_dir=test_root_dir_linux, transform=transform)
+        train_dataset = CustomDataset(root_dir=train_root_dir_linux, transform=transform, max_samples=max_samples['train'])
+        test_dataset = CustomDataset(root_dir=test_root_dir_linux, transform=transform, max_samples=max_samples['test'])
     elif system_name == "Darwin":
         print("macOS")
-        train_dataset = CustomDataset(root_dir=train_root_dir_mac, transform=transform)
-        test_dataset = CustomDataset(root_dir=test_root_dir_mac, transform=transform)
+        train_dataset = CustomDataset(root_dir=train_root_dir_mac, transform=transform, max_samples=max_samples['train'])
+        test_dataset = CustomDataset(root_dir=test_root_dir_mac, transform=transform, max_samples=max_samples['test'])
     return  train_dataset, test_dataset
 
 

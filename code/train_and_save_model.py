@@ -11,7 +11,11 @@ def main():
     # Define dataset directories (modify as per your paths)
     # train_root_dir = './data/TrainValid/TrainValid'  # Replace with your training dataset directory
 
-    train_dataset, test_dataset = prepare_dataset()
+    max_samples = {
+        'train': 50,
+        'test': 10
+    }
+    train_dataset, test_dataset = prepare_dataset(max_samples)
 
     # Create an instance of the custom dataset
     # train_dataset = CustomDataset(root_dir=train_root_dir, transform=transform)

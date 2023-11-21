@@ -5,12 +5,12 @@ from torch.utils.data import Dataset
 
 
 class CustomDataset(Dataset):
-    def __init__(self, root_dir, transform=None):
+    def __init__(self, root_dir, transform=None, max_samples=None):
         self.root_dir = root_dir
         self.transform = transform
         self.image_paths, self.annotation_paths = self.collect_paths(root_dir)
 
-    def collect_paths(self, root_dir):
+    def collect_paths(self, root_dir, max_samples=None):
         image_paths = []
         annotation_paths = []
 
@@ -31,6 +31,9 @@ class CustomDataset(Dataset):
                             annotation_paths.append(annotation_path)
                             image_paths.append(image_path)
 
+        if max_samples is not None:
+            image_paths = image_paths[:max_samples]
+            annotation_paths = annotation_paths[:max_samples]
         return image_paths, annotation_paths
 
     def __len__(self):
