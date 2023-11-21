@@ -1,11 +1,5 @@
-
-import torch
-from torch.utils.data import DataLoader
-from custom_dataset import CustomDataset
-from model_utils import get_model, train_model, save_model_with_hyperparams
-from torchvision import transforms
-import os
 from model_utils import *
+
 
 def main():
     # Define dataset directories (modify as per your paths)
@@ -22,7 +16,7 @@ def main():
 
     # Define hyperparameters
     params = {
-        "BATCH_SIZE":  2,
+        "BATCH_SIZE": 2,
         "LR": 0.005,
         "WEIGHT_DECAY": 0.0005,
         "CONFIDENCE_THRESHOLD": 0.5
@@ -43,11 +37,13 @@ def main():
     num_epochs = 2
 
     # Train the model
-    trained_model, epoch_losses, batch_losses, epoch = train_model(train_dataset, params, num_epochs, device, model_s='FasterRCNN')
+    trained_model, epoch_losses, batch_losses, epoch = train_model(train_dataset, params, num_epochs, device,
+                                                                   model_s='FasterRCNN')
 
     # Save the trained model
     model_path = save_model_with_hyperparams(trained_model, 'FasterRCNN', params, epoch_losses, batch_losses, epoch)
     print(f"Model saved at {model_path}")
+
 
 if __name__ == "__main__":
     main()

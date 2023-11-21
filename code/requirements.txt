@@ -1,5 +1,12 @@
 torch
-torchvision
-Pillow  # For PIL (Python Imaging Library)
-matplotlib
-scikit-learn
+torchvision~=0.16.0
+Pillow~=10.0.1
+matplotlib~=3.8.1
+scikit-learn~=1.3.0
+numpy~=1.26.0
+nbformat~=5.9.2
+dominate~=2.8.0
+requests~=2.31.0
+beautifulsoup4~=4.12.2
+wandb~=0.15.12
+scipy~=1.11.3

@@ -37,7 +37,9 @@ elif select == 3:
     notebook_path = ['main_old.ipynb', 'cycleGAN.ipynb']
     py_files = ['custom_dataset.py', 'model_utils.py', 'data_utils.py', 'create_masks.py',
                 'copy_files_to_cyclegan_structure.py']
-
+else:
+    notebook_path = []
+    py_files = []
 
 output_file = 'tmp/consolidated_code.py'
 

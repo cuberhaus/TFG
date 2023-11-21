@@ -13,9 +13,10 @@ FILES=(
 
 # Loop through each file and transfer it
 for file in "${FILES[@]}"; do
-   # Extract the base filename
+    # Extract the base filename
     basefile=$(basename "$file")
     echo "Transferring $file to $REMOTE_HOST:$REMOTE_DIR$basefile"
+    # shellcheck disable=SC2140
     scp "$file" "$REMOTE_HOST":"$REMOTE_DIR$basefile"
 done
 

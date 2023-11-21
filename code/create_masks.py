@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import cv2
 
 
 def create_mask_from_bounding_boxes(image_shape, bounding_boxes):
