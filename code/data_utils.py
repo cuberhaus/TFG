@@ -6,6 +6,9 @@ import torch
 
 
 def get_all_bounding_boxes(dataset):
+    """
+    Get all bounding boxes from a dataset.
+    """
     all_bounding_boxes = []
     for _, target in dataset:
         boxes = target['boxes'].cpu().numpy()
@@ -15,6 +18,9 @@ def get_all_bounding_boxes(dataset):
 
 
 def calculate_wcss(data, max_k=10):
+    """
+    Calculate the within-cluster sum of squares (WCSS) for different numbers of clusters.
+    """
     wcss = []
     for k in range(1, max_k + 1):
         kmeans = KMeans(n_clusters=k, init='k-means++', max_iter=300, n_init=10, random_state=0)
@@ -24,6 +30,9 @@ def calculate_wcss(data, max_k=10):
 
 
 def plot_elbow(wcss):
+    """
+    Plot the within-cluster sum of squares (WCSS) for different numbers of clusters.
+    """
     plt.figure(figsize=(10, 8))
     plt.plot(range(1, len(wcss) + 1), wcss, marker='o')
     plt.title('The Elbow Method')
@@ -72,6 +81,9 @@ def plot_silhouette_scores(silhouette_scores):
 
 
 def cluster_bounding_boxes(bounding_boxes, n_clusters=3):
+    """
+    Cluster bounding boxes using K-means clustering.
+    """
     # Convert from [x1, y1, x2, y2] to [x, y, width, height]
     data = []
     for bbox in bounding_boxes:
@@ -113,6 +125,10 @@ def plot_cluster_centers(centers):
 
 
 def plot_cluster_centers_with_bbox_centers(centers, bounding_boxes):
+    """
+    Plot the cluster centers and the centers of the bounding boxes on a chart.
+    """
+
     # Convert lists to numpy arrays if they are not already
     if isinstance(bounding_boxes, list):
         bounding_boxes = np.array(bounding_boxes)

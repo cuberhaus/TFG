@@ -8,6 +8,9 @@ from torchvision.ops import box_iou
 
 
 def collate_fn(batch):
+    """
+    Since each image may have a different number of objects, we need a collate function (to be passed to the DataLoader).
+    """
     images, targets = zip(*batch)  # Transpose the batch (turn list of pairs into pair of lists)
 
     images = list(image for image in images)
@@ -20,6 +23,9 @@ def collate_fn(batch):
 
 
 def get_model(model_name, num_classes):
+    """
+    Get the model based on its name.
+    """
     if model_name == 'FasterRCNN':
         model = fasterrcnn_resnet50_fpn(weights=True, pretrained=True)
         # Get the number of input features for the classifier
@@ -46,6 +52,9 @@ def get_model(model_name, num_classes):
 
 
 def validate(model, val_loader, device):
+    """
+    Validate the model on the validation set.
+    """
     model.eval()  # Set the model to evaluation mode
     val_loss = 0
     with torch.no_grad():  # Disable gradient calculation
@@ -61,6 +70,9 @@ def validate(model, val_loader, device):
 
 
 def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN'):
+    """
+    Train the model for a specified number of epochs.
+    """
     # Split the dataset into training and validation sets
     train_size = int(0.8 * len(train_dataset))
     val_size = len(train_dataset) - train_size
@@ -126,6 +138,9 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN'):
 
 
 def evaluate(model, val_loader, device, iou_threshold=0.5):
+    """
+    Evaluate the model on the validation set.
+    """
     model.eval()
     ious = []
 
