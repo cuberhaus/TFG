@@ -26,11 +26,19 @@ def consolidate_code(notebook_paths, py_files, output_file):
 
 
 # Define the paths
-notebook_path = ['main.ipynb']
-# notebook_path = ['main_old.ipynb', 'cycleGAN.ipynb']
-py_files = ['custom_dataset.py', 'model_utils.py', 'data_utils.py']
-# py_files = ['custom_dataset.py', 'model_utils.py', 'data_utils.py', 'create_masks.py',
-#             'copy_files_to_cyclegan_structure.py']
+select = 1
+if select == 0:
+    notebook_path = ['main.ipynb']
+    py_files = ['custom_dataset.py', 'model_utils.py', 'data_utils.py']
+elif select == 1:
+    notebook_path = []
+    py_files = ['train_and_save_model.py', 'custom_dataset.py', 'model_utils.py', 'data_utils.py']
+elif select == 3:
+    notebook_path = ['main_old.ipynb', 'cycleGAN.ipynb']
+    py_files = ['custom_dataset.py', 'model_utils.py', 'data_utils.py', 'create_masks.py',
+                'copy_files_to_cyclegan_structure.py']
+
+
 output_file = 'tmp/consolidated_code.py'
 
 # Run the consolidation

@@ -149,6 +149,7 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN'):
         epoch_loss = 0
 
         print("epoch:", epoch + 1)
+        print("len(train_loader):", len(train_loader))
         for images, targets in train_loader:
             print("batch:", len(batch_losses) + 1)
             images = list(image.to(device) for image in images)
