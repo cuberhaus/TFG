@@ -24,9 +24,11 @@ def prepare_dataset():
 
     train_root_dir_mac = '/Volumes/SSD_6Gbps/dataset1/TrainValid/TrainValid'
     train_root_dir_windows = './data/TrainValid/TrainValid'
+    train_root_dir_linux = '/home/casacuberta/TFG/TrainVaid/TrainValid'
 
     test_root_dir_mac = '/Volumes/SSD_6Gbps/dataset1/Test/Test'
     test_root_dir_windows = './data/Test/Test'
+    test_root_dir_linux = '/home/casacuberta/TFG/Test/Test'
 
     system_name = platform.system()
     train_dataset = None
@@ -38,8 +40,8 @@ def prepare_dataset():
         test_dataset = CustomDataset(root_dir=test_root_dir_windows, transform=transform)
     elif system_name == "Linux":
         print("Linux")
-        train_dataset = CustomDataset(root_dir=train_root_dir_windows, transform=transform)
-        test_dataset = CustomDataset(root_dir=test_root_dir_windows, transform=transform)
+        train_dataset = CustomDataset(root_dir=train_root_dir_linux, transform=transform)
+        test_dataset = CustomDataset(root_dir=test_root_dir_linux, transform=transform)
     elif system_name == "Darwin":
         print("macOS")
         train_dataset = CustomDataset(root_dir=train_root_dir_mac, transform=transform)
