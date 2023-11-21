@@ -2,7 +2,7 @@
 
 # Define remote host and directory
 REMOTE_HOST="casacuberta@teegarden.cs.upc.edu"
-REMOTE_DIR="/home/casacuberta/code/"
+REMOTE_DIR="/home/casacuberta/TFG/code/"
 
 # Define an array of local file paths to be transferred
 FILES=(

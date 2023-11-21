@@ -1,0 +1,5 @@
+torch
+torchvision
+Pillow  # For PIL (Python Imaging Library)
+matplotlib
+scikit-learn
