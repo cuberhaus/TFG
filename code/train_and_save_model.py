@@ -8,19 +8,10 @@ import os
 from model_utils import *
 
 def main():
-    # Define your data transformation (e.g., resizing, normalization, etc.)
-    transform = transforms.Compose([
-        transforms.Resize((560, 480)),
-        transforms.ToTensor(),
-    ])
-
     # Define dataset directories (modify as per your paths)
     # train_root_dir = './data/TrainValid/TrainValid'  # Replace with your training dataset directory
 
     train_dataset, test_dataset = prepare_dataset()
-    # Create a DataLoader to iterate through the dataset
-    train_dataloader = DataLoader(train_dataset, batch_size=1, shuffle=True)
-    test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=True)
 
     # Create an instance of the custom dataset
     # train_dataset = CustomDataset(root_dir=train_root_dir, transform=transform)
@@ -30,6 +21,7 @@ def main():
         "BATCH_SIZE":  2,
         "LR": 0.005,
         "WEIGHT_DECAY": 0.0005,
+        "CONFIDENCE_THRESHOLD": 0.5
     }
 
     # Check device (CUDA or CPU)
