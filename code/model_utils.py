@@ -1,8 +1,11 @@
+import os
+from datetime import datetime
+
 import torch
-import torchvision
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, fasterrcnn_resnet50_fpn
-from torch.utils.data import DataLoader
 import torch.optim as optim
+import torchvision
+from torch.utils.data import DataLoader
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, fasterrcnn_resnet50_fpn
 from torchvision.models.detection.retinanet import RetinaNetClassificationHead
 from torchvision.ops import box_iou
 
@@ -134,7 +137,7 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN'):
         for param_group in optimizer.param_groups:
             print(f'Learning Rate: {param_group["lr"]:.6f}')
 
-    return model, epoch_losses, batch_losses
+    return model, epoch_losses, batch_losses, epoch
 
 
 def evaluate(model, val_loader, device, iou_threshold=0.5):
@@ -183,3 +186,92 @@ def evaluate(model, val_loader, device, iou_threshold=0.5):
         'f1': f1,
         'ious': ious  # List of IoU for correctly predicted boxes
     }
+
+
+def save_model_with_hyperparams(model, model_name, hyperparams,
+                                epoch_losses=None, batch_losses=None, epoch=None, save_dir='./saved_models/'):
+    """
+    Saves the model with a filename that includes the model name and hyperparameters.
+
+    :param epoch:
+    :param batch_losses:
+    :param epoch_losses:
+    :param model: The model to be saved.
+    :param model_name: Name of the model (string).
+    :param hyperparams: Dictionary of hyperparameters.
+    :param save_dir: Directory where the model will be saved.
+    """
+    # Create the parent directory if it doesn't exist
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # Generate a timestamp
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+
+    # Construct the filename with model and hyperparameters
+    hyperparams_str = '_'.join([f'{key}-{value}' for key, value in hyperparams.items()])
+    epoch_str = f'_epoch-{epoch}' if epoch is not None else ''
+    base_filename = f"{model_name}_{hyperparams_str}{epoch_str}_{timestamp}"
+
+    # Full path for the model file
+    model_file_path = os.path.join(save_dir, base_filename)
+
+    # Save the model
+    torch.save(model.state_dict(), model_file_path)
+
+    # Save epoch losses if provided
+    if epoch_losses is not None:
+        epoch_losses_path = os.path.join(save_dir, f"{base_filename}_epoch_losses.txt")
+        with open(epoch_losses_path, 'w') as file:
+            for loss in epoch_losses:
+                file.write(f"{loss}\n")
+        print(f"Epoch losses saved as: {epoch_losses_path}")
+
+    # Save batch losses if provided
+    if batch_losses is not None:
+        batch_losses_path = os.path.join(save_dir, f"{base_filename}_batch_losses.txt")
+        with open(batch_losses_path, 'w') as file:
+            for loss in batch_losses:
+                file.write(f"{loss}\n")
+        print(f"Batch losses saved as: {batch_losses_path}")
+    # torch.save({
+    #     'model_state_dict': model.state_dict(),
+    #     'optimizer_state_dict': model.state_dict()
+    # }, model_file_path)
+    print(f"Model saved as: {model_file_path}")
+    return model_file_path
+
+
+def load_model_with_hyperparams(model, base_filename, load_dir='./saved_models/'):
+    """
+    Loads the model, epoch losses, and batch losses from files.
+
+    :param model: The model object to load the state into.
+    :param base_filename: Base filename used when saving the model and losses.
+    :param load_dir: Directory where the model and loss files are stored.
+    :return: The model, epoch_losses, and batch_losses.
+    """
+    # Construct file paths
+    model_file_path = os.path.join(load_dir, base_filename)
+    epoch_losses_path = os.path.join(load_dir, f"{base_filename}_epoch_losses.txt")
+    batch_losses_path = os.path.join(load_dir, f"{base_filename}_batch_losses.txt")
+
+    # Load the model
+    model.load_state_dict(torch.load(model_file_path))
+    print(f"Model loaded from: {model_file_path}")
+
+    # Load epoch losses
+    epoch_losses = []
+    if os.path.exists(epoch_losses_path):
+        with open(epoch_losses_path, 'r') as file:
+            epoch_losses = [float(line.strip()) for line in file]
+        print(f"Epoch losses loaded from: {epoch_losses_path}")
+
+    # Load batch losses
+    batch_losses = []
+    if os.path.exists(batch_losses_path):
+        with open(batch_losses_path, 'r') as file:
+            batch_losses = [float(line.strip()) for line in file]
+        print(f"Batch losses loaded from: {batch_losses_path}")
+
+    return model, epoch_losses, batch_losses

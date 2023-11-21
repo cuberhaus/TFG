@@ -27,7 +27,7 @@ def consolidate_code(notebook_paths, py_files, output_file):
 
 # Define the paths
 notebook_path = ['main.ipynb']
-# notebook_path = ['main.ipynb', 'cycleGAN.ipynb']
+# notebook_path = ['main_old.ipynb', 'cycleGAN.ipynb']
 py_files = ['custom_dataset.py', 'model_utils.py', 'data_utils.py']
 # py_files = ['custom_dataset.py', 'model_utils.py', 'data_utils.py', 'create_masks.py',
 #             'copy_files_to_cyclegan_structure.py']
