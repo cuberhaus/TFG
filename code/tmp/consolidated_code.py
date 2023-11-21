@@ -89,11 +89,14 @@ class CustomDataset(Dataset):
 
 
 # Code from model_utils.py
+import os
+from datetime import datetime
+
 import torch
-import torchvision
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, fasterrcnn_resnet50_fpn
-from torch.utils.data import DataLoader
 import torch.optim as optim
+import torchvision
+from torch.utils.data import DataLoader
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, fasterrcnn_resnet50_fpn
 from torchvision.models.detection.retinanet import RetinaNetClassificationHead
 from torchvision.ops import box_iou
 
@@ -225,7 +228,7 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN'):
         for param_group in optimizer.param_groups:
             print(f'Learning Rate: {param_group["lr"]:.6f}')
 
-    return model, epoch_losses, batch_losses
+    return model, epoch_losses, batch_losses, epoch
 
 
 def evaluate(model, val_loader, device, iou_threshold=0.5):
@@ -276,12 +279,100 @@ def evaluate(model, val_loader, device, iou_threshold=0.5):
     }
 
 
+def save_model_with_hyperparams(model, model_name, hyperparams,
+                                epoch_losses=None, batch_losses=None, epoch=None, save_dir='./saved_models/'):
+    """
+    Saves the model with a filename that includes the model name and hyperparameters.
+
+    :param epoch:
+    :param batch_losses:
+    :param epoch_losses:
+    :param model: The model to be saved.
+    :param model_name: Name of the model (string).
+    :param hyperparams: Dictionary of hyperparameters.
+    :param save_dir: Directory where the model will be saved.
+    """
+    # Create the parent directory if it doesn't exist
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+
+    # Generate a timestamp
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+
+    # Construct the filename with model and hyperparameters
+    hyperparams_str = '_'.join([f'{key}-{value}' for key, value in hyperparams.items()])
+    epoch_str = f'_epoch-{epoch}' if epoch is not None else ''
+    base_filename = f"{model_name}_{hyperparams_str}{epoch_str}_{timestamp}"
+
+    # Full path for the model file
+    model_file_path = os.path.join(save_dir, base_filename)
+
+    # Save the model
+    torch.save(model.state_dict(), model_file_path)
+
+    # Save epoch losses if provided
+    if epoch_losses is not None:
+        epoch_losses_path = os.path.join(save_dir, f"{base_filename}_epoch_losses.txt")
+        with open(epoch_losses_path, 'w') as file:
+            for loss in epoch_losses:
+                file.write(f"{loss}\n")
+        print(f"Epoch losses saved as: {epoch_losses_path}")
+
+    # Save batch losses if provided
+    if batch_losses is not None:
+        batch_losses_path = os.path.join(save_dir, f"{base_filename}_batch_losses.txt")
+        with open(batch_losses_path, 'w') as file:
+            for loss in batch_losses:
+                file.write(f"{loss}\n")
+        print(f"Batch losses saved as: {batch_losses_path}")
+    # torch.save({
+    #     'model_state_dict': model.state_dict(),
+    #     'optimizer_state_dict': model.state_dict()
+    # }, model_file_path)
+    print(f"Model saved as: {model_file_path}")
+    return model_file_path
+
+
+def load_model_with_hyperparams(model, base_filename, load_dir='./saved_models/'):
+    """
+    Loads the model, epoch losses, and batch losses from files.
+
+    :param model: The model object to load the state into.
+    :param base_filename: Base filename used when saving the model and losses.
+    :param load_dir: Directory where the model and loss files are stored.
+    :return: The model, epoch_losses, and batch_losses.
+    """
+    # Construct file paths
+    model_file_path = os.path.join(load_dir, base_filename)
+    epoch_losses_path = os.path.join(load_dir, f"{base_filename}_epoch_losses.txt")
+    batch_losses_path = os.path.join(load_dir, f"{base_filename}_batch_losses.txt")
+
+    # Load the model
+    model.load_state_dict(torch.load(model_file_path))
+    print(f"Model loaded from: {model_file_path}")
+
+    # Load epoch losses
+    epoch_losses = []
+    if os.path.exists(epoch_losses_path):
+        with open(epoch_losses_path, 'r') as file:
+            epoch_losses = [float(line.strip()) for line in file]
+        print(f"Epoch losses loaded from: {epoch_losses_path}")
+
+    # Load batch losses
+    batch_losses = []
+    if os.path.exists(batch_losses_path):
+        with open(batch_losses_path, 'r') as file:
+            batch_losses = [float(line.strip()) for line in file]
+        print(f"Batch losses loaded from: {batch_losses_path}")
+
+    return model, epoch_losses, batch_losses
+
+
 # Code from data_utils.py
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
-import torch
 
 
 def get_all_bounding_boxes(dataset):
@@ -439,26 +530,12 @@ def plot_cluster_centers_with_bbox_centers(centers, bounding_boxes):
 
 
 # Code from main.ipynb
-import os
-from PIL import Image
-import torch
 from torch.utils.data import Dataset
-from torchvision import transforms
 import numpy as np
 
 from torchvision import transforms
-from torch.utils.data import DataLoader
 
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-import torch
 from torch.utils.data import DataLoader
-from torchvision.models.detection import fasterrcnn_resnet50_fpn
-from torchvision.transforms import functional as F
-import torchvision.transforms as T
-import torch.optim as optim
-import torchvision
-
-from datetime import datetime
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -553,8 +630,6 @@ else:
 print(f"Using device: {device}")
 
 
-
-
 from model_utils import *
 # Define hyperparameters
 param = {
@@ -573,9 +648,6 @@ train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [train
 # Create DataLoaders
 train_loader = DataLoader(train_dataset, batch_size=param["BATCH_SIZE"], shuffle=True, collate_fn=collate_fn)
 val_loader = DataLoader(val_dataset, batch_size=param["BATCH_SIZE"], collate_fn=collate_fn)
-
-
-from torchvision.models.detection.retinanet import RetinaNetClassificationHead
 
 
 # Modify the model for your specific dataset: Change the number of classes
@@ -635,7 +707,11 @@ for box in predictions[0]['boxes']:
     plt.gca().add_patch(rect)
 
 num_epochs = 2
-model, epoch_losses, batch_losses = train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN')
+model, epoch_losses, batch_losses, epoch = train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN')
+
+
+# num_epochs = 2
+# model, epoch_losses, batch_losses, epoch = train_model(train_dataset, param, num_epochs, device, model_s='SSD')
 
 
 # After training, you can plot the epoch losses
@@ -646,64 +722,9 @@ plt.title('Training Loss Over Epochs')
 plt.legend()
 plt.show()
 
-# Generate a timestamp or unique identifier
-timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+save_model_with_hyperparams(model,'FasterRCNN',params,epoch_losses,batch_losses,epoch)
 
-# Define a directory to save the models
-save_dir = "./saved_models/"
 
-# Create the parent directory if it doesn't exist
-if not os.path.exists(save_dir):
-    os.makedirs(save_dir)
-
-# Save the generator model and optimizer state with a unique filename
-generator_checkpoint_file = f"{save_dir}generator_checkpoint_{timestamp}.pth"
-torch.save({
-    'model_state_dict': model.state_dict(),
-    'optimizer_state_dict': model.state_dict()
-}, generator_checkpoint_file)
-
-# Define filenames with timestamps
-epoch_losses_filename =  os.path.join(save_dir, f"epoch_losses_{timestamp}.txt")
-batch_losses_filename =  os.path.join(save_dir, f"batch_losses_{timestamp}.txt")
- 
-# Save to a file with a timestamp
-with open(epoch_losses_filename, 'w') as file:
-    for loss in epoch_losses:
-        file.write(f"{loss}\n")
-        
-with open(batch_losses_filename, 'w') as file:
-    for loss in batch_losses:
-        file.write(f"{loss}\n")
-
-# Provide the timestamp you want to load
-specified_timestamp = "20231022200319"  # Replace with the desired timestamp
-
-# Load the generator model and optimizer state
-checkpoint = torch.load(f'./saved_models/generator_checkpoint_{specified_timestamp}.pth')
-model.load_state_dict(checkpoint['model_state_dict'])
-model.load_state_dict(checkpoint['optimizer_state_dict'])
-
-# Define the filenames based on the specified timestamp
-specified_epoch_losses_filename = f"./saved_models/epoch_losses_{specified_timestamp}.txt"
-specified_batch_losses_filename = f"./saved_models/batch_losses_{specified_timestamp}.txt"
-
-# Define lists to store the loaded losses
-loaded_epoch_losses = []
-loaded_batch_losses = []
-
-# Load G_losses from the file with the specified timestamp
-with open(specified_batch_losses_filename, 'r') as file:
-    for line in file:
-        loaded_batch_losses.append(float(line.strip()))
-
-# Load D_losses from the file with the specified timestamp
-with open(specified_epoch_losses_filename, 'r') as file:
-    for line in file:
-        loaded_epoch_losses.append(float(line.strip()))
-
-epoch_losses = loaded_epoch_losses
-batch_losses = loaded_batch_losses
 
 from torchvision.ops import box_iou
 
@@ -750,141 +771,4 @@ plot_cluster_centers_with_bbox_centers(centers_3, all_bounding_boxes)
 plot_cluster_centers_with_bbox_centers(centers_8, all_bounding_boxes)
 
 
-
-# # Importar las bibliotecas necesarias
-# import torch
-# from torch import nn
-# from torch.optim import Adam
-# from torchvision import transforms
-# from torchvision.datasets import ImageFolder
-# from torch.utils.data import DataLoader
-# from cycle_gan_model import Generator, Discriminator  # Suponiendo que tienes implementaciones de Generator y Discriminator
-# 
-# # Definir transformaciones para las imágenes
-# transform = transforms.Compose([
-#     transforms.Resize((256, 256)),  # Cambiar al tamaño deseado
-#     transforms.ToTensor(),
-#     transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-# ])
-# 
-# # Cargar los datasets
-# # Supongamos que tienes dos carpetas: '/path/to/masks' para máscaras y '/path/to/real_images' para imágenes reales
-# dataset_masks = ImageFolder('/path/to/masks', transform=transform)
-# dataset_real_images = ImageFolder('/path/to/real_images', transform=transform)
-# 
-# # Crear DataLoaders para los datasets
-# loader_masks = DataLoader(dataset_masks, batch_size=1, shuffle=True)
-# loader_real_images = DataLoader(dataset_real_images, batch_size=1, shuffle=True)
-# 
-# # Inicializar los modelos GAN
-# G_mask_to_image = Generator()  # Generador que convierte máscaras en imágenes
-# G_image_to_mask = Generator()  # Generador que convierte imágenes en máscaras
-# D_image = Discriminator()  # Discriminador para imágenes
-# D_mask = Discriminator()  # Discriminador para máscaras
-# 
-# # Mover modelos al dispositivo adecuado (CPU o GPU)
-# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# G_mask_to_image.to(device)
-# G_image_to_mask.to(device)
-# D_image.to(device)
-# D_mask.to(device)
-# 
-# # Definir los optimizadores para los generadores y discriminadores
-# optimizer_G = Adam(list(G_mask_to_image.parameters()) + list(G_image_to_mask.parameters()), lr=0.0002, betas=(0.5, 0.999))
-# optimizer_D_image = Adam(D_image.parameters(), lr=0.0002, betas=(0.5, 0.999))
-# optimizer_D_mask = Adam(D_mask.parameters(), lr=0.0002, betas=(0.5, 0.999))
-# 
-# # Definir la función de pérdida (adversarial loss)
-# criterion_GAN = nn.MSELoss()
-# criterion_cycle = nn.L1Loss()  # Para la consistencia cíclica
-# criterion_identity = nn.L1Loss()  # Para la pérdida de identidad (opcional)
-# 
-# # Bucle de entrenamiento
-# for epoch in range(num_epochs):
-#     for mask, real_image in zip(loader_masks, loader_real_images):
-# 
-#         # Preparar los inputs
-#         real_image = real_image.to(device)
-#         mask = mask.to(device)
-# 
-#         # Generar una imagen falsa a partir de la máscara
-#         fake_image = G_mask_to_image(mask)
-# 
-#         # Entrenar los discriminadores (D_image y D_mask)
-#         # ...
-# 
-#         # Calcular la pérdida para los generadores (G_mask_to_image y G_image_to_mask)
-#         # ...
-# 
-#         # Retropropagación y optimización para los generadores
-#         # ...
-# 
-#         # Retropropagación y optimización para los discriminadores
-#         # ...
-# 
-# # Guardar los modelos entrenados
-# torch.save(G_mask_to_image.state_dict(), 'G_mask_to_image.pth')
-# torch.save(G_image_to_mask.state_dict(), 'G_image_to_mask.pth')
-# torch.save(D_image.state_dict(), 'D_image.pth')
-# torch.save(D_mask.state_dict(), 'D_mask.pth')
-# 
-# # Generar imágenes para evaluación o más entrenamiento
-# G_mask_to_image.eval()
-# with torch.no_grad():
-#     for mask in loader_masks:
-#         mask = mask.to(device)
-#         synthetic_image = G_mask_to_image(mask)
-#         # Guardar o utilizar synthetic_image
-
-
-# Train the model
-# epoch_losses = []  # List to store epoch loss
-# batch_losses = []  # List to store losses for each batch
-# 
-# best_val_loss = float('inf')  # Initialize best validation loss
-# 
-# for epoch in range(num_epochs):
-#     model.train()
-#     epoch_loss = 0  # Keep track of the total loss for this epoch
-#     for images, targets in train_loader:
-#         # Move images and targets to device
-#         images = list(image.to(device) for image in images)
-#         targets = [{k: v.to(device) for k, v in target.items()} for target in targets]
-#        
-#         # Debugging code to check the device of the inputs 
-#         # print(f"Device of model parameters: {[p.device for p in model.parameters()]}")
-#         # print(f"Device of images: {images[0].device}")
-#         # print(f"Device of targets: {targets[0]['boxes'].device}")
-# 
-#         loss_dict = model(images, targets)
-#         losses = sum(loss.to(device) for loss in loss_dict.values())
-#         
-#         epoch_loss += losses.item()  # Add the batch loss to the total epoch loss
-# 
-#         # Record the loss for the current batch
-#         batch_loss = losses.item()
-#         batch_losses.append(batch_loss)
-#         
-#         optimizer.zero_grad()
-#         losses.backward()
-#         optimizer.step()
-#         
-#     # After training for an epoch, validate
-#     val_loss = validate(model, val_loader, device)
-#     
-#     # Check if this is the best model based on validation loss
-#     if val_loss < best_val_loss:
-#         best_val_loss = val_loss
-#         # Save the best model
-#         torch.save(model.state_dict(), 'best_model.pth')
-# 
-#     # Print out the information
-#     print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {epoch_loss:.4f}')
-#     # Append the epoch loss to the list
-#     epoch_losses.append(epoch_loss)
-#     # Update the learning rate
-#     lr_scheduler.step()
-#     # Print learning rate for each parameter group
-#     for param_group in optimizer.param_groups:
-#         print(f'Learning Rate: {param_group["lr"]:.6f}')
 

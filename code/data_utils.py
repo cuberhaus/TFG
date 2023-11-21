@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
-import torch
 
 
 def get_all_bounding_boxes(dataset):
