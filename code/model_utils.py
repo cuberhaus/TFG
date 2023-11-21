@@ -8,6 +8,43 @@ from torch.utils.data import DataLoader
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, fasterrcnn_resnet50_fpn
 from torchvision.models.detection.retinanet import RetinaNetClassificationHead
 from torchvision.ops import box_iou
+from torchvision import transforms
+import os
+import platform
+from custom_dataset import CustomDataset
+
+
+def prepare_dataset():
+
+    # Define your data transformation (e.g., resizing, normalization, etc.)
+    transform = transforms.Compose([
+        transforms.Resize((560, 480)),
+        transforms.ToTensor(),
+    ])
+
+    train_root_dir_mac = '/Volumes/SSD_6Gbps/dataset1/TrainValid/TrainValid'
+    train_root_dir_windows = './data/TrainValid/TrainValid'
+
+    test_root_dir_mac = '/Volumes/SSD_6Gbps/dataset1/Test/Test'
+    test_root_dir_windows = './data/Test/Test'
+
+    system_name = platform.system()
+    train_dataset = None
+    test_dataset = None
+    if system_name == "Windows":
+        print("Windows")
+        # Create an instance of the custom dataset
+        train_dataset = CustomDataset(root_dir=train_root_dir_windows, transform=transform)
+        test_dataset = CustomDataset(root_dir=test_root_dir_windows, transform=transform)
+    elif system_name == "Linux":
+        print("Linux")
+        train_dataset = CustomDataset(root_dir=train_root_dir_windows, transform=transform)
+        test_dataset = CustomDataset(root_dir=test_root_dir_windows, transform=transform)
+    elif system_name == "Darwin":
+        print("macOS")
+        train_dataset = CustomDataset(root_dir=train_root_dir_mac, transform=transform)
+        test_dataset = CustomDataset(root_dir=test_root_dir_mac, transform=transform)
+    return  train_dataset, test_dataset
 
 
 def collate_fn(batch):
@@ -109,7 +146,9 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN'):
         model.train()
         epoch_loss = 0
 
+        print("epoch:", epoch + 1)
         for images, targets in train_loader:
+            print("batch:", len(batch_losses) + 1)
             images = list(image.to(device) for image in images)
             targets = [{k: v.to(device) for k, v in target.items()} for target in targets]
 
