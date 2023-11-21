@@ -24,7 +24,7 @@ def prepare_dataset():
 
     train_root_dir_mac = '/Volumes/SSD_6Gbps/dataset1/TrainValid/TrainValid'
     train_root_dir_windows = './data/TrainValid/TrainValid'
-    train_root_dir_linux = '/home/casacuberta/TFG/TrainVaid/TrainValid'
+    train_root_dir_linux = '/home/casacuberta/TFG/TrainValid/TrainValid'
 
     test_root_dir_mac = '/Volumes/SSD_6Gbps/dataset1/Test/Test'
     test_root_dir_windows = './data/Test/Test'
