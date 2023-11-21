@@ -8,7 +8,7 @@ class CustomDataset(Dataset):
     def __init__(self, root_dir, transform=None, max_samples=None):
         self.root_dir = root_dir
         self.transform = transform
-        self.image_paths, self.annotation_paths = self.collect_paths(root_dir)
+        self.image_paths, self.annotation_paths = self.collect_paths(root_dir, max_samples)
 
     def collect_paths(self, root_dir, max_samples=None):
         image_paths = []
