@@ -12,7 +12,7 @@ def main():
     # train_root_dir = './data/TrainValid/TrainValid'  # Replace with your training dataset directory
 
     max_samples = {
-        'train': 50,
+        'train': 20,
         'test': 10
     }
     train_dataset, test_dataset = prepare_dataset(max_samples)

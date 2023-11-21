@@ -5,7 +5,8 @@ import torch
 import torch.optim as optim
 import torchvision
 from torch.utils.data import DataLoader
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, fasterrcnn_resnet50_fpn
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, fasterrcnn_resnet50_fpn, \
+    FasterRCNN_ResNet50_FPN_Weights
 from torchvision.models.detection.retinanet import RetinaNetClassificationHead
 from torchvision.ops import box_iou
 from torchvision import transforms
@@ -69,7 +70,7 @@ def get_model(model_name, num_classes):
     Get the model based on its name.
     """
     if model_name == 'FasterRCNN':
-        model = fasterrcnn_resnet50_fpn(weights=True, pretrained=True)
+        model = fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT, pretrained=True)
         # Get the number of input features for the classifier
         in_features = model.roi_heads.box_predictor.cls_score.in_features
         # Replace the pre-trained head with a new one
