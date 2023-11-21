@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Define remote host and directory
-REMOTE_HOST="cuberhaus@teegarden.cs.upc.edu"
-REMOTE_DIR="/home/cuberhaus/code/"
+REMOTE_HOST="casacuberta@teegarden.cs.upc.edu"
+REMOTE_DIR="/home/casacuberta/code/"
 
 # Define an array of local file paths to be transferred
 FILES=(
@@ -13,8 +13,10 @@ FILES=(
 
 # Loop through each file and transfer it
 for file in "${FILES[@]}"; do
-    echo "Transferring $file to $REMOTE_HOST:$REMOTE_DIR"
-    scp "$file" "$REMOTE_HOST":"$REMOTE_DIR"
+   # Extract the base filename
+    basefile=$(basename "$file")
+    echo "Transferring $file to $REMOTE_HOST:$REMOTE_DIR$basefile"
+    scp "$file" "$REMOTE_HOST":"$REMOTE_DIR$basefile"
 done
 
 echo "All files transferred to $REMOTE_HOST:$REMOTE_DIR"
