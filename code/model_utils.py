@@ -168,7 +168,8 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN'):
             optimizer.step()
 
         # Validation
-        val_loss = validate(model, val_loader, device)
+        metrics = evaluate(model, val_loader, device)
+        val_loss = metrics['f1']
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             torch.save(model.state_dict(), 'best_model.pth')
