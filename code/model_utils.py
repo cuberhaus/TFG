@@ -23,30 +23,29 @@ def prepare_dataset(max_samples=None):
         transforms.ToTensor(),
     ])
 
-    train_root_dir_mac = '/Volumes/SSD_6Gbps/dataset1/TrainValid/TrainValid'
-    train_root_dir_windows = './data/TrainValid/TrainValid'
-    train_root_dir_linux = '/home/casacuberta/TFG/TrainValid/TrainValid'
-
-    test_root_dir_mac = '/Volumes/SSD_6Gbps/dataset1/Test/Test'
-    test_root_dir_windows = './data/Test/Test'
-    test_root_dir_linux = '/home/casacuberta/TFG/Test/Test'
-
     system_name = platform.system()
-    train_dataset = None
-    test_dataset = None
+    test_root_dir = None
+    train_root_dir = None
+
     if system_name == "Windows":
+        train_root_dir = './data/TrainValid/TrainValid'
+        test_root_dir = './data/Test/Test'
         print("Windows")
-        # Create an instance of the custom dataset
-        train_dataset = CustomDataset(root_dir=train_root_dir_windows, transform=transform, max_samples=max_samples['train'])
-        test_dataset = CustomDataset(root_dir=test_root_dir_windows, transform=transform, max_samples=max_samples['test'])
     elif system_name == "Linux":
+        train_root_dir = '/home/casacuberta/TFG/TrainValid/TrainValid'
+        test_root_dir = '/home/casacuberta/TFG/Test/Test'
         print("Linux")
-        train_dataset = CustomDataset(root_dir=train_root_dir_linux, transform=transform, max_samples=max_samples['train'])
-        test_dataset = CustomDataset(root_dir=test_root_dir_linux, transform=transform, max_samples=max_samples['test'])
     elif system_name == "Darwin":
+        train_root_dir = '/Volumes/SSD_6Gbps/dataset1/TrainValid/TrainValid'
+        test_root_dir = '/Volumes/SSD_6Gbps/dataset1/Test/Test'
         print("macOS")
-        train_dataset = CustomDataset(root_dir=train_root_dir_mac, transform=transform, max_samples=max_samples['train'])
-        test_dataset = CustomDataset(root_dir=test_root_dir_mac, transform=transform, max_samples=max_samples['test'])
+
+    # Create instances of the custom dataset
+    train_max_samples = max_samples['train'] if max_samples and 'train' in max_samples else None
+    test_max_samples = max_samples['test'] if max_samples and 'test' in max_samples else None
+
+    train_dataset = CustomDataset(root_dir=train_root_dir, transform=transform, max_samples=train_max_samples)
+    test_dataset = CustomDataset(root_dir=test_root_dir, transform=transform, max_samples=test_max_samples)
     return  train_dataset, test_dataset
 
 
