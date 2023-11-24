@@ -54,10 +54,9 @@ max_samples = {
     'train': 20,
     'test': 10
 }
+
 # Load the test dataset
-# test_root_dir = ''  # Replace with the path to your test dataset
 train_dataset, test_dataset = prepare_dataset(max_samples)
-# test_dataset = CustomDataset(root_dir=test_root_dir, transform=None)  # Assuming no additional transform needed
 
 # Test the model and save images
 test_model_and_save_images(model, test_dataset)
