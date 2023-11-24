@@ -9,6 +9,7 @@ FILES=(
     "./custom_dataset.py"
     "./model_utils.py"
     "./train_and_save_model.py"
+    "./test_model.py"
 )
 
 # Loop through each file and transfer it
