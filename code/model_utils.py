@@ -172,7 +172,7 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN'):
         val_loss = metrics['f1']
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            torch.save(model.state_dict(), 'best_model.pth')
+            torch.save(model.state_dict(), 'saved_models/best_model.pth')
 
         print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {epoch_loss:.4f}')
         epoch_losses.append(epoch_loss)
@@ -301,7 +301,10 @@ def load_model_with_hyperparams(model, base_filename, load_dir='./saved_models/'
     batch_losses_path = os.path.join(load_dir, f"{base_filename}_batch_losses.txt")
 
     # Load the model
-    model.load_state_dict(torch.load(model_file_path))
+    if torch.cuda.is_available():
+        model.load_state_dict(torch.load(model_file_path))
+    else:
+        model.load_state_dict(torch.load(model_file_path, map_location=torch.device('cpu')))
     print(f"Model loaded from: {model_file_path}")
 
     # Load epoch losses

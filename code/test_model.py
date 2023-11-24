@@ -1,4 +1,5 @@
 import os
+import platform
 
 import torch
 from torchvision.transforms.functional import to_pil_image
@@ -36,7 +37,12 @@ model = get_model('FasterRCNN', num_classes)
 
 # Load the model weights
 model_name = 'best_model.pth'  # Replace with your model's name
-model, _, _ = load_model_with_hyperparams(model, model_name, load_dir="./")  # Assuming the model is compatible with this function
+system_name = platform.system()
+
+if system_name == 'Linux':
+    model, _, _ = load_model_with_hyperparams(model, model_name, load_dir="./")  # Assuming the model is compatible with this function
+elif system_name == 'Darwin':
+    model, _, _ = load_model_with_hyperparams(model, model_name)  # Assuming the model is compatible with this function
 
 max_samples = {
     'train': 20,
