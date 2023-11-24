@@ -16,7 +16,6 @@ from custom_dataset import CustomDataset
 
 
 def prepare_dataset(max_samples=None):
-
     # Define your data transformation (e.g., resizing, normalization, etc.)
     transform = transforms.Compose([
         transforms.Resize((560, 480)),
@@ -46,7 +45,7 @@ def prepare_dataset(max_samples=None):
 
     train_dataset = CustomDataset(root_dir=train_root_dir, transform=transform, max_samples=train_max_samples)
     test_dataset = CustomDataset(root_dir=test_root_dir, transform=transform, max_samples=test_max_samples)
-    return  train_dataset, test_dataset
+    return train_dataset, test_dataset
 
 
 def collate_fn(batch):
@@ -232,9 +231,10 @@ def evaluate(model, val_loader, device, iou_threshold=0.5):
 
 
 def save_model_with_hyperparams(model, model_name, hyperparams,
-                                epoch_losses=None, batch_losses=None, epoch=None, save_dir='./saved_models/'):
+                                epoch_losses=None, batch_losses=None, epoch=None,
+                                save_dir='./saved_models/', losses_dir='./losses/'):
     """
-    Saves the model with a filename that includes the model name and hyperparameters.
+    Saves the model with a filename that includes the model name and hyperparameters. Losses are saved in a separate directory.
 
     :param epoch:
     :param batch_losses:
@@ -243,10 +243,13 @@ def save_model_with_hyperparams(model, model_name, hyperparams,
     :param model_name: Name of the model (string).
     :param hyperparams: Dictionary of hyperparameters.
     :param save_dir: Directory where the model will be saved.
+    :param losses_dir: Directory where the losses will be saved.
     """
-    # Create the parent directory if it doesn't exist
+    # Create the parent directories if they don't exist
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
+    if not os.path.exists(losses_dir):
+        os.makedirs(losses_dir)
 
     # Generate a timestamp
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
@@ -264,7 +267,7 @@ def save_model_with_hyperparams(model, model_name, hyperparams,
 
     # Save epoch losses if provided
     if epoch_losses is not None:
-        epoch_losses_path = os.path.join(save_dir, f"{base_filename}_epoch_losses.txt")
+        epoch_losses_path = os.path.join(losses_dir, f"{base_filename}_epoch_losses.txt")
         with open(epoch_losses_path, 'w') as file:
             for loss in epoch_losses:
                 file.write(f"{loss}\n")
@@ -272,32 +275,30 @@ def save_model_with_hyperparams(model, model_name, hyperparams,
 
     # Save batch losses if provided
     if batch_losses is not None:
-        batch_losses_path = os.path.join(save_dir, f"{base_filename}_batch_losses.txt")
+        batch_losses_path = os.path.join(losses_dir, f"{base_filename}_batch_losses.txt")
         with open(batch_losses_path, 'w') as file:
             for loss in batch_losses:
                 file.write(f"{loss}\n")
         print(f"Batch losses saved as: {batch_losses_path}")
-    # torch.save({
-    #     'model_state_dict': model.state_dict(),
-    #     'optimizer_state_dict': model.state_dict()
-    # }, model_file_path)
+
     print(f"Model saved as: {model_file_path}")
     return model_file_path
 
 
-def load_model_with_hyperparams(model, base_filename, load_dir='./saved_models/'):
+def load_model_with_hyperparams(model, base_filename, load_dir='./saved_models/', losses_dir='./losses/'):
     """
     Loads the model, epoch losses, and batch losses from files.
 
     :param model: The model object to load the state into.
     :param base_filename: Base filename used when saving the model and losses.
-    :param load_dir: Directory where the model and loss files are stored.
+    :param load_dir: Directory where the model files are stored.
+    :param losses_dir: Directory where the loss files are stored.
     :return: The model, epoch_losses, and batch_losses.
     """
     # Construct file paths
     model_file_path = os.path.join(load_dir, base_filename)
-    epoch_losses_path = os.path.join(load_dir, f"{base_filename}_epoch_losses.txt")
-    batch_losses_path = os.path.join(load_dir, f"{base_filename}_batch_losses.txt")
+    epoch_losses_path = os.path.join(losses_dir, f"{base_filename}_epoch_losses.txt")
+    batch_losses_path = os.path.join(losses_dir, f"{base_filename}_batch_losses.txt")
 
     # Load the model
     if torch.cuda.is_available():
