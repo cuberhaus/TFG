@@ -2,9 +2,6 @@ from model_utils import *
 
 
 def main():
-    # Define dataset directories (modify as per your paths)
-    # train_root_dir = './data/TrainValid/TrainValid'  # Replace with your training dataset directory
-
     debug = False
     if debug:
         max_samples = {
@@ -14,9 +11,6 @@ def main():
         train_dataset, test_dataset = prepare_dataset(max_samples)
     else:
         train_dataset, test_dataset = prepare_dataset()
-
-    # Create an instance of the custom dataset
-    # train_dataset = CustomDataset(root_dir=train_root_dir, transform=transform)
 
     # Define hyperparameters
     params = {
@@ -33,9 +27,6 @@ def main():
     # Modify the model for your specific dataset: Change the number of classes
     num_classes = 2  # 1 class + background
     model = get_model('FasterRCNN', num_classes)
-
-    # Move model to the correct device
-    model = model.to(device)
 
     # Set number of training epochs
     num_epochs = 2
