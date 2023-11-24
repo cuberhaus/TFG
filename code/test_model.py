@@ -22,13 +22,19 @@ def test_model_and_save_images(model, test_dataset, save_dir='testing_model'):
             image = image.to(device).unsqueeze(0)  # Add batch dimension
             output = model(image)
 
+            # Scale the tensor values to [0, 255] and convert to uint8
+            scaled_image = image.squeeze(0).cpu().mul(255).byte()
+
             # Draw bounding boxes and labels on the image
             boxes = output[0]['boxes'].cpu()
+            print(boxes)
             labels = output[0]['labels'].cpu()
-            image_with_boxes = draw_bounding_boxes(to_pil_image(image.squeeze(0).cpu()), boxes, labels=labels)
+            image_with_boxes = draw_bounding_boxes(scaled_image, boxes, labels=labels)
 
+            # Convert to PIL Image for saving
+            pil_image = to_pil_image(image_with_boxes)
             # Save the image
-            image_with_boxes.save(os.path.join(save_dir, f'output_{idx}.jpg'))
+            pil_image.save(os.path.join(save_dir, f'output_{idx}.jpg'))
 
 
 # Define model architecture
