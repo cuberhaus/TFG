@@ -43,20 +43,24 @@ model = get_model('FasterRCNN', num_classes)
 
 # Load the model weights
 model_name = 'best_model'  # Replace with your model's name
-save_dir = 'saved_models'  # Replace with the path to your saved models directory
+save_dir = './saved_models'  # Replace with the path to your saved models directory
 
-os.path.join(save_dir, '{model_name}.pth')
+# os.path.join(save_dir, '{model_name}.pth')
 system_name = platform.system()
 
 if system_name == 'Linux':
-    model, _, _ = load_model_with_hyperparams(model, model_name, load_dir="./")  # Assuming the model is compatible with this function
+    model, _, _ = load_model_with_hyperparams(model, model_name, load_dir=save_dir)  # Assuming the model is compatible with this function
 elif system_name == 'Darwin':
     model, _, _ = load_model_with_hyperparams(model, model_name)  # Assuming the model is compatible with this function
 
-max_samples = {
-    'train': 20,
-    'test': 10
-}
+debug = False
+if debug == True:
+    max_samples = {
+        'train': 20,
+        'test': 10
+    }
+else:
+    max_samples = None
 
 # Load the test dataset
 train_dataset, test_dataset = prepare_dataset(max_samples)
