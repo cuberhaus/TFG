@@ -1,6 +1,7 @@
-import numpy as np
-import os
 import cv2
+import numpy as np
+
+from model_utils import *
 
 
 def create_mask_from_bounding_boxes(image_shape, bounding_boxes):
@@ -9,21 +10,6 @@ def create_mask_from_bounding_boxes(image_shape, bounding_boxes):
         x1, y1, x2, y2 = bbox
         mask[y1:y2, x1:x2] = 255  # Or 1, if you want the mask to be in binary [0, 1]
     return mask
-
-
-def parse_annotation(annotation_path):
-    with open(annotation_path, 'r') as file:
-        lines = file.readlines()
-
-    num_objects = int(lines[0].strip())
-    bounding_boxes = []
-
-    for i in range(1, num_objects + 1):
-        values = list(map(int, lines[i].strip().split()))
-        if len(values) == 4:
-            bounding_boxes.append(values)
-
-    return bounding_boxes
 
 
 def process_images_in_folder(images_folder, annotations_folder, mask_save_dir):
@@ -54,10 +40,10 @@ def process_images_in_folder(images_folder, annotations_folder, mask_save_dir):
         print(f"Saved mask to {mask_save_path}")
 
 
-def process_all_videos(dataset_root_dir):
-    images_root_dir = os.path.join(dataset_root_dir, 'Images')
-    annotations_root_dir = os.path.join(dataset_root_dir, 'Annotations')
-    mask_save_dir = os.path.join(dataset_root_dir, 'Masks')
+def process_all_videos(root_dir):
+    images_root_dir = os.path.join(root_dir, 'Images')
+    annotations_root_dir = os.path.join(root_dir, 'Annotations')
+    mask_save_dir = os.path.join(root_dir, 'Masks')
 
     for video_number in sorted(os.listdir(images_root_dir)):
         video_images_folder = os.path.join(images_root_dir, video_number)
@@ -69,6 +55,7 @@ def process_all_videos(dataset_root_dir):
 
 
 # Example usage
-# dataset_root_dir = './data/TrainValid/TrainValid'  # Replace with the path to your TrainValid directory
+dataset_root_dir = './data/TrainValid/TrainValid'  # Replace with the path to your TrainValid directory
+process_all_videos(dataset_root_dir)
 dataset_root_dir = './data/Test/Test'  # Replace with the path to your TrainValid directory
 process_all_videos(dataset_root_dir)

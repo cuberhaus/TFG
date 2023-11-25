@@ -1,7 +1,7 @@
-import os
-import torch
 from PIL import Image
 from torch.utils.data import Dataset
+
+from model_utils import *
 
 
 class CustomDataset(Dataset):
@@ -49,7 +49,7 @@ class CustomDataset(Dataset):
             image = self.transform(image)
 
         # Load and parse annotation (you'll need to implement this part based on the content of your annotation file)
-        boxes = self.parse_annotation(annotation_path)
+        boxes = parse_annotation(annotation_path)
         boxes = torch.as_tensor(boxes, dtype=torch.float32)
         num_objs = len(boxes)
 
@@ -74,17 +74,3 @@ class CustomDataset(Dataset):
         }
 
         return image, target
-
-    def parse_annotation(self, annotation_path):
-        with open(annotation_path, 'r') as file:
-            lines = file.readlines()
-
-        num_objects = int(lines[0].strip())
-        bounding_boxes = []
-
-        for i in range(1, num_objects + 1):
-            values = list(map(int, lines[i].strip().split()))
-            if len(values) == 4:
-                bounding_boxes.append(values)
-
-        return bounding_boxes

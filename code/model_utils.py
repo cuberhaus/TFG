@@ -15,6 +15,21 @@ import platform
 from custom_dataset import CustomDataset
 
 
+def parse_annotation(annotation_path):
+    with open(annotation_path, 'r') as file:
+        lines = file.readlines()
+
+    num_objects = int(lines[0].strip())
+    bounding_boxes = []
+
+    for i in range(1, num_objects + 1):
+        values = list(map(int, lines[i].strip().split()))
+        if len(values) == 4:
+            bounding_boxes.append(values)
+
+    return bounding_boxes
+
+
 def prepare_dataset(max_samples=None):
     # Define your data transformation (e.g., resizing, normalization, etc.)
     transform = transforms.Compose([

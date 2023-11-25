@@ -42,7 +42,10 @@ num_classes = 2  # 1 class + background
 model = get_model('FasterRCNN', num_classes)
 
 # Load the model weights
-model_name = 'best_model.pth'  # Replace with your model's name
+model_name = 'best_model'  # Replace with your model's name
+save_dir = 'saved_models'  # Replace with the path to your saved models directory
+
+os.path.join(save_dir, '{model_name}.pth')
 system_name = platform.system()
 
 if system_name == 'Linux':
