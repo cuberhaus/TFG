@@ -9,7 +9,7 @@ from model_utils import load_model_with_hyperparams, prepare_dataset, get_model
 
 
 # Function to perform predictions and save images
-def test_model_and_save_images(model, test_dataset, class_labels, save_dir='testing_model'):
+def test_model_and_save_images(model, test_dataset, class_labels, save_dir='testing_model', debug=False):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
@@ -19,6 +19,8 @@ def test_model_and_save_images(model, test_dataset, class_labels, save_dir='test
 
     with torch.no_grad():
         for idx, (image, _) in enumerate(test_dataset):
+            if not debug:
+                print(f"Processing image {idx}")
             image = image.to(device).unsqueeze(0)  # Add batch dimension
             output = model(image)
 
@@ -27,9 +29,10 @@ def test_model_and_save_images(model, test_dataset, class_labels, save_dir='test
 
             # Draw bounding boxes and labels on the image
             boxes = output[0]['boxes'].cpu()
-            print(boxes)
+            if debug:
+                print(boxes)
             label_indices = output[0]['labels'].cpu()
-            print(label_indices)
+            # print(label_indices)
 
             # Convert label indices to string labels
             # string_labels = [class_labels[i] for i in label_indices]
@@ -61,7 +64,7 @@ elif system_name == 'Darwin':
     model, _, _ = load_model_with_hyperparams(model, model_name)  # Assuming the model is compatible with this function
 
 debug = False
-if debug == True:
+if debug:
     max_samples = {
         'train': 20,
         'test': 10
@@ -74,4 +77,4 @@ train_dataset, test_dataset = prepare_dataset(max_samples)
 
 class_labels = {0: 'background', 1: 'polyp'}
 # Test the model and save images
-test_model_and_save_images(model, test_dataset, class_labels)
+test_model_and_save_images(model, test_dataset, class_labels, debug=debug)

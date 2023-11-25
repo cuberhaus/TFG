@@ -32,7 +32,11 @@ if select == 0:
     py_files = ['custom_dataset.py', 'model_utils.py', 'data_utils.py']
 elif select == 1:
     notebook_path = []
-    py_files = ['train_and_save_model.py', 'custom_dataset.py', 'model_utils.py', 'data_utils.py']
+    py_files = ['train_and_save_model.py', 'custom_dataset.py', 'model_utils.py', 'data_utils.py', 'test_model.py']
+elif select == 2:
+    notebook_path = []
+    py_files = ['train_and_save_model.py', 'custom_dataset.py', 'model_utils.py', 'data_utils.py', 'test_model.py'
+                , 'create_masks.py', 'copy_files_to_cyclegan_structure.py']
 elif select == 3:
     notebook_path = ['main_old.ipynb', 'cycleGAN.ipynb']
     py_files = ['custom_dataset.py', 'model_utils.py', 'data_utils.py', 'create_masks.py',

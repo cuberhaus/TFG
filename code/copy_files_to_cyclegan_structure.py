@@ -65,9 +65,9 @@ def copy_files_to_cyclegan_structure(root_dir, target_dir, mode='train'):
 
 
 # Example usage
-# root_dir = './data/TrainValid/TrainValid/'  # Replace with the path to your TrainValid directory
-# target_dir = './data/PolypDataset/'  # Replace with the path to your target dataset directory for CycleGAN
-# copy_files_to_cyclegan_structure(root_dir, target_dir, mode='train')
+root_dir = './data/TrainValid/TrainValid/'  # Replace with the path to your TrainValid directory
+target_dir = './data/PolypDataset/'  # Replace with the path to your target dataset directory for CycleGAN
+copy_files_to_cyclegan_structure(root_dir, target_dir, mode='train')
 
 root_dir = './data/Test/Test/'  # Replace with the path to your TrainValid directory
 target_dir = './data/PolypDataset/'  # Replace with the path to your target dataset directory for CycleGAN
