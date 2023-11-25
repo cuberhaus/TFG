@@ -130,8 +130,8 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN'):
     model = get_model(model_s, num_classes)
 
     # Define the optimizer and learning rate scheduler
-    params = [p for p in model.parameters() if p.requires_grad]
-    optimizer = optim.SGD(params, lr=param["LR"], momentum=0.9, weight_decay=param["WEIGHT_DECAY"])
+    model_parameters = [p for p in model.parameters() if p.requires_grad]
+    optimizer = optim.SGD(model_parameters, lr=param["LR"], momentum=0.9, weight_decay=param["WEIGHT_DECAY"])
     lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
 
     # Define the loss function (this is handled by the model itself)
@@ -143,6 +143,7 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN'):
     best_val_loss = float('inf')
     epoch_losses = []
     batch_losses = []
+    saved_model_path = None
 
     for epoch in range(num_epochs):
         model.train()
@@ -171,7 +172,21 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN'):
         val_loss = metrics['f1']
         if val_loss < best_val_loss:
             best_val_loss = val_loss
-            torch.save(model.state_dict(), 'saved_models/best_model.pth')
+            # Delete the previously saved model file, if it exists
+            if saved_model_path and os.path.exists(saved_model_path):
+                os.remove(saved_model_path)
+                print(f"Deleted older model file: {saved_model_path}")
+
+            saved_model_path = save_model_with_hyperparams(
+                model,
+                model_s,
+                param,
+                epoch_losses=epoch_losses,
+                batch_losses=batch_losses,
+                epoch=epoch,
+                save_dir='saved_models'  # Specify your save directory
+            )
+            # torch.save(model.state_dict(), 'saved_models/best_model.pth')
 
         print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {epoch_loss:.4f}')
         epoch_losses.append(epoch_loss)
@@ -180,7 +195,7 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN'):
         for param_group in optimizer.param_groups:
             print(f'Learning Rate: {param_group["lr"]:.6f}')
 
-    return model, epoch_losses, batch_losses, epoch
+    return model, epoch_losses, batch_losses, epoch, saved_model_path
 
 
 def evaluate(model, val_loader, device, iou_threshold=0.5):

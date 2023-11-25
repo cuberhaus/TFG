@@ -30,12 +30,12 @@ def main():
     num_epochs = 2
 
     # Train the model
-    trained_model, epoch_losses, batch_losses, epoch = train_model(train_dataset, params, num_epochs, device,
+    trained_model, epoch_losses, batch_losses, epoch, model_path = train_model(train_dataset, params, num_epochs, device,
                                                                    model_s=model_name)
 
     # Save the trained model
-    model_path = save_model_with_hyperparams(trained_model, model_name, params, epoch_losses, batch_losses, epoch)
-    print(f"Model saved at {model_path}")
+    # model_path = save_model_with_hyperparams(trained_model, model_name, params, epoch_losses, batch_losses, epoch)
+    # print(f"Model saved at {model_path}")
 
 
 if __name__ == "__main__":
