@@ -54,7 +54,6 @@ class CustomDataset(Dataset):
         num_objs = len(boxes)
 
         if num_objs == 0:
-            # area = torch.tensor([ 0.0 ])
             boxes = torch.zeros((0, 4), dtype=torch.float32)
             labels = torch.zeros((0,), dtype=torch.int64)
             area = torch.zeros((0,), dtype=torch.float32)
