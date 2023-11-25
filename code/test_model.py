@@ -42,13 +42,14 @@ num_classes = 2  # 1 class + background
 model = get_model('FasterRCNN', num_classes)
 
 # Load the model weights
-model_name = 'best_model'  # Replace with your model's name
+model_name = 'best_model.pth'  # Replace with your model's name
 save_dir = './saved_models'  # Replace with the path to your saved models directory
 
 # os.path.join(save_dir, '{model_name}.pth')
 system_name = platform.system()
 
 if system_name == 'Linux':
+    print(save_dir)
     model, _, _ = load_model_with_hyperparams(model, model_name, load_dir=save_dir)  # Assuming the model is compatible with this function
 elif system_name == 'Darwin':
     model, _, _ = load_model_with_hyperparams(model, model_name)  # Assuming the model is compatible with this function
