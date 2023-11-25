@@ -1,7 +1,22 @@
 from PIL import Image
 from torch.utils.data import Dataset
+import torch
+import os
 
-from model_utils import *
+
+def parse_annotation(annotation_path):
+    with open(annotation_path, 'r') as file:
+        lines = file.readlines()
+
+    num_objects = int(lines[0].strip())
+    bounding_boxes = []
+
+    for i in range(1, num_objects + 1):
+        values = list(map(int, lines[i].strip().split()))
+        if len(values) == 4:
+            bounding_boxes.append(values)
+
+    return bounding_boxes
 
 
 class CustomDataset(Dataset):
