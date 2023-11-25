@@ -29,7 +29,7 @@ def consolidate_code(notebook_paths, py_files, output_file):
 select = 1
 if select == 0:
     notebook_path = ['main.ipynb']
-    py_files = ['custom_dataset.py', 'model_utils.py', 'data_utils.py']
+    py_files = ['train_and_save_model.py', 'custom_dataset.py', 'model_utils.py', 'data_utils.py', 'test_model.py']
 elif select == 1:
     notebook_path = []
     py_files = ['train_and_save_model.py', 'custom_dataset.py', 'model_utils.py', 'data_utils.py', 'test_model.py']

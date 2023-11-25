@@ -1,19 +1,19 @@
 import os
+import platform
 from datetime import datetime
 
 import torch
 import torch.optim as optim
-import torchvision
 from torch.utils.data import DataLoader
+from torchvision import transforms
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, fasterrcnn_resnet50_fpn, \
     FasterRCNN_ResNet50_FPN_Weights
-from torchvision.models.detection.retinanet import RetinaNetClassificationHead
+from torchvision.models.detection.retinanet import RetinaNetClassificationHead, RetinaNet_ResNet50_FPN_V2_Weights, \
+    retinanet_resnet50_fpn_v2
+from torchvision.models.detection.ssdlite import ssdlite320_mobilenet_v3_large, SSDLite320_MobileNet_V3_Large_Weights
 from torchvision.ops import box_iou
-from torchvision import transforms
-import os
-import platform
-from custom_dataset import CustomDataset
 
+from custom_dataset import CustomDataset
 
 
 def prepare_dataset(max_samples=None):
@@ -69,17 +69,17 @@ def get_model(model_name, num_classes):
     Get the model based on its name.
     """
     if model_name == 'FasterRCNN':
-        model = fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT, pretrained=True)
+        model = fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT)  # Pre-trained model
         # Get the number of input features for the classifier
         in_features = model.roi_heads.box_predictor.cls_score.in_features
         # Replace the pre-trained head with a new one
         model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
     elif model_name == 'SSD':
-        model = torchvision.models.detection.ssdlite320_mobilenet_v3_large(pretrained=True)
+        model = ssdlite320_mobilenet_v3_large(weights=SSDLite320_MobileNet_V3_Large_Weights)  # Pre-trained model
         # Adjust the number of classes for SSD
         model.head.classification_head.num_classes = num_classes
     elif model_name == 'RetinaNet':
-        model = torchvision.models.detection.retinanet_resnet50_fpn(pretrained=True)
+        model = retinanet_resnet50_fpn_v2(weights=RetinaNet_ResNet50_FPN_V2_Weights)  # Pre-trained model
         in_features = model.head.classification_head.conv[0].in_channels
         num_anchors = model.head.classification_head.num_anchors
         # Replace the classifier with a new one
