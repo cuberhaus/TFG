@@ -2,7 +2,7 @@ from model_utils import *
 
 
 def main():
-    debug = False
+    debug = True
     if debug:
         max_samples = {
             'train': 20,
@@ -24,19 +24,17 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    # Modify the model for your specific dataset: Change the number of classes
-    num_classes = 2  # 1 class + background
-    model = get_model('FasterRCNN', num_classes)
+    model_name = 'FasterRCNN'
 
     # Set number of training epochs
     num_epochs = 2
 
     # Train the model
     trained_model, epoch_losses, batch_losses, epoch = train_model(train_dataset, params, num_epochs, device,
-                                                                   model_s='FasterRCNN')
+                                                                   model_s=model_name)
 
     # Save the trained model
-    model_path = save_model_with_hyperparams(trained_model, 'FasterRCNN', params, epoch_losses, batch_losses, epoch)
+    model_path = save_model_with_hyperparams(trained_model, model_name, params, epoch_losses, batch_losses, epoch)
     print(f"Model saved at {model_path}")
 
 
