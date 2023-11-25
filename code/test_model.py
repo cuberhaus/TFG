@@ -18,7 +18,7 @@ def test_model_and_save_images(model, test_dataset, class_labels, save_dir='test
     model.to(device)
 
     with torch.no_grad():
-        for idx, (image, _) in enumerate(test_dataset):
+        for idx, (image, targets) in enumerate(test_dataset):
             if not debug:
                 print(f"Processing image {idx}")
             image = image.to(device).unsqueeze(0)  # Add batch dimension
@@ -26,6 +26,12 @@ def test_model_and_save_images(model, test_dataset, class_labels, save_dir='test
 
             # Scale the tensor values to [0, 255] and convert to uint8
             scaled_image = image.squeeze(0).cpu().mul(255).byte()
+
+            # Ground truth boxes
+            gt_boxes = targets['boxes'].cpu()
+
+            # Draw ground truth boxes in green
+            image_with_gt_boxes = draw_bounding_boxes(scaled_image.clone(), gt_boxes, colors="green")
 
             # Draw bounding boxes and labels on the image
             boxes = output[0]['boxes'].cpu()
@@ -35,10 +41,10 @@ def test_model_and_save_images(model, test_dataset, class_labels, save_dir='test
             # print(label_indices)
 
             # Convert label indices to string labels
-            # string_labels = [class_labels[i] for i in label_indices]
             string_labels = [class_labels[i.item()] for i in label_indices]
 
-            image_with_boxes = draw_bounding_boxes(scaled_image, boxes, labels=string_labels)
+            image_with_boxes = draw_bounding_boxes(image_with_gt_boxes, boxes, labels=string_labels, colors="red")
+            # image_with_boxes = draw_bounding_boxes(scaled_image, boxes, labels=string_labels)
 
             # Convert to PIL Image for saving
             pil_image = to_pil_image(image_with_boxes)
