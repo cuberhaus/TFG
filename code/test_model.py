@@ -9,7 +9,7 @@ from model_utils import load_model_with_hyperparams, prepare_dataset, get_model
 
 
 # Function to perform predictions and save images
-def test_model_and_save_images(model, test_dataset, save_dir='testing_model'):
+def test_model_and_save_images(model, test_dataset, class_labels, save_dir='testing_model'):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
@@ -28,8 +28,14 @@ def test_model_and_save_images(model, test_dataset, save_dir='testing_model'):
             # Draw bounding boxes and labels on the image
             boxes = output[0]['boxes'].cpu()
             print(boxes)
-            labels = output[0]['labels'].cpu()
-            image_with_boxes = draw_bounding_boxes(scaled_image, boxes, labels=labels)
+            label_indices = output[0]['labels'].cpu()
+            print(label_indices)
+
+            # Convert label indices to string labels
+            # string_labels = [class_labels[i] for i in label_indices]
+            string_labels = [class_labels[i.item()] for i in label_indices]
+
+            image_with_boxes = draw_bounding_boxes(scaled_image, boxes, labels=string_labels)
 
             # Convert to PIL Image for saving
             pil_image = to_pil_image(image_with_boxes)
@@ -47,10 +53,10 @@ save_dir = './saved_models'  # Replace with the path to your saved models direct
 
 # os.path.join(save_dir, '{model_name}.pth')
 system_name = platform.system()
-
 if system_name == 'Linux':
     print(save_dir)
-    model, _, _ = load_model_with_hyperparams(model, model_name, load_dir=save_dir)  # Assuming the model is compatible with this function
+    model, _, _ = load_model_with_hyperparams(model, model_name,
+                                              load_dir=save_dir)  # Assuming the model is compatible with this function
 elif system_name == 'Darwin':
     model, _, _ = load_model_with_hyperparams(model, model_name)  # Assuming the model is compatible with this function
 
@@ -66,5 +72,6 @@ else:
 # Load the test dataset
 train_dataset, test_dataset = prepare_dataset(max_samples)
 
+class_labels = {0: 'background', 1: 'polyp'}
 # Test the model and save images
-test_model_and_save_images(model, test_dataset)
+test_model_and_save_images(model, test_dataset, class_labels)
