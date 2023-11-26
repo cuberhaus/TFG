@@ -1,0 +1,29 @@
+[
+  {
+    "model_name": "FasterRCNN",
+    "params": {
+      "BATCH_SIZE": 2,
+      "LR": 0.005,
+      "WEIGHT_DECAY": 0.0005,
+      "CONFIDENCE_THRESHOLD": 0.5
+    }
+  },
+  {
+    "model_name": "SSD",
+    "params": {
+      "BATCH_SIZE": 4,
+      "LR": 0.01,
+      "WEIGHT_DECAY": 0.001,
+      "CONFIDENCE_THRESHOLD": 0.6
+    }
+  },
+  {
+    "model_name": "RetinaNet",
+    "params": {
+      "BATCH_SIZE": 3,
+      "LR": 0.003,
+      "WEIGHT_DECAY": 0.0007,
+      "CONFIDENCE_THRESHOLD": 0.7
+    }
+  }
+]
