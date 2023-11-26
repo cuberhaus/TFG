@@ -10,3 +10,5 @@ requests~=2.31.0
 beautifulsoup4~=4.12.2
 wandb~=0.15.12
 scipy~=1.11.3
+
+optuna~=3.4.0
