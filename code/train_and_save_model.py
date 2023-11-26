@@ -40,7 +40,7 @@ def main():
 
 
     # Set number of training epochs
-    num_epochs = 2
+    num_epochs = params['NUM_EPOCHS']
 
     # Train the model
     trained_model, epoch_losses, batch_losses, epoch, model_path = train_model(train_dataset, params, num_epochs,
