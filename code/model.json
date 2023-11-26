@@ -5,7 +5,8 @@
       "BATCH_SIZE": 2,
       "LR": 0.005,
       "WEIGHT_DECAY": 0.0005,
-      "CONFIDENCE_THRESHOLD": 0.5
+      "CONFIDENCE_THRESHOLD": 0.5,
+      "NUM_EPOCHS": 2
     }
   }
 ]
