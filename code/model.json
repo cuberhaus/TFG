@@ -1,0 +1,11 @@
+[
+  {
+    "model_name": "FasterRCNN",
+    "params": {
+      "BATCH_SIZE": 2,
+      "LR": 0.005,
+      "WEIGHT_DECAY": 0.0005,
+      "CONFIDENCE_THRESHOLD": 0.5
+    }
+  }
+]
