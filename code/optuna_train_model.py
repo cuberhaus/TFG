@@ -11,7 +11,7 @@ from torch.utils.data import random_split, Subset
 def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN', debug=False):
     # Define the hyperparameter search space using Optuna
     lr = trial.suggest_float("lr", 1e-5, 1e-1, log=True)
-    batch_size = trial.suggest_categorical("batch_size", [2, 4, 8, 16])
+    batch_size = trial.suggest_categorical("batch_size", [2, 4, 8])  # TODO: BATCH SIZE OF 16 BREAKS THINGS
     weight_decay = trial.suggest_float("weight_decay", 1e-5, 1e-1, log=True)
     num_epochs = trial.suggest_int("num_epochs", 1, 10)
 
@@ -40,7 +40,8 @@ def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN', debug=Fal
     # Train the model with the current set of hyperparameters
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Validation split is done inside the train_model function already
-    trained_model, _, _, _, _, metric_to_optimize = train_model(train_dataset, params, num_epochs, device, model_name, debug=debug, metric_choice=metric_to_optimize)
+    trained_model, _, _, _, _, metric_to_optimize = train_model(train_dataset, params, num_epochs, device, model_name,
+                                                                debug=debug, metric_choice=metric_to_optimize)
 
     # Free up memory
     if device.type == 'cuda':
@@ -49,7 +50,6 @@ def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN', debug=Fal
     # # Evaluate the model using the evaluate function
     # val_metrics = evaluate(trained_model, val_dataset, device) # TODO: THIS BREAKS
     return metric_to_optimize
-
 
 
 # Parsing command-line arguments
@@ -63,7 +63,9 @@ args = parser.parse_args()
 
 # Create a study object and specify the optimization direction
 study = optuna.create_study(direction='maximize')
-study.optimize(lambda trial: objective(trial, metric_to_optimize=args.metric, model_name=args.model_name, debug=args.debug), n_trials=20)
+study.optimize(
+    lambda trial: objective(trial, metric_to_optimize=args.metric, model_name=args.model_name, debug=args.debug),
+    n_trials=20)
 
 # Get best hyperparameters
 best_params = study.best_params
