@@ -43,7 +43,7 @@ def objective(trial, metric_to_optimize='mean_iou'):
 
 
 # Create a study object and specify the optimization direction
-study = optuna.create_study(direction='minimize')
+study = optuna.create_study(direction='maximize')
 study.optimize(objective, n_trials=20)
 
 # Get best hyperparameters
