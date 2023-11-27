@@ -1,0 +1,51 @@
+import optuna
+import torch
+
+from model_utils import train_model, prepare_dataset, evaluate
+from torch.utils.data import random_split
+
+
+def objective(trial, metric_to_optimize='mean_iou'):
+    # Define the hyperparameter search space using Optuna
+    lr = trial.suggest_float("lr", 1e-5, 1e-1, log=True)
+    batch_size = trial.suggest_categorical("batch_size", [2, 4, 8, 16])
+    weight_decay = trial.suggest_float("weight_decay", 1e-5, 1e-1, log=True)
+    num_epochs = trial.suggest_int("num_epochs", 1, 10)
+
+    # Hyperparameters to be tuned
+    params = {
+        "BATCH_SIZE": batch_size,
+        "LR": lr,
+        "WEIGHT_DECAY": weight_decay,
+        "NUM_EPOCHS": num_epochs
+    }
+
+    # Prepare your dataset
+    train_dataset, _ = prepare_dataset()
+    # Splitting the dataset into training and validation set
+    train_size = int(0.8 * len(train_dataset))
+    val_size = len(train_dataset) - train_size
+    train_dataset, val_dataset = random_split(train_dataset, [train_size, val_size])
+
+    # Train the model with the current set of hyperparameters
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    trained_model, _, _, _, _ = train_model(train_dataset, params, num_epochs, device)
+
+    # Evaluate the model using the evaluate function
+    val_metrics = evaluate(trained_model, val_dataset, device)
+
+    if metric_to_optimize == 'mean_iou':
+        return val_metrics['mean_iou']
+    elif metric_to_optimize == 'f1':
+        return val_metrics['f1']
+    else:
+        raise ValueError(f"Unknown metric {metric_to_optimize}")
+
+
+# Create a study object and specify the optimization direction
+study = optuna.create_study(direction='minimize')
+study.optimize(objective, n_trials=20)
+
+# Get best hyperparameters
+best_params = study.best_params
+print("Best hyperparameters: ", best_params)

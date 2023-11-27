@@ -238,11 +238,15 @@ def evaluate(model, val_loader, device, iou_threshold=0.5):
     recall = true_positives / (true_positives + false_negatives) if true_positives + false_negatives > 0 else 0
     f1 = 2 * (precision * recall) / (precision + recall) if precision + recall > 0 else 0
 
+    # Calculate mean IoU
+    mean_iou = sum(ious) / len(ious) if ious else 0
+
     return {
         'precision': precision,
         'recall': recall,
         'f1': f1,
-        'ious': ious  # List of IoU for correctly predicted boxes
+        'ious': ious,  # List of IoU for correctly predicted boxes
+        'mean_iou': mean_iou
     }
 
 
