@@ -10,6 +10,7 @@ FILES=(
     "./model_utils.py"
     "./test_model.py"
     "./optuna_train_model.py"
+    "./raytune_train_model.py"
 
     "./train_and_save_model.py"
     "./train_models.sh"
