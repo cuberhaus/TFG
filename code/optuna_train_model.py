@@ -42,6 +42,10 @@ def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN', debug=Fal
     # Validation split is done inside the train_model function already
     trained_model, _, _, _, _, metric_to_optimize = train_model(train_dataset, params, num_epochs, device, model_name, debug=debug, metric_choice=metric_to_optimize)
 
+    # Free up memory
+    if device.type == 'cuda':
+        torch.cuda.empty_cache()
+
     # # Evaluate the model using the evaluate function
     # val_metrics = evaluate(trained_model, val_dataset, device) # TODO: THIS BREAKS
     return metric_to_optimize
