@@ -1,3 +1,5 @@
+import argparse
+
 import optuna
 import torch
 
@@ -42,9 +44,16 @@ def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN'):
         raise ValueError(f"Unknown metric {metric_to_optimize}")
 
 
+# Parsing command-line arguments
+parser = argparse.ArgumentParser(description='Run Optuna optimization.')
+parser.add_argument('--model_name', type=str, default='FasterRCNN', help='Name of the model to train.')
+parser.add_argument('--metric', type=str, default='f1', choices=['f1', 'mean_iou'], help='Metric to optimize.')
+
+args = parser.parse_args()
+
 # Create a study object and specify the optimization direction
 study = optuna.create_study(direction='maximize')
-study.optimize(lambda trial: objective(trial, model_name='FasterRCNN', metric_to_optimize='f1'), n_trials=20)
+study.optimize(lambda trial: objective(trial, metric_to_optimize=args.metric, model_name=args.model_name), n_trials=20)
 
 # Get best hyperparameters
 best_params = study.best_params
