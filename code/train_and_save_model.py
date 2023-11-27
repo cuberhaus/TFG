@@ -1,3 +1,4 @@
+import argparse
 import json
 import sys
 
@@ -11,10 +12,18 @@ def main():
               "\"CONFIDENCE_THRESHOLD\": 0.5}'")
         sys.exit(1)
 
-    model_name = sys.argv[1]
-    params = json.loads(sys.argv[2])
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description='Train and save model.')
+    parser.add_argument('model_name', type=str, help='Name of the model to train.')
+    parser.add_argument('params', type=json.loads, help='Hyperparameter settings in JSON format.')
+    parser.add_argument('--debug', action='store_true', help='Enable debug mode.')
 
-    debug = True
+    args = parser.parse_args()
+
+    model_name = args.model_name
+    params = args.params
+    debug = args.debug
+
     if debug:
         max_samples = {
             'train': 20,
