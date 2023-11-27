@@ -39,7 +39,7 @@ def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN', debug=Fal
 
     # Train the model with the current set of hyperparameters
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    trained_model, _, _, _, _ = train_model(train_dataset, params, num_epochs, device, model_name)
+    trained_model, _, _, _, _ = train_model(train_dataset, params, num_epochs, device, model_name, debug=debug)
 
     # Evaluate the model using the evaluate function
     val_metrics = evaluate(trained_model, val_dataset, device)

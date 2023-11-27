@@ -111,7 +111,7 @@ def validate(model, val_loader, device):
     return val_loss / len(val_loader)
 
 
-def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN'):
+def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', debug=False):
     """
     Train the model for a specified number of epochs.
     """
@@ -143,6 +143,11 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN'):
     best_val_loss = float('inf')
     epoch_losses = []
     batch_losses = []
+
+    # Define the directory to save models
+    save_dir = 'saved_models_debug' if debug else 'saved_models'
+    losses_dir = 'losses_debug' if debug else 'losses'
+
     saved_model_path = None
 
     for epoch in range(num_epochs):
@@ -184,7 +189,8 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN'):
                 epoch_losses=epoch_losses,
                 batch_losses=batch_losses,
                 epoch=epoch,
-                save_dir='saved_models'  # Specify your save directory
+                save_dir=save_dir,
+                losses_dir=losses_dir
             )
             # torch.save(model.state_dict(), 'saved_models/best_model.pth')
 
