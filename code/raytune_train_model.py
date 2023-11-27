@@ -7,6 +7,7 @@ from ray import tune
 from ray.tune.schedulers import ASHAScheduler
 from model_utils import train_model, prepare_dataset
 from torch.utils.data import Subset
+from ray import train as ray_train
 
 
 def train_model_tune(config, data_dir="./raytune", model_name='FasterRCNN', debug=False):
@@ -24,7 +25,8 @@ def train_model_tune(config, data_dir="./raytune", model_name='FasterRCNN', debu
     if device.type == 'cuda':
         torch.cuda.empty_cache()
 
-    tune.report(metric_value=metric_value)
+    # Inside your train_model_tune function
+    ray_train.report({'metric_value': metric_value})
 
 
 def tune_model(model_name, num_samples=10, max_num_epochs=10, gpus_per_trial=1, debug=False, data_dir="./raytune"):
