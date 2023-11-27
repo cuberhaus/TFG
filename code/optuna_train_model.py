@@ -5,7 +5,7 @@ from model_utils import train_model, prepare_dataset, evaluate
 from torch.utils.data import random_split
 
 
-def objective(trial, metric_to_optimize='mean_iou'):
+def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN'):
     # Define the hyperparameter search space using Optuna
     lr = trial.suggest_float("lr", 1e-5, 1e-1, log=True)
     batch_size = trial.suggest_categorical("batch_size", [2, 4, 8, 16])
@@ -29,7 +29,7 @@ def objective(trial, metric_to_optimize='mean_iou'):
 
     # Train the model with the current set of hyperparameters
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    trained_model, _, _, _, _ = train_model(train_dataset, params, num_epochs, device)
+    trained_model, _, _, _, _ = train_model(train_dataset, params, num_epochs, device, model_name)
 
     # Evaluate the model using the evaluate function
     val_metrics = evaluate(trained_model, val_dataset, device)
@@ -44,7 +44,7 @@ def objective(trial, metric_to_optimize='mean_iou'):
 
 # Create a study object and specify the optimization direction
 study = optuna.create_study(direction='maximize')
-study.optimize(objective, n_trials=20)
+study.optimize(lambda trial: objective(trial, model_name='FasterRCNN', metric_to_optimize='f1'), n_trials=20)
 
 # Get best hyperparameters
 best_params = study.best_params

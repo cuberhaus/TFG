@@ -8,8 +8,12 @@ REMOTE_DIR="/home/casacuberta/TFG/code/"
 FILES=(
     "./custom_dataset.py"
     "./model_utils.py"
-    "./train_and_save_model.py"
     "./test_model.py"
+    "./optuna_train_model.py"
+
+    "./train_and_save_model.py"
+    "./train_models.sh"
+    "./model.json"
 )
 
 # Loop through each file and transfer it

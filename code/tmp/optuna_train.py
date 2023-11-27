@@ -39,6 +39,7 @@ def objective(trial, train_dataset, device, model_name):
 
     return metric_to_optimize
 
+
 def main():
     # Parse command-line arguments
     if len(sys.argv) < 2:
@@ -68,6 +69,7 @@ def main():
 
     # Train the best model (optional)
     # ...
+
 
 if __name__ == "__main__":
     main()
