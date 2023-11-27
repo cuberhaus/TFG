@@ -11,18 +11,22 @@ from ray import train as ray_train
 
 
 def train_model_tune(config, data_dir="./raytune", model_name='FasterRCNN', debug=False):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if device.type == 'cuda':
+        print("Waiting for memory")
+        tune.utils.wait_for_gpu()
     train_dataset, _ = prepare_dataset()
     if debug:
         subset_indices = torch.randperm(len(train_dataset))[:20]
         train_dataset = Subset(train_dataset, subset_indices)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     trained_model, _, _, _, _, metric_value = train_model(train_dataset, config, config["NUM_EPOCHS"], device,
                                                           model_name, debug=debug,
                                                           metric_choice=config["metric_choice"])
 
     # Free up memory
     if device.type == 'cuda':
+        print("Freeing up memory")
         torch.cuda.empty_cache()
 
     # Inside your train_model_tune function
@@ -32,7 +36,7 @@ def train_model_tune(config, data_dir="./raytune", model_name='FasterRCNN', debu
 def tune_model(model_name, num_samples=10, max_num_epochs=10, gpus_per_trial=1, debug=False, data_dir="./raytune"):
     config = {
         "LR": tune.loguniform(1e-5, 1e-1),
-        "BATCH_SIZE": tune.choice([2, 4, 8, 16]),
+        "BATCH_SIZE": tune.choice([2, 4, 8]),  # TODO: BATCH SIZE OF 16 BREAKS THINGS
         "WEIGHT_DECAY": tune.loguniform(1e-5, 1e-1),
         "NUM_EPOCHS": tune.choice(range(1, max_num_epochs + 1)),
         "metric_choice": "f1"  # or "mean_iou", depending on your needs
@@ -43,7 +47,8 @@ def tune_model(model_name, num_samples=10, max_num_epochs=10, gpus_per_trial=1, 
         mode="max",
         max_t=max_num_epochs,
         grace_period=1,
-        reduction_factor=2)
+        reduction_factor=2
+    )
 
     reporter = tune.CLIReporter(metric_columns=["metric_value", "training_iteration"])
     result = tune.run(
@@ -52,7 +57,8 @@ def tune_model(model_name, num_samples=10, max_num_epochs=10, gpus_per_trial=1, 
         config=config,
         num_samples=num_samples,
         scheduler=scheduler,
-        progress_reporter=reporter)
+        progress_reporter=reporter
+    )
 
     best_trial = result.get_best_trial("metric_value", "max", "last")
     print("Best trial config: {}".format(best_trial.config))
@@ -82,4 +88,5 @@ args = parser.parse_args()
 ray.init()
 
 # Start the tuning process
-tune_model(args.model_name, args.num_samples, args.max_num_epochs, args.gpus_per_trial, args.debug, data_dir="./raytune")
+tune_model(args.model_name, args.num_samples, args.max_num_epochs, args.gpus_per_trial, args.debug,
+           data_dir="./raytune")
