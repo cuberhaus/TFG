@@ -1,4 +1,5 @@
 import argparse
+import csv
 
 import optuna
 import torch
@@ -59,3 +60,12 @@ study.optimize(lambda trial: objective(trial, metric_to_optimize=args.metric, mo
 # Get best hyperparameters
 best_params = study.best_params
 print("Best hyperparameters: ", best_params)
+
+# Write the best hyperparameters to a CSV file
+with open('best_hyperparameters.csv', 'w', newline='') as csvfile:
+    fieldnames = ['parameter', 'value']
+    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+    writer.writeheader()
+    for param, value in best_params.items():
+        writer.writerow({'parameter': param, 'value': value})
