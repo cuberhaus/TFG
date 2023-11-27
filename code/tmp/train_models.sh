@@ -15,21 +15,18 @@ if [ ! -f "$JSON_FILE" ]; then
     exit 1
 fi
 
-# Use Python to parse the JSON file and loop through each entry
-python -c "
-import json, sys
-with open('$JSON_FILE') as f:
-    data = json.load(f)
-    for entry in data:
-        print(json.dumps(entry))
-" | while read -r row; do
-    model_name=$(echo $row | python -c "import json, sys; print(json.loads(sys.stdin.read())['model_name'])")
-    params=$(echo $row | python -c "import json, sys; print(json.dumps(json.loads(sys.stdin.read())['params']))")
+# Assuming the JSON file is named 'model_configs.json'
+#JSON_FILE="model_configs.json"
+
+# Read and loop through each entry in the JSON file
+for row in $(cat $JSON_FILE | jq -c '.[]'); do
+    model_name=$(echo $row | jq -r '.model_name')
+    params=$(echo $row | jq -c '.params')
 
     # Print the model and its parameters
     echo "Running model: $model_name"
     echo "Parameters: $params"
 
     # Call the Python script with the model name and parameters
-     python train_and_save_model.py "$model_name" "$params"
+#    python your_script.py "$model_name" "$params"
 done
