@@ -16,7 +16,7 @@ def train_model_tune(config, data_dir="./raytune", model_name='FasterRCNN', debu
         train_dataset = Subset(train_dataset, subset_indices)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    trained_model, _, _, _, _, metric_value = train_model(train_dataset, config, config["num_epochs"], device,
+    trained_model, _, _, _, _, metric_value = train_model(train_dataset, config, config["NUM_EPOCHS"], device,
                                                           model_name, debug=debug,
                                                           metric_choice=config["metric_choice"])
 
@@ -29,10 +29,10 @@ def train_model_tune(config, data_dir="./raytune", model_name='FasterRCNN', debu
 
 def tune_model(model_name, num_samples=10, max_num_epochs=10, gpus_per_trial=1, debug=False, data_dir="./raytune"):
     config = {
-        "lr": tune.loguniform(1e-5, 1e-1),
-        "batch_size": tune.choice([2, 4, 8, 16]),
-        "weight_decay": tune.loguniform(1e-5, 1e-1),
-        "num_epochs": tune.choice(range(1, max_num_epochs + 1)),
+        "LR": tune.loguniform(1e-5, 1e-1),
+        "BATCH_SIZE": tune.choice([2, 4, 8, 16]),
+        "WEIGHT_DECAY": tune.loguniform(1e-5, 1e-1),
+        "NUM_EPOCHS": tune.choice(range(1, max_num_epochs + 1)),
         "metric_choice": "f1"  # or "mean_iou", depending on your needs
     }
 
@@ -70,6 +70,7 @@ parser = argparse.ArgumentParser(description='Hyperparameter tuning with Ray Tun
 parser.add_argument('model_name', type=str, help='Name of the model to train.')
 parser.add_argument('--num_samples', type=int, default=10, help='Number of samples for hyperparameter tuning.')
 parser.add_argument('--max_num_epochs', type=int, default=10, help='Maximum number of epochs for training.')
+# GPUs on mac should be = 0
 parser.add_argument('--gpus_per_trial', type=int, default=1, help='GPUs per trial.')
 parser.add_argument('--debug', action='store_true', help='Run in debug mode with a smaller subset of data.')
 
