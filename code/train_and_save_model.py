@@ -24,20 +24,9 @@ def main():
     else:
         train_dataset, test_dataset = prepare_dataset()
 
-    # Define hyperparameters
-    # params = {
-    #     "BATCH_SIZE": 2,
-    #     "LR": 0.005,
-    #     "WEIGHT_DECAY": 0.0005,
-    #     "CONFIDENCE_THRESHOLD": 0.5
-    # }
-
-    # model_name = 'FasterRCNN'
-
     # Check device (CUDA or CPU)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
-
 
     # Set number of training epochs
     num_epochs = params['NUM_EPOCHS']
@@ -46,10 +35,6 @@ def main():
     trained_model, epoch_losses, batch_losses, epoch, model_path = train_model(train_dataset, params, num_epochs,
                                                                                device,
                                                                                model_s=model_name)
-
-    # Save the trained model
-    # model_path = save_model_with_hyperparams(trained_model, model_name, params, epoch_losses, batch_losses, epoch)
-    # print(f"Model saved at {model_path}")
 
 
 if __name__ == "__main__":
