@@ -5,10 +5,10 @@ import optuna
 import torch
 
 from model_utils import train_model, prepare_dataset, evaluate
-from torch.utils.data import random_split
+from torch.utils.data import random_split, Subset
 
 
-def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN'):
+def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN', debug=False):
     # Define the hyperparameter search space using Optuna
     lr = trial.suggest_float("lr", 1e-5, 1e-1, log=True)
     batch_size = trial.suggest_categorical("batch_size", [2, 4, 8, 16])
@@ -25,6 +25,13 @@ def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN'):
 
     # Prepare your dataset
     train_dataset, _ = prepare_dataset()
+    if debug:
+        # Use a smaller subset of the dataset for debugging
+        subset_indices = torch.randperm(len(train_dataset))[:20]  # Adjust the size as needed
+        train_dataset = Subset(train_dataset, subset_indices)
+    else:
+        train_dataset = train_dataset
+
     # Splitting the dataset into training and validation set
     train_size = int(0.8 * len(train_dataset))
     val_size = len(train_dataset) - train_size
@@ -50,12 +57,13 @@ parser = argparse.ArgumentParser(description='Run Optuna optimization.',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('model_name', type=str, help='Name of the model to train.')
 parser.add_argument('--metric', type=str, default='f1', choices=['f1', 'mean_iou'], help='Metric to optimize.')
+parser.add_argument('--debug', action='store_true', help='Run in debug mode with a smaller subset of data.')
 
 args = parser.parse_args()
 
 # Create a study object and specify the optimization direction
 study = optuna.create_study(direction='maximize')
-study.optimize(lambda trial: objective(trial, metric_to_optimize=args.metric, model_name=args.model_name), n_trials=20)
+study.optimize(lambda trial: objective(trial, metric_to_optimize=args.metric, model_name=args.model_name, debug=args.debug), n_trials=20)
 
 # Get best hyperparameters
 best_params = study.best_params

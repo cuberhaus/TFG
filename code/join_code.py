@@ -32,7 +32,7 @@ if select == 0:
     py_files = ['train_and_save_model.py', 'custom_dataset.py', 'model_utils.py', 'data_utils.py', 'test_model.py']
 elif select == 1:
     notebook_path = []
-    py_files = ['train_and_save_model.py', 'custom_dataset.py', 'model_utils.py', 'data_utils.py', 'test_model.py']
+    py_files = ['train_and_save_model.py', 'custom_dataset.py', 'model_utils.py', 'data_utils.py', 'test_model.py', 'train_models.sh']
 elif select == 2:
     notebook_path = []
     py_files = ['train_and_save_model.py', 'custom_dataset.py', 'model_utils.py', 'data_utils.py', 'test_model.py'
