@@ -111,7 +111,7 @@ def validate(model, val_loader, device):
     return val_loss / len(val_loader)
 
 
-def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', debug=False):
+def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', metric_choice='f1', debug=False):
     """
     Train the model for a specified number of epochs.
     """
@@ -174,9 +174,9 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
 
         # Validation
         metrics = evaluate(model, val_loader, device)
-        val_loss = metrics['f1']
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
+        metric_value = metrics[metric_choice]  # Use the specified metric
+        if metric_value < best_val_loss:
+            best_val_loss = metric_value
             # Delete the previously saved model file, if it exists
             if saved_model_path and os.path.exists(saved_model_path):
                 os.remove(saved_model_path)
@@ -201,7 +201,7 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
         for param_group in optimizer.param_groups:
             print(f'Learning Rate: {param_group["lr"]:.6f}')
 
-    return model, epoch_losses, batch_losses, epoch, saved_model_path
+    return model, epoch_losses, batch_losses, epoch, saved_model_path, metric_value
 
 
 def evaluate(model, val_loader, device, iou_threshold=0.5):

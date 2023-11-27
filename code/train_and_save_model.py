@@ -43,7 +43,8 @@ def main():
     # Train the model
     trained_model, epoch_losses, batch_losses, epoch, model_path = train_model(train_dataset, params, num_epochs,
                                                                                device,
-                                                                               model_s=model_name)
+                                                                               model_s=model_name,
+                                                                               debug=debug)
 
 
 if __name__ == "__main__":

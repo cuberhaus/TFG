@@ -32,24 +32,20 @@ def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN', debug=Fal
     else:
         train_dataset = train_dataset
 
-    # Splitting the dataset into training and validation set
-    train_size = int(0.8 * len(train_dataset))
-    val_size = len(train_dataset) - train_size
-    train_dataset, val_dataset = random_split(train_dataset, [train_size, val_size])
+    # # Splitting the dataset into training and validation set
+    # train_size = int(0.8 * len(train_dataset))
+    # val_size = len(train_dataset) - train_size
+    # train_dataset, val_dataset = random_split(train_dataset, [train_size, val_size])
 
     # Train the model with the current set of hyperparameters
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    trained_model, _, _, _, _ = train_model(train_dataset, params, num_epochs, device, model_name, debug=debug)
+    # Validation split is done inside the train_model function already
+    trained_model, _, _, _, _, metric_to_optimize = train_model(train_dataset, params, num_epochs, device, model_name, debug=debug, metric_choice=metric_to_optimize)
 
-    # Evaluate the model using the evaluate function
-    val_metrics = evaluate(trained_model, val_dataset, device)
+    # # Evaluate the model using the evaluate function
+    # val_metrics = evaluate(trained_model, val_dataset, device) # TODO: THIS BREAKS
+    return metric_to_optimize
 
-    if metric_to_optimize == 'mean_iou':
-        return val_metrics['mean_iou']
-    elif metric_to_optimize == 'f1':
-        return val_metrics['f1']
-    else:
-        raise ValueError(f"Unknown metric {metric_to_optimize}")
 
 
 # Parsing command-line arguments
