@@ -45,8 +45,9 @@ def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN'):
 
 
 # Parsing command-line arguments
-parser = argparse.ArgumentParser(description='Run Optuna optimization.')
-parser.add_argument('--model_name', type=str, default='FasterRCNN', help='Name of the model to train.')
+parser = argparse.ArgumentParser(description='Run Optuna optimization.',
+                                 formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument('model_name', type=str, help='Name of the model to train.')
 parser.add_argument('--metric', type=str, default='f1', choices=['f1', 'mean_iou'], help='Metric to optimize.')
 
 args = parser.parse_args()
