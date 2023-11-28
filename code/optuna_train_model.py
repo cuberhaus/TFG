@@ -32,11 +32,6 @@ def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN', debug=Fal
     else:
         train_dataset = train_dataset
 
-    # # Splitting the dataset into training and validation set
-    # train_size = int(0.8 * len(train_dataset))
-    # val_size = len(train_dataset) - train_size
-    # train_dataset, val_dataset = random_split(train_dataset, [train_size, val_size])
-
     # Train the model with the current set of hyperparameters
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Validation split is done inside the train_model function already
@@ -47,8 +42,6 @@ def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN', debug=Fal
     if device.type == 'cuda':
         torch.cuda.empty_cache()
 
-    # # Evaluate the model using the evaluate function
-    # val_metrics = evaluate(trained_model, val_dataset, device) # TODO: THIS BREAKS
     return metric_to_optimize
 
 
