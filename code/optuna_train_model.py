@@ -13,7 +13,7 @@ def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN', debug=Fal
     lr = trial.suggest_float("lr", 1e-5, 1e-1, log=True)
     batch_size = trial.suggest_categorical("batch_size", [2, 4, 8])  # TODO: BATCH SIZE OF 16 BREAKS THINGS
     weight_decay = trial.suggest_float("weight_decay", 1e-5, 1e-1, log=True)
-    num_epochs = trial.suggest_int("num_epochs", 1, 5)
+    num_epochs = trial.suggest_int("num_epochs", 1, 5)   # TODO: more epochs when we have more time
 
     # Hyperparameters to be tuned
     params = {
@@ -58,7 +58,7 @@ args = parser.parse_args()
 study = optuna.create_study(direction='maximize')
 study.optimize(
     lambda trial: objective(trial, metric_to_optimize=args.metric, model_name=args.model_name, debug=args.debug),
-    n_trials=5)
+    n_trials=5) # TODO: more trials when we have more time
 
 # Get best hyperparameters
 best_params = study.best_params
