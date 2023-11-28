@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
+import seaborn as sns
+import pandas as pd
 
 
 def get_all_bounding_boxes(dataset):
@@ -79,21 +81,33 @@ def plot_silhouette_scores(silhouette_scores):
     plt.show()
 
 
-def cluster_bounding_boxes(bounding_boxes, n_clusters=3):
+def get_bbox_centers(bounding_boxes):
+    """
+    Calculate the centers of bounding boxes.
+
+    Parameters:
+    - bounding_boxes: A list of bounding boxes, each represented as [x_min, y_min, x_max, y_max].
+
+    Returns:
+    - A list of centers for each bounding box, each represented as [x_center, y_center].
+    """
+    centers = []
+    for bbox in bounding_boxes:
+        x_min, y_min, x_max, y_max = bbox
+        x_center = (x_min + x_max) / 2
+        y_center = (y_min + y_max) / 2
+        centers.append([x_center, y_center])
+    return centers
+
+
+def cluster_bounding_boxes(bbox_centers, n_clusters=3):
     """
     Cluster bounding boxes using K-means clustering.
     """
     # Convert from [x1, y1, x2, y2] to [x, y, width, height]
-    data = []
-    for bbox in bounding_boxes:
-        x, y, x2, y2 = bbox
-        width = x2 - x
-        height = y2 - y
-        data.append([x, y, width, height])
-    data = np.array(data)
-
+    bbox_centers = np.array(bbox_centers)
     # Apply K-means clustering
-    kmeans = KMeans(n_clusters=n_clusters, random_state=0).fit(data)
+    kmeans = KMeans(n_clusters=n_clusters, random_state=0).fit(bbox_centers)
 
     # Get cluster centers
     centers = kmeans.cluster_centers_
@@ -123,22 +137,16 @@ def plot_cluster_centers(centers):
     plt.show()
 
 
-def plot_cluster_centers_with_bbox_centers(centers, bounding_boxes):
+def plot_cluster_centers_with_bbox_centers(centers, bbox_centers):
     """
     Plot the cluster centers and the centers of the bounding boxes on a chart.
     """
 
     # Convert lists to numpy arrays if they are not already
-    if isinstance(bounding_boxes, list):
-        bounding_boxes = np.array(bounding_boxes)
+    if isinstance(bbox_centers, list):
+        bbox_centers = np.array(bbox_centers)
     if isinstance(centers, list):
         centers = np.array(centers)
-
-    # Calculate the centers of the bounding boxes
-    bbox_centers = np.c_[
-        (bounding_boxes[:, 0] + bounding_boxes[:, 2]) / 2,  # x_center
-        (bounding_boxes[:, 1] + bounding_boxes[:, 3]) / 2  # y_center
-    ]
 
     # Plot the centers of the bounding boxes
     plt.scatter(bbox_centers[:, 0], bbox_centers[:, 1], c='blue', marker='o', label='Bounding Box Centers')
@@ -156,3 +164,35 @@ def plot_cluster_centers_with_bbox_centers(centers, bounding_boxes):
     plt.ylabel('Y coordinate')
     plt.legend()
     plt.show()
+
+
+def plot_density_of_bbox_centers(bbox_centers):
+    """
+    Generate a density plot of the centers of bounding boxes with a legend.
+
+    Parameters:
+    - bounding_boxes: A numpy array or a list of bounding boxes with each box defined as [x_min, y_min, x_max, y_max].
+    """
+    # Convert bounding boxes to centers
+    if isinstance(bbox_centers, list):
+        bbox_centers = np.array(bbox_centers)
+
+    # Convert to DataFrame for Seaborn
+    df_centers = pd.DataFrame(bbox_centers, columns=['x_center', 'y_center'])
+
+    # Create the density plot
+    plt.figure(figsize=(10, 8))
+    ax = sns.kdeplot(data=df_centers, x='x_center', y='y_center', fill=True, cmap="Blues", legend=True)
+
+    # Add a color bar representing the density scale
+    norm = plt.Normalize(df_centers.values.min(), df_centers.values.max())
+    sm = plt.cm.ScalarMappable(cmap="Blues", norm=norm)
+    sm.set_array([])
+
+    # Create a color bar as the legend
+    color_bar = plt.colorbar(sm)
+    color_bar.set_label('Density')
+
+    plt.title('Density Plot of Bounding Box Centers')
+    plt.xlabel('X Center')
+    plt.ylabel('Y Center')
