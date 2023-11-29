@@ -176,6 +176,7 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
         metrics = evaluate(model, val_loader, device)
         metric_value = metrics[metric_choice]  # Use the specified metric
         if metric_value < best_val_loss:
+            print(metric_choice + " : " + metric_value)
             best_val_loss = metric_value
             # Delete the previously saved model file, if it exists
             if saved_model_path and os.path.exists(saved_model_path):

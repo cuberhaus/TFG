@@ -72,3 +72,6 @@ with open('best_hyperparameters.csv', 'w', newline='') as csvfile:
     writer.writeheader()
     for param, value in best_params.items():
         writer.writerow({'parameter': param, 'value': value})
+
+# On a search with 5 trials, I got:
+#Best hyperparameters:  {'lr': 0.030835981129087326, 'batch_size': 2, 'weight_decay': 0.0001317937713104395, 'num_epochs': 2}
