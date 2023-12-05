@@ -15,6 +15,19 @@ from torchvision.ops import box_iou
 
 from custom_dataset import CustomDataset
 
+def is_wsl():
+    # Check the platform identifier
+    if platform.system() != 'Linux':
+        return False
+
+    # Read the contents of /proc/version
+    try:
+        with open('/proc/version', 'r') as f:
+            content = f.read().lower()
+            # Look for keywords indicating WSL
+            return 'microsoft' in content or 'wsl' in content
+    except FileNotFoundError:
+        return False
 
 def prepare_dataset(max_samples=None):
     # Define your data transformation (e.g., resizing, normalization, etc.)
@@ -31,6 +44,9 @@ def prepare_dataset(max_samples=None):
         train_root_dir = 'C:/Users/polcg/repos/TFG/code/data/TrainValid/TrainValid'
         test_root_dir = 'C:/Users/polcg/repos/TFG/code/data/Test/Test'
         print("Windows")
+    elif is_wsl(): # Local machine
+        train_root_dir = 'C:/Users/polcg/repos/TFG/code/data/TrainValid/TrainValid'
+        test_root_dir = 'C:/Users/polcg/repos/TFG/code/data/Test/Test'
     elif system_name == "Linux": # Remote server
         train_root_dir = '/home/casacuberta/TFG/TrainValid/TrainValid'
         test_root_dir = '/home/casacuberta/TFG/Test/Test'
