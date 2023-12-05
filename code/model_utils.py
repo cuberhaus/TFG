@@ -49,6 +49,7 @@ def prepare_dataset(max_samples=None):
     elif is_wsl():  # Local machine
         train_root_dir = '/mnt/c/Users/polcg/repos/TFG/code/data/TrainValid/TrainValid'
         test_root_dir = '/mnt/c/Users/polcg/repos/TFG/code/data/Test/Test'
+        print("wsl")
     elif system_name == "Linux":  # Remote server
         train_root_dir = '/home/casacuberta/TFG/TrainValid/TrainValid'
         test_root_dir = '/home/casacuberta/TFG/Test/Test'
