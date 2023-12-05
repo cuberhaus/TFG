@@ -27,15 +27,15 @@ def prepare_dataset(max_samples=None):
     test_root_dir = None
     train_root_dir = None
 
-    if system_name == "Windows":
-        train_root_dir = './data/TrainValid/TrainValid'
-        test_root_dir = './data/Test/Test'
+    if system_name == "Windows": # Local machine
+        train_root_dir = 'C:/Users/polcg/repos/TFG/code/data/TrainValid/TrainValid'
+        test_root_dir = 'C:/Users/polcg/repos/TFG/code/data/Test/Test'
         print("Windows")
-    elif system_name == "Linux":
+    elif system_name == "Linux": # Remote server
         train_root_dir = '/home/casacuberta/TFG/TrainValid/TrainValid'
         test_root_dir = '/home/casacuberta/TFG/Test/Test'
         print("Linux")
-    elif system_name == "Darwin":
+    elif system_name == "Darwin": # Local machine
         train_root_dir = '/Volumes/SSD_6Gbps/dataset1/TrainValid/TrainValid'
         test_root_dir = '/Volumes/SSD_6Gbps/dataset1/Test/Test'
         print("macOS")
