@@ -15,6 +15,7 @@ from torchvision.ops import box_iou
 
 from custom_dataset import CustomDataset
 
+
 def is_wsl():
     # Check the platform identifier
     if platform.system() != 'Linux':
@@ -29,6 +30,7 @@ def is_wsl():
     except FileNotFoundError:
         return False
 
+
 def prepare_dataset(max_samples=None):
     # Define your data transformation (e.g., resizing, normalization, etc.)
     transform = transforms.Compose([
@@ -40,18 +42,18 @@ def prepare_dataset(max_samples=None):
     test_root_dir = None
     train_root_dir = None
 
-    if system_name == "Windows": # Local machine
+    if system_name == "Windows":  # Local machine
         train_root_dir = 'C:/Users/polcg/repos/TFG/code/data/TrainValid/TrainValid'
         test_root_dir = 'C:/Users/polcg/repos/TFG/code/data/Test/Test'
         print("Windows")
-    elif is_wsl(): # Local machine
-        train_root_dir = 'C:/Users/polcg/repos/TFG/code/data/TrainValid/TrainValid'
-        test_root_dir = 'C:/Users/polcg/repos/TFG/code/data/Test/Test'
-    elif system_name == "Linux": # Remote server
+    elif is_wsl():  # Local machine
+        train_root_dir = '/mnt/c/Users/polcg/repos/TFG/code/data/TrainValid/TrainValid'
+        test_root_dir = '/mnt/c/Users/polcg/repos/TFG/code/data/Test/Test'
+    elif system_name == "Linux":  # Remote server
         train_root_dir = '/home/casacuberta/TFG/TrainValid/TrainValid'
         test_root_dir = '/home/casacuberta/TFG/Test/Test'
         print("Linux")
-    elif system_name == "Darwin": # Local machine
+    elif system_name == "Darwin":  # Local machine
         train_root_dir = '/Volumes/SSD_6Gbps/dataset1/TrainValid/TrainValid'
         test_root_dir = '/Volumes/SSD_6Gbps/dataset1/Test/Test'
         print("macOS")
