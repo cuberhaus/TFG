@@ -10,7 +10,6 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 # Add the 'src' directory to the system path
 sys.path.append(SCRIPT_DIR)
 
-
 from clases.model_utils import *
 
 
