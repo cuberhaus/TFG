@@ -16,6 +16,7 @@ def consolidate_code(notebook_paths, py_files, output_file):
     with open(output_file, 'w') as outfile:
         # Process Python files
         for file in py_files:
+            print(f"Processing {file}")
             with open(file, 'r') as infile:
                 outfile.write(f"# Code from {file}\n")
                 outfile.write(infile.read())
@@ -23,6 +24,7 @@ def consolidate_code(notebook_paths, py_files, output_file):
 
         # Process Jupyter Notebooks
         for notebook_path in notebook_paths:
+            print(f"Processing {notebook_path}")
             notebook_code = extract_code_from_notebook(notebook_path)
             outfile.write(f"# Code from {notebook_path}\n")
             outfile.write(notebook_code)
@@ -32,20 +34,37 @@ def consolidate_code(notebook_paths, py_files, output_file):
 # Define the paths
 select = 1
 if select == 0:
-    notebook_path = ['main.ipynb']
-    py_files = ['train_and_save_model.py', 'custom_dataset.py', 'model_utils.py', 'data_utils.py', 'test_model.py']
+    notebook_path = [
+        '../j_notebooks/main.ipynb'
+    ]
+    py_files = [
+        '../clases/custom_dataset.py',
+        '../clases/data_utils.py',
+        '../clases/model_utils.py',
+        '../test_model.py',
+        '../train_and_save_model.py',
+    ]
 elif select == 1:
     notebook_path = []
-    py_files = ['train_and_save_model.py', 'custom_dataset.py', 'model_utils.py', 'data_utils.py', 'test_model.py',
-                'train_models.sh']
+    py_files = [
+        '../clases/custom_dataset.py',
+        '../clases/data_utils.py',
+        '../clases/model_utils.py',
+        '../shell_scripts/train_models.sh',
+        '../test_model.py',
+        '../train_and_save_model.py',
+    ]
 elif select == 2:
     notebook_path = []
-    py_files = ['train_and_save_model.py', 'custom_dataset.py', 'model_utils.py', 'data_utils.py', 'test_model.py'
-        , 'create_masks.py', 'copy_files_to_cyclegan_structure.py']
-elif select == 3:
-    notebook_path = ['main_old.ipynb', 'cycleGAN.ipynb']
-    py_files = ['custom_dataset.py', 'model_utils.py', 'data_utils.py', 'create_masks.py',
-                'copy_files_to_cyclegan_structure.py']
+    py_files = [
+        '../clases/custom_dataset.py',
+        '../clases/data_utils.py',
+        '../clases/model_utils.py',
+        '../python_scripts/copy_files_to_cyclegan_structure.py'
+        '../python_scripts/create_masks.py',
+        '../test_model.py',
+        '../train_and_save_model.py',
+    ]
 else:
     notebook_path = []
     py_files = []
