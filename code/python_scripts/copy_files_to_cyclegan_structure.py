@@ -2,6 +2,10 @@ import shutil
 from pathlib import Path
 
 
+"""
+This script copies the files from the PolypDetection dataset to the CycleGAN structure.
+"""
+
 # GAN typical training structure
 # ├── datasets
 #     └── your_dataset_name
@@ -65,10 +69,10 @@ def copy_files_to_cyclegan_structure(root_dir, target_dir, mode='train'):
 
 
 # Example usage
-root_dir = './data/TrainValid/TrainValid/'  # Replace with the path to your TrainValid directory
-target_dir = './data/PolypDataset/'  # Replace with the path to your target dataset directory for CycleGAN
+root_dir = '../data/TrainValid/TrainValid/'  # Replace with the path to your TrainValid directory
+target_dir = '../data/PolypDataset/'  # Replace with the path to your target dataset directory for CycleGAN
 copy_files_to_cyclegan_structure(root_dir, target_dir, mode='train')
 
-root_dir = './data/Test/Test/'  # Replace with the path to your TrainValid directory
-target_dir = './data/PolypDataset/'  # Replace with the path to your target dataset directory for CycleGAN
+root_dir = '../data/Test/Test/'  # Replace with the path to your TrainValid directory
+target_dir = '../data/PolypDataset/'  # Replace with the path to your target dataset directory for CycleGAN
 copy_files_to_cyclegan_structure(root_dir, target_dir, mode='test')

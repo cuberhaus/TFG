@@ -2,6 +2,10 @@ import sys
 import json
 import subprocess
 
+"""
+This script is used to run the train_and_save_model.py script for each model in the JSON file.
+"""
+
 
 def main():
     # Check if a JSON file path is provided as an argument

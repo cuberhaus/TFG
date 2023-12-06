@@ -1,5 +1,9 @@
 import nbformat
 
+"""
+This script is used to consolidate all the code from the notebooks and python files into a single file.
+"""
+
 
 def extract_code_from_notebook(notebook_path):
     with open(notebook_path) as f:
@@ -32,11 +36,12 @@ if select == 0:
     py_files = ['train_and_save_model.py', 'custom_dataset.py', 'model_utils.py', 'data_utils.py', 'test_model.py']
 elif select == 1:
     notebook_path = []
-    py_files = ['train_and_save_model.py', 'custom_dataset.py', 'model_utils.py', 'data_utils.py', 'test_model.py', 'train_models.sh']
+    py_files = ['train_and_save_model.py', 'custom_dataset.py', 'model_utils.py', 'data_utils.py', 'test_model.py',
+                'train_models.sh']
 elif select == 2:
     notebook_path = []
     py_files = ['train_and_save_model.py', 'custom_dataset.py', 'model_utils.py', 'data_utils.py', 'test_model.py'
-                , 'create_masks.py', 'copy_files_to_cyclegan_structure.py']
+        , 'create_masks.py', 'copy_files_to_cyclegan_structure.py']
 elif select == 3:
     notebook_path = ['main_old.ipynb', 'cycleGAN.ipynb']
     py_files = ['custom_dataset.py', 'model_utils.py', 'data_utils.py', 'create_masks.py',
@@ -45,7 +50,7 @@ else:
     notebook_path = []
     py_files = []
 
-output_file = 'tmp/consolidated_code.py'
+output_file = '../tmp/consolidated_code.py'
 
 # Run the consolidation
 consolidate_code(notebook_path, py_files, output_file)

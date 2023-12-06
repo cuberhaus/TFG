@@ -1,9 +1,13 @@
 import cv2
 import numpy as np
 
+from custom_dataset import parse_annotation
 from model_utils import *
 
 
+"""
+This script is used to create masks from the bounding boxes in the annotations files.
+"""
 def create_mask_from_bounding_boxes(image_shape, bounding_boxes):
     mask = np.zeros(image_shape[:2], dtype=np.uint8)  # Assuming image_shape is in (H, W, C) format
     for bbox in bounding_boxes:
@@ -55,7 +59,7 @@ def process_all_videos(root_dir):
 
 
 # Example usage
-dataset_root_dir = './data/TrainValid/TrainValid'  # Replace with the path to your TrainValid directory
+dataset_root_dir = '../data/TrainValid/TrainValid'  # Replace with the path to your TrainValid directory
 process_all_videos(dataset_root_dir)
-dataset_root_dir = './data/Test/Test'  # Replace with the path to your TrainValid directory
+dataset_root_dir = '../data/Test/Test'  # Replace with the path to your TrainValid directory
 process_all_videos(dataset_root_dir)
