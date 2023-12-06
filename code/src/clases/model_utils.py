@@ -17,6 +17,10 @@ from custom_dataset import CustomDataset
 
 
 def is_wsl():
+    """
+    Check if the current system is Windows Subsystem for Linux (WSL).
+    :return:
+    """
     # Check the platform identifier
     if platform.system() != 'Linux':
         return False

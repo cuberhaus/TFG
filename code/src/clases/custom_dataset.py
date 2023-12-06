@@ -5,6 +5,11 @@ import os
 
 
 def parse_annotation(annotation_path):
+    """
+    Parse the annotation file and return bounding boxes.
+    :param annotation_path:
+    :return:
+    """
     with open(annotation_path, 'r') as file:
         lines = file.readlines()
 
@@ -26,6 +31,12 @@ class CustomDataset(Dataset):
         self.image_paths, self.annotation_paths = self.collect_paths(root_dir, max_samples)
 
     def collect_paths(self, root_dir, max_samples=None):
+        """
+        Collect the paths to all images and annotations in the dataset.
+        :param root_dir:
+        :param max_samples:
+        :return:
+        """
         image_paths = []
         annotation_paths = []
 
@@ -55,6 +66,11 @@ class CustomDataset(Dataset):
         return len(self.image_paths)
 
     def __getitem__(self, idx):
+        """
+        Get an item from the dataset.
+        :param idx:
+        :return:
+        """
         img_path = self.image_paths[idx]
         annotation_path = self.annotation_paths[idx]
 

@@ -8,6 +8,11 @@ This script is used to consolidate all the code from the notebooks and python fi
 
 
 def extract_code_from_notebook(notebook_path):
+    """
+    Extract the code from a Jupyter Notebook.
+    :param notebook_path:
+    :return:
+    """
     with open(notebook_path) as f:
         nb = nbformat.read(f, as_version=4)
     code_cells = [cell.source for cell in nb.cells if cell.cell_type == 'code']
@@ -15,6 +20,14 @@ def extract_code_from_notebook(notebook_path):
 
 
 def consolidate_code(notebook_paths, py_files, output_file, base_path):
+    """
+    Consolidate all the code from the notebooks and python files into a single file.
+    :param notebook_paths:
+    :param py_files:
+    :param output_file:
+    :param base_path:
+    :return:
+    """
     with open(output_file, 'w') as outfile:
         # Process Python files
         for file in py_files:
@@ -60,6 +73,7 @@ elif select == 1:
         '../shell_scripts/train_models.sh',
         '../test_model.py',
         '../train_and_save_model.py',
+        '../train_models.py',
     ]
 elif select == 2:
     notebook_path = []

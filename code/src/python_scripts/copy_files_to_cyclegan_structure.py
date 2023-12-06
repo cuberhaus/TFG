@@ -15,6 +15,13 @@ This script copies the files from the PolypDetection dataset to the CycleGAN str
 #         └── testB   # Images for testing
 
 def copy_files_to_cyclegan_structure(root_dir, target_dir, mode='train'):
+    """
+    Copy files from the PolypDetection dataset to the CycleGAN structure.
+    :param root_dir:
+    :param target_dir:
+    :param mode:
+    :return:
+    """
     assert mode in ('train', 'test'), "Mode must be 'train' or 'test'."
     # Define the source directories
     images_root_dir = Path(root_dir) / 'Images'

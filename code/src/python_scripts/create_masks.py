@@ -10,6 +10,12 @@ This script is used to create masks from the bounding boxes in the annotations f
 
 
 def create_mask_from_bounding_boxes(image_shape, bounding_boxes):
+    """
+    Create a mask from the bounding boxes in the annotations file.
+    :param image_shape:
+    :param bounding_boxes:
+    :return:
+    """
     mask = np.zeros(image_shape[:2], dtype=np.uint8)  # Assuming image_shape is in (H, W, C) format
     for bbox in bounding_boxes:
         x1, y1, x2, y2 = bbox
@@ -18,6 +24,13 @@ def create_mask_from_bounding_boxes(image_shape, bounding_boxes):
 
 
 def process_images_in_folder(images_folder, annotations_folder, mask_save_dir):
+    """
+    Process all images in a folder.
+    :param images_folder:
+    :param annotations_folder:
+    :param mask_save_dir:
+    :return:
+    """
     image_filenames = [f for f in os.listdir(images_folder) if f.endswith('.jpg')]
 
     os.makedirs(mask_save_dir, exist_ok=True)  # Ensure the save directory exists
@@ -46,6 +59,11 @@ def process_images_in_folder(images_folder, annotations_folder, mask_save_dir):
 
 
 def process_all_videos(root_dir):
+    """
+    Process all videos in the dataset.
+    :param root_dir:
+    :return:
+    """
     images_root_dir = os.path.join(root_dir, 'Images')
     annotations_root_dir = os.path.join(root_dir, 'Annotations')
     mask_save_dir = os.path.join(root_dir, 'Masks')
