@@ -2,7 +2,7 @@ import sys
 import json
 import subprocess
 # Replace '/path/to/src/clases' with the actual absolute path to the 'clases' directory
-sys.path.append('./src/clases')
+# sys.path.append('./src')
 
 """
 This script is used to run the train_and_save_model.py script for each model in the JSON file.
