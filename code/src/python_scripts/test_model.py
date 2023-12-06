@@ -9,7 +9,7 @@ from clases.model_utils import load_model_with_hyperparams, prepare_dataset, get
 
 
 # Function to perform predictions and save images
-def test_model_and_save_images(model, test_dataset, class_labels, save_dir='testing_model', debug=False):
+def test_model_and_save_images(model, test_dataset, class_labels, save_dir='out/testing_model', debug=False):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 

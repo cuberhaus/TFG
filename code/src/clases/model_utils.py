@@ -166,8 +166,8 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
     batch_losses = []
 
     # Define the directory to save models
-    save_dir = 'saved_models_debug' if debug else 'saved_models'
-    losses_dir = 'losses_debug' if debug else 'losses'
+    save_dir = 'out/saved_models_debug' if debug else 'out/saved_models'
+    losses_dir = 'out/losses_debug' if debug else 'out/losses'
 
     saved_model_path = None
 
@@ -280,7 +280,7 @@ def evaluate(model, val_loader, device, iou_threshold=0.5):
 
 def save_model_with_hyperparams(model, model_name, hyperparams,
                                 epoch_losses=None, batch_losses=None, epoch=None,
-                                save_dir='./saved_models/', losses_dir='./losses/'):
+                                save_dir='./out/saved_models/', losses_dir='./out/losses/'):
     """
     Saves the model with a filename that includes the model name and hyperparameters. Losses are saved in a separate directory.
 
