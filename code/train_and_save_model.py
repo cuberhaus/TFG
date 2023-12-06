@@ -5,7 +5,7 @@ import sys
 from model_utils import *
 
 
-def main():
+def train_and_save_model():
     # Parse command-line arguments
     if len(sys.argv) < 3:
         print("Usage: python script.py 'model_name' '{\"BATCH_SIZE\": 2, \"LR\": 0.005, \"WEIGHT_DECAY\": 0.0005, "
@@ -41,11 +41,12 @@ def main():
     num_epochs = params['NUM_EPOCHS']
 
     # Train the model
-    trained_model, epoch_losses, batch_losses, epoch, model_path, metric_value = train_model(train_dataset, params, num_epochs,
-                                                                               device,
-                                                                               model_s=model_name,
-                                                                               debug=debug)
+    trained_model, epoch_losses, batch_losses, epoch, model_path, metric_value = train_model(train_dataset, params,
+                                                                                             num_epochs,
+                                                                                             device,
+                                                                                             model_s=model_name,
+                                                                                             debug=debug)
 
 
 if __name__ == "__main__":
-    main()
+    train_and_save_model()
