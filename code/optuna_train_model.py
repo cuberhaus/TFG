@@ -3,9 +3,9 @@ import csv
 
 import optuna
 import torch
+from torch.utils.data import Subset
 
-from model_utils import train_model, prepare_dataset, evaluate
-from torch.utils.data import random_split, Subset
+from model_utils import train_model, prepare_dataset
 
 
 def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN', debug=False):

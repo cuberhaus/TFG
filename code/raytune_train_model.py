@@ -1,13 +1,14 @@
 import argparse
 import csv
-import os
-import torch
+
 import ray
+import torch
+from ray import train as ray_train
 from ray import tune
 from ray.tune.schedulers import ASHAScheduler
-from model_utils import train_model, prepare_dataset
 from torch.utils.data import Subset
-from ray import train as ray_train
+
+from model_utils import train_model, prepare_dataset
 
 
 def train_model_tune(config, data_dir="./raytune", model_name='FasterRCNN', debug=False):

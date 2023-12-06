@@ -12,3 +12,5 @@ wandb~=0.15.12
 scipy~=1.11.3
 
 optuna~=3.4.0
+pandas~=2.1.1
+ray~=2.8.1
