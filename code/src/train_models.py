@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 
@@ -9,6 +10,8 @@ import sys
 This script is used to run the train_and_save_model.py script for each model in the JSON file.
 """
 
+# This line gets the directory in which the script is located.
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def main():
     # Check if a JSON file path is provided as an argument
@@ -41,8 +44,11 @@ def main():
         print(f"Running model: {model_name}")
         print(f"Parameters: {params}")
 
+        # Build the path to the train_and_save_model.py script
+        train_and_save_model_script = os.path.join(SCRIPT_DIR, "train_and_save_model.py")
+
         # Call the Python script with the model name and parameters
-        subprocess.run(["python3", "train_and_save_model.py", model_name, params, debug_flag])
+        subprocess.run(["python3", train_and_save_model_script, model_name, params, debug_flag])
 
 
 if __name__ == "__main__":
