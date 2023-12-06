@@ -13,6 +13,7 @@ This script is used to run the train_and_save_model.py script for each model in 
 # This line gets the directory in which the script is located.
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
 def main():
     # Check if a JSON file path is provided as an argument
     if len(sys.argv) < 2:

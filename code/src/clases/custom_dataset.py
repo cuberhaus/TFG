@@ -3,9 +3,10 @@ from torch.utils.data import Dataset
 import torch
 import os
 
-
 # Get the absolute path of the current script
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
 def parse_annotation(annotation_path):
     """
     Parse the annotation file and return bounding boxes.
