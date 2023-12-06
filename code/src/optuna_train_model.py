@@ -1,10 +1,22 @@
 import argparse
 import csv
+import os
+import sys
 
 import optuna
 import torch
 from torch.utils.data import Subset
 
+
+def fix_path():
+    script_dir = os.path.dirname(__file__)  # Directory of the script file
+    relative_path = "clases"  # Relative path to the file
+    absolute_path = os.path.join(script_dir, relative_path)  # Full path to the file
+    print(absolute_path)
+    sys.path.append(absolute_path)
+
+
+fix_path()
 from clases.model_utils import train_model, prepare_dataset
 
 
@@ -13,7 +25,7 @@ def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN', debug=Fal
     lr = trial.suggest_float("lr", 1e-5, 1e-1, log=True)
     batch_size = trial.suggest_categorical("batch_size", [2, 4, 8])  # TODO: BATCH SIZE OF 16 BREAKS THINGS
     weight_decay = trial.suggest_float("weight_decay", 1e-5, 1e-1, log=True)
-    num_epochs = trial.suggest_int("num_epochs", 1, 5)   # TODO: more epochs when we have more time
+    num_epochs = trial.suggest_int("num_epochs", 1, 5)  # TODO: more epochs when we have more time
 
     # Hyperparameters to be tuned
     params = {
@@ -58,7 +70,7 @@ args = parser.parse_args()
 study = optuna.create_study(direction='maximize')
 study.optimize(
     lambda trial: objective(trial, metric_to_optimize=args.metric, model_name=args.model_name, debug=args.debug),
-    n_trials=5) # TODO: more trials when we have more time
+    n_trials=5)  # TODO: more trials when we have more time
 
 # Get best hyperparameters
 best_params = study.best_params
@@ -74,4 +86,4 @@ with open('best_hyperparameters.csv', 'w', newline='') as csvfile:
         writer.writerow({'parameter': param, 'value': value})
 
 # On a search with 5 trials, I got:
-#Best hyperparameters:  {'lr': 0.030835981129087326, 'batch_size': 2, 'weight_decay': 0.0001317937713104395, 'num_epochs': 2}
+# Best hyperparameters:  {'lr': 0.030835981129087326, 'batch_size': 2, 'weight_decay': 0.0001317937713104395, 'num_epochs': 2}

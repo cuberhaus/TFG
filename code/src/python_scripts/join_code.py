@@ -1,3 +1,5 @@
+import os
+
 import nbformat
 
 """
@@ -12,24 +14,29 @@ def extract_code_from_notebook(notebook_path):
     return '\n\n'.join(code_cells)
 
 
-def consolidate_code(notebook_paths, py_files, output_file):
+def consolidate_code(notebook_paths, py_files, output_file, base_path):
     with open(output_file, 'w') as outfile:
         # Process Python files
         for file in py_files:
-            print(f"Processing {file}")
-            with open(file, 'r') as infile:
-                outfile.write(f"# Code from {file}\n")
+            full_path = os.path.join(base_path, file)
+            print(f"Processing {full_path}")
+            with open(full_path, 'r') as infile:
+                outfile.write(f"# Code from {full_path}\n")
                 outfile.write(infile.read())
                 outfile.write("\n\n")
 
         # Process Jupyter Notebooks
         for notebook_path in notebook_paths:
-            print(f"Processing {notebook_path}")
-            notebook_code = extract_code_from_notebook(notebook_path)
-            outfile.write(f"# Code from {notebook_path}\n")
+            full_path = os.path.join(base_path, notebook_path)
+            print(f"Processing {full_path}")
+            notebook_code = extract_code_from_notebook(full_path)
+            outfile.write(f"# Code from {full_path}\n")
             outfile.write(notebook_code)
             outfile.write("\n\n")
 
+
+# Get the absolute path of the current script
+script_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Define the paths
 select = 1
@@ -69,7 +76,7 @@ else:
     notebook_path = []
     py_files = []
 
-output_file = '../../tmp/consolidated_code.py'
+output_file = os.path.join(script_dir, '../../tmp/consolidated_code.py')
 
 # Run the consolidation
-consolidate_code(notebook_path, py_files, output_file)
+consolidate_code(notebook_path, py_files, output_file, script_dir)

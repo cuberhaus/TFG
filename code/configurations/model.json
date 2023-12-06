@@ -1,6 +1,6 @@
 [
   {
-    "model_name": "RetinaNet",
+    "model_name": "FasterRCNN",
     "params": {
       "BATCH_SIZE": 2,
       "LR": 0.005,

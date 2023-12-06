@@ -4,12 +4,16 @@ import sys
 
 import os
 
-script_dir = os.path.dirname(__file__)  # Directory of the script file
-relative_path = "clases"  # Relative path to the file
-absolute_path = os.path.join(script_dir, relative_path)  # Full path to the file
-print(absolute_path)
-sys.path.append(absolute_path)
 
+def fix_path():
+    script_dir = os.path.dirname(__file__)  # Directory of the script file
+    relative_path = "clases"  # Relative path to the file
+    absolute_path = os.path.join(script_dir, relative_path)  # Full path to the file
+    print(absolute_path)
+    sys.path.append(absolute_path)
+
+
+fix_path()
 
 from clases.model_utils import *
 
