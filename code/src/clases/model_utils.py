@@ -181,7 +181,9 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
 
     # Define the directory to save models and losses based on output_base_dir
     save_dir = os.path.join(OUT_DIR, 'saved_models_debug' if debug else 'saved_models')
+    print("save_dir:", save_dir)
     losses_dir = os.path.join(OUT_DIR, 'losses_debug' if debug else 'losses')
+    print("losses_dir:", losses_dir)
 
     # Create these directories if they don't exist
     if not os.path.exists(save_dir):
