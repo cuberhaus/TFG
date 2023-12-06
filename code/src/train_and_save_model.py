@@ -2,6 +2,9 @@ import argparse
 import json
 import sys
 
+# Replace '/path/to/src/clases' with the actual absolute path to the 'clases' directory
+sys.path.append('./clases')
+
 from clases.model_utils import *
 
 
