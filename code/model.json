@@ -1,6 +1,6 @@
 [
   {
-    "model_name": "FasterRCNN",
+    "model_name": "SSD",
     "params": {
       "BATCH_SIZE": 2,
       "LR": 0.005,
