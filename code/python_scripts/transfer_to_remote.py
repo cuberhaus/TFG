@@ -30,7 +30,14 @@ for file in files:
 
     # Create the corresponding directory on the remote server
     if relative_dir:  # Check if the file is not in the root directory
-        subprocess.run(["ssh", remote_host, f"mkdir -p {remote_path}"])
+        try:
+            subprocess.run(
+                ["ssh", "-o", "StrictHostKeyChecking=no", remote_host, f"mkdir -p {remote_path}"],
+                check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to create directory {remote_path} on remote host. Error: {e.stderr}")
+        continue
 
     # Extract the base filename
     basefile = os.path.basename(file)
