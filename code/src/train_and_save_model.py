@@ -4,13 +4,23 @@ import sys
 
 import os
 
+# Use __file__ to get the script's directory
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 def fix_path():
-    script_dir = os.path.dirname(__file__)  # Directory of the script file
-    relative_path = "clases"  # Relative path to the file
-    absolute_path = os.path.join(script_dir, relative_path)  # Full path to the file
-    print(absolute_path)
+    # Now SCRIPT_DIR is based on __file__
+    relative_path = "/clases"  # Adjust the relative path as needed
+    absolute_path = os.path.join(SCRIPT_DIR, relative_path)
     sys.path.append(absolute_path)
+
+
+# def fix_path():
+#     script_dir = os.path.dirname(__file__)  # Directory of the script file
+#     relative_path = "clases"  # Relative path to the file
+#     absolute_path = os.path.join(script_dir, relative_path)  # Full path to the file
+#     print(absolute_path)
+#     sys.path.append(absolute_path)
 
 
 fix_path()
