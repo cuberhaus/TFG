@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, fasterrcnn_resnet50_fpn, \
     FasterRCNN_ResNet50_FPN_Weights
-from torchvision.models.detection.retinanet import RetinaNetClassificationHead, RetinaNet_ResNet50_FPN_V2_Weights, \
+from torchvision.models.detection.retinanet import RetinaNet_ResNet50_FPN_V2_Weights, \
     retinanet_resnet50_fpn_v2, RetinaNetHead
 from torchvision.models.detection.ssdlite import ssdlite320_mobilenet_v3_large, SSDLite320_MobileNet_V3_Large_Weights
 from torchvision.ops import box_iou
