@@ -71,6 +71,9 @@ def prepare_dataset(max_samples=None):
         test_root_dir = '/Volumes/SSD_6Gbps/dataset1/Test/Test'
         print("macOS")
 
+    print("train dir: " + train_root_dir)
+    print("test dir: " + test_root_dir)
+
     # Create instances of the custom dataset
     train_max_samples = max_samples['train'] if max_samples and 'train' in max_samples else None
     test_max_samples = max_samples['test'] if max_samples and 'test' in max_samples else None

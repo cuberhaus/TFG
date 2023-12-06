@@ -49,7 +49,7 @@ def consolidate_code(notebook_paths, py_files, output_file, base_path):
 
 
 # Get the absolute path of the current script
-script_dir = os.path.dirname(os.path.abspath(__file__))
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Define the paths
 select = 1
@@ -90,7 +90,7 @@ else:
     notebook_path = []
     py_files = []
 
-output_file = os.path.join(script_dir, '../../tmp/consolidated_code.py')
+output_file = os.path.join(SCRIPT_DIR, '../../tmp/consolidated_code.py')
 
 # Run the consolidation
-consolidate_code(notebook_path, py_files, output_file, script_dir)
+consolidate_code(notebook_path, py_files, output_file, SCRIPT_DIR)
