@@ -17,7 +17,9 @@ from .custom_dataset import CustomDataset
 
 
 SCRIPT_DIR = os.path.dirname(__file__)  # Directory of the script file
-OUT_DIR = os.path.join(SCRIPT_DIR, '..', 'out')
+SRC_DIR = os.path.join(SCRIPT_DIR, '../')  # Directory of the script file
+OUT_DIR = os.path.join(SRC_DIR, '..', 'out')
+
 if not os.path.exists(OUT_DIR):
     os.makedirs(OUT_DIR)
 
