@@ -16,6 +16,12 @@ from torchvision.ops import box_iou
 from .custom_dataset import CustomDataset
 
 
+SCRIPT_DIR = os.path.dirname(__file__)  # Directory of the script file
+OUT_DIR = os.path.join(SCRIPT_DIR, '..', 'out')
+if not os.path.exists(OUT_DIR):
+    os.makedirs(OUT_DIR)
+
+
 def is_wsl():
     """
     Check if the current system is Windows Subsystem for Linux (WSL).
@@ -169,9 +175,20 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
     epoch_losses = []
     batch_losses = []
 
-    # Define the directory to save models
-    save_dir = 'out/saved_models_debug' if debug else 'out/saved_models'
-    losses_dir = 'out/losses_debug' if debug else 'out/losses'
+    # # Define the directory to save models
+    # save_dir = 'out/saved_models_debug' if debug else 'out/saved_models'
+    # losses_dir = 'out/losses_debug' if debug else 'out/losses'
+
+    # Define the directory to save models and losses based on output_base_dir
+    save_dir = os.path.join(OUT_DIR, 'saved_models_debug' if debug else 'saved_models')
+    losses_dir = os.path.join(OUT_DIR, 'losses_debug' if debug else 'losses')
+
+    # Create these directories if they don't exist
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    if not os.path.exists(losses_dir):
+        os.makedirs(losses_dir)
+
 
     saved_model_path = None
 
