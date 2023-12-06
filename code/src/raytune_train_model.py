@@ -8,7 +8,7 @@ from ray import tune
 from ray.tune.schedulers import ASHAScheduler
 from torch.utils.data import Subset
 
-from model_utils import train_model, prepare_dataset
+from clases.model_utils import train_model, prepare_dataset
 
 
 def train_model_tune(config, data_dir="./raytune", model_name='FasterRCNN', debug=False):

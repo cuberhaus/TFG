@@ -2,7 +2,7 @@ import argparse
 import json
 import sys
 
-from model_utils import *
+from clases.model_utils import *
 
 
 def train_and_save_model():

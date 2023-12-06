@@ -5,7 +5,7 @@ import torch
 from torchvision.transforms.functional import to_pil_image
 from torchvision.utils import draw_bounding_boxes
 
-from src.model_utils import load_model_with_hyperparams, prepare_dataset, get_model
+from clases.model_utils import load_model_with_hyperparams, prepare_dataset, get_model
 
 
 # Function to perform predictions and save images

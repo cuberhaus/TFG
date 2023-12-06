@@ -1,10 +1,10 @@
 import shutil
 from pathlib import Path
 
-
 """
 This script copies the files from the PolypDetection dataset to the CycleGAN structure.
 """
+
 
 # GAN typical training structure
 # ├── datasets

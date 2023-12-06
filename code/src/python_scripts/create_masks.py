@@ -1,13 +1,14 @@
 import cv2
 import numpy as np
 
-from src.custom_dataset import parse_annotation
-from src.model_utils import *
-
+from clases.custom_dataset import parse_annotation
+from clases.model_utils import *
 
 """
 This script is used to create masks from the bounding boxes in the annotations files.
 """
+
+
 def create_mask_from_bounding_boxes(image_shape, bounding_boxes):
     mask = np.zeros(image_shape[:2], dtype=np.uint8)  # Assuming image_shape is in (H, W, C) format
     for bbox in bounding_boxes:

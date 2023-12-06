@@ -43,8 +43,8 @@ def prepare_dataset(max_samples=None):
     train_root_dir = None
 
     if system_name == "Windows":  # Local machine
-        train_root_dir = 'C:/Users/polcg/repos/TFG/code/data/TrainValid/TrainValid'
-        test_root_dir = 'C:/Users/polcg/repos/TFG/code/data/Test/Test'
+        train_root_dir = '/TrainValid/TrainValid'
+        test_root_dir = '/Test/Test'
         print("Windows")
     elif is_wsl():  # Local machine
         train_root_dir = '/mnt/c/Users/polcg/repos/TFG/code/data/TrainValid/TrainValid'
