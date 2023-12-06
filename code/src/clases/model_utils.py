@@ -13,7 +13,7 @@ from torchvision.models.detection.retinanet import RetinaNet_ResNet50_FPN_V2_Wei
 from torchvision.models.detection.ssdlite import ssdlite320_mobilenet_v3_large, SSDLite320_MobileNet_V3_Large_Weights
 from torchvision.ops import box_iou
 
-from custom_dataset import CustomDataset
+from .custom_dataset import CustomDataset
 
 
 def is_wsl():
