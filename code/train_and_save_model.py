@@ -41,7 +41,7 @@ def main():
     num_epochs = params['NUM_EPOCHS']
 
     # Train the model
-    trained_model, epoch_losses, batch_losses, epoch, model_path = train_model(train_dataset, params, num_epochs,
+    trained_model, epoch_losses, batch_losses, epoch, model_path, metric_value = train_model(train_dataset, params, num_epochs,
                                                                                device,
                                                                                model_s=model_name,
                                                                                debug=debug)

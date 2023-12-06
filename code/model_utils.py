@@ -9,7 +9,7 @@ from torchvision import transforms
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, fasterrcnn_resnet50_fpn, \
     FasterRCNN_ResNet50_FPN_Weights
 from torchvision.models.detection.retinanet import RetinaNetClassificationHead, RetinaNet_ResNet50_FPN_V2_Weights, \
-    retinanet_resnet50_fpn_v2
+    retinanet_resnet50_fpn_v2, RetinaNetHead
 from torchvision.models.detection.ssdlite import ssdlite320_mobilenet_v3_large, SSDLite320_MobileNet_V3_Large_Weights
 from torchvision.ops import box_iou
 
@@ -94,17 +94,20 @@ def get_model(model_name, num_classes):
         # Replace the pre-trained head with a new one
         model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
     elif model_name == 'SSD':
-        model = ssdlite320_mobilenet_v3_large(weights=SSDLite320_MobileNet_V3_Large_Weights)  # Pre-trained model
+        model = ssdlite320_mobilenet_v3_large(
+            weights=SSDLite320_MobileNet_V3_Large_Weights.DEFAULT)  # Pre-trained model
         # Adjust the number of classes for SSD
         model.head.classification_head.num_classes = num_classes
     elif model_name == 'RetinaNet':
-        model = retinanet_resnet50_fpn_v2(weights=RetinaNet_ResNet50_FPN_V2_Weights)  # Pre-trained model
-        in_features = model.head.classification_head.conv[0].in_channels
-        num_anchors = model.head.classification_head.num_anchors
+        model = retinanet_resnet50_fpn_v2(weights=RetinaNet_ResNet50_FPN_V2_Weights.DEFAULT)  # Pre-trained model
         # Replace the classifier with a new one
-        model.head.classification_head = RetinaNetClassificationHead(
-            in_channels=in_features, num_anchors=num_anchors, num_classes=num_classes)
+        # model.head.classification_head.num_classes = num_classes
 
+        # Define the number of anchors
+        num_anchors = model.head.classification_head.num_anchors
+        in_channels = model.backbone.out_channels
+        # Create a new RetinaNet head
+        model.head = RetinaNetHead(in_channels, num_classes=num_classes, num_anchors=num_anchors)
     # elif model_name == 'MaskRCNN':
     #     model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)
     else:
@@ -157,7 +160,6 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
     # criterion = torch.nn.CrossEntropyLoss()
 
     model = model.to(device)
-    print("Classes in the model's classifier:", model.roi_heads.box_predictor.cls_score.out_features)
 
     best_val_loss = float('inf')
     epoch_losses = []
@@ -195,7 +197,7 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
         metrics = evaluate(model, val_loader, device)
         metric_value = metrics[metric_choice]  # Use the specified metric
         if metric_value < best_val_loss:
-            print(metric_choice + " : " + metric_value)
+            print(str(metric_choice) + " : " + str(metric_value))
             best_val_loss = metric_value
             # Delete the previously saved model file, if it exists
             if saved_model_path and os.path.exists(saved_model_path):
