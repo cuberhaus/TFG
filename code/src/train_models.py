@@ -39,7 +39,7 @@ def main():
         print(f"Parameters: {params}")
 
         # Call the Python script with the model name and parameters
-        subprocess.run(["python3", "train_and_save_model.py", model_name, params, debug_flag])
+        subprocess.run(["python3", "src/train_and_save_model.py", model_name, params, debug_flag])
 
 
 if __name__ == "__main__":
