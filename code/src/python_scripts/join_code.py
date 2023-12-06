@@ -50,7 +50,7 @@ else:
     notebook_path = []
     py_files = []
 
-output_file = '../tmp/consolidated_code.py'
+output_file = '../../tmp/consolidated_code.py'
 
 # Run the consolidation
 consolidate_code(notebook_path, py_files, output_file)

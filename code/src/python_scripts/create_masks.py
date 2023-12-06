@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
 
-from custom_dataset import parse_annotation
-from model_utils import *
+from src.custom_dataset import parse_annotation
+from src.model_utils import *
 
 
 """
@@ -59,7 +59,7 @@ def process_all_videos(root_dir):
 
 
 # Example usage
-dataset_root_dir = '../data/TrainValid/TrainValid'  # Replace with the path to your TrainValid directory
+dataset_root_dir = '../../data/TrainValid/TrainValid'  # Replace with the path to your TrainValid directory
 process_all_videos(dataset_root_dir)
-dataset_root_dir = '../data/Test/Test'  # Replace with the path to your TrainValid directory
+dataset_root_dir = '../../data/Test/Test'  # Replace with the path to your TrainValid directory
 process_all_videos(dataset_root_dir)
