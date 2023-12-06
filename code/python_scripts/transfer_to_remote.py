@@ -45,7 +45,12 @@ for file in files:
     print(f"Transferring {file} to {remote_host}:{full_remote_path}")
 
     # Execute scp command to transfer the file
-    scp_command = ["scp", file, f"{remote_host}:{full_remote_path}"]
-    subprocess.run(scp_command)
+    try:
+        subprocess.run(
+            ["scp", "-o", "StrictHostKeyChecking=no", file, f"{remote_host}:{full_remote_path}"],
+            check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to transfer {file}. Error: {e.stderr}")
 
 print(f"All files transferred to {remote_host}:{remote_dir}")
