@@ -1,6 +1,4 @@
 import os
-import subprocess
-import clases.model_utils as model_utils
 
 from clases.utils import *
 
@@ -13,10 +11,10 @@ if not os.path.exists(cycleGan_dir):
     subprocess.run(['pip', 'install', '-r', 'requirements.txt'])
 os.chdir(cycleGan_dir)
 
-test_root_dir, train_root_dir = model_utils.dataset_paths()
+POLYP_DATASET_DIR = os.path.join(script_dir, "../PolypDataset")
 
 # PYTHON_INSTALLED = is_python_installed()
 python_installed = python_version()
 
-subprocess.run([python_installed, 'train.py', '--dataroot', train_root_dir, '--name', 'mask2polyp', '--model', 'cycle_gan',
+subprocess.run([python_installed, 'train.py', '--dataroot', POLYP_DATASET_DIR, '--name', 'mask2polyp', '--model', 'cycle_gan',
                 '--display_id', '-1'])
