@@ -20,7 +20,7 @@ PYTHON_INSTALLED = is_python_installed()
 if PYTHON_INSTALLED.PYTHON_3:
     subprocess.run(['python3', 'train.py', '--dataroot', train_root_dir, '--name', 'mask2polyp', '--model', 'cycle_gan',
                     '--display_id', '-1'])
-elif PYTHON_INSTALLED.PYTHON_3:
+elif PYTHON_INSTALLED.PYTHON:
     subprocess.run(['python', 'train.py', '--dataroot', train_root_dir, '--name', 'mask2polyp', '--model', 'cycle_gan',
                     '--display_id', '-1'])
 else:
