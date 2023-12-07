@@ -14,7 +14,7 @@ from torchvision.models.detection.ssdlite import ssdlite320_mobilenet_v3_large, 
 from torchvision.ops import box_iou
 
 from .custom_dataset import CustomDataset
-
+from .utils import *
 
 SCRIPT_DIR = os.path.dirname(__file__)  # Directory of the script file
 SRC_DIR = os.path.join(SCRIPT_DIR, '../')  # Directory of the script file
@@ -23,25 +23,6 @@ OUT_DIR = os.path.join(SRC_DIR, '..', 'out')
 
 if not os.path.exists(OUT_DIR):
     os.makedirs(OUT_DIR)
-
-
-def is_wsl():
-    """
-    Check if the current system is Windows Subsystem for Linux (WSL).
-    :return:
-    """
-    # Check the platform identifier
-    if platform.system() != 'Linux':
-        return False
-
-    # Read the contents of /proc/version
-    try:
-        with open('/proc/version', 'r') as f:
-            content = f.read().lower()
-            # Look for keywords indicating WSL
-            return 'microsoft' in content or 'wsl' in content
-    except FileNotFoundError:
-        return False
 
 
 def prepare_dataset(max_samples=None):
@@ -202,7 +183,6 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
         os.makedirs(save_dir)
     if not os.path.exists(losses_dir):
         os.makedirs(losses_dir)
-
 
     saved_model_path = None
 

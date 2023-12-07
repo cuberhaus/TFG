@@ -13,4 +13,4 @@ os.chdir(cycleGan_dir)
 
 test_root_dir, train_root_dir = model_utils.dataset_paths()
 
-subprocess.run(['python', 'test.py', '--dataroot', test_root_dir, '--name', 'mask2polyp', '--model', 'test', '--no_dropout'])
+subprocess.run(['python3', 'test.py', '--dataroot', test_root_dir, '--name', 'mask2polyp', '--model', 'test', '--no_dropout'])

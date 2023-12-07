@@ -2,6 +2,8 @@ import os
 import subprocess
 import clases.model_utils as model_utils
 
+from clases.utils import *
+
 # Script dir
 script_dir = os.path.dirname(__file__)  # Directory of the script file
 cycleGan_dir = os.path.join(script_dir, "../tmp/pytorch-CycleGAN-and-pix2pix")  # Full path to the file
@@ -13,4 +15,16 @@ os.chdir(cycleGan_dir)
 
 test_root_dir, train_root_dir = model_utils.dataset_paths()
 
-subprocess.run(['python', 'train.py', '--dataroot', train_root_dir, '--name', 'mask2polyp', '--model', 'cycle_gan', '--display_id', '-1'])
+PYTHON_INSTALLED = is_python_installed()
+
+if PYTHON_INSTALLED.PYTHON_3:
+    subprocess.run(['python3', 'train.py', '--dataroot', train_root_dir, '--name', 'mask2polyp', '--model', 'cycle_gan',
+                    '--display_id', '-1'])
+elif PYTHON_INSTALLED.PYTHON_3:
+    subprocess.run(['python', 'train.py', '--dataroot', train_root_dir, '--name', 'mask2polyp', '--model', 'cycle_gan',
+                    '--display_id', '-1'])
+else:
+    print("Python 3 is not installed.")
+    print("Python 2 is not supported.")
+    print("Please install Python 3 and try again.")
+    exit(1)
