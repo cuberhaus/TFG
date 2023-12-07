@@ -8,7 +8,8 @@ cycleGan_dir = os.path.join(script_dir, "../tmp/pytorch-CycleGAN-and-pix2pix")  
 # check if the directory exists
 if not os.path.exists(cycleGan_dir):
     subprocess.run(['git', 'clone', 'https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix', cycleGan_dir])
-    subprocess.run(['pip', 'install', '-r', 'requirements.txt'])
+    requirements_dir = os.path.join(cycleGan_dir, 'requirements.txt')
+    subprocess.run(['pip', 'install', '-r', requirements_dir])
 os.chdir(cycleGan_dir)
 
 POLYP_DATASET_DIR = os.path.join(script_dir, "../data/PolypDataset")
