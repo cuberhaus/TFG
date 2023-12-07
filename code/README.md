@@ -19,3 +19,8 @@ python3 src/optuna_train_model.py --debug
 ```bash
 python3 src/raytune_train_model.py --debug
 ```
+
+## Train the CycleGAN model
+```bash
+python3 src/cycleGAN.py
+```
