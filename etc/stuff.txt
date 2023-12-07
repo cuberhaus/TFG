@@ -1,1 +1,0 @@
-Como guardar el modelo una vez entrenado con pytorch
