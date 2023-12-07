@@ -1,8 +1,7 @@
 import subprocess
 
 from enum import Enum
-from sys import platform
-
+import platform
 
 class PYTHON_INSTALLED(Enum):
     PYTHON = 1
