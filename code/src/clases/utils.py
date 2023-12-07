@@ -31,6 +31,12 @@ def check_python_version(version):
     except subprocess.CalledProcessError:
         # print(f"{version} is not installed.")
         return False
+    except FileNotFoundError:
+        # print(f"{version} is not installed.")
+        return False
+    except Exception as e:
+        print(f"Error: {e}")
+        return False
 
 
 def is_wsl():
