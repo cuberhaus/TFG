@@ -18,6 +18,7 @@ from .custom_dataset import CustomDataset
 
 SCRIPT_DIR = os.path.dirname(__file__)  # Directory of the script file
 SRC_DIR = os.path.join(SCRIPT_DIR, '../')  # Directory of the script file
+PROJ_DIR = os.path.join(SRC_DIR, '../')  # Directory of the script file
 OUT_DIR = os.path.join(SRC_DIR, '..', 'out')
 
 if not os.path.exists(OUT_DIR):
@@ -52,9 +53,6 @@ def prepare_dataset(max_samples=None):
 
     test_root_dir, train_root_dir = dataset_paths()
 
-    print("train dir: " + train_root_dir)
-    print("test dir: " + test_root_dir)
-
     # Create instances of the custom dataset
     train_max_samples = max_samples['train'] if max_samples and 'train' in max_samples else None
     test_max_samples = max_samples['test'] if max_samples and 'test' in max_samples else None
@@ -69,8 +67,10 @@ def dataset_paths():
     test_root_dir = None
     train_root_dir = None
     if system_name == "Windows":  # Local machine
-        train_root_dir = '/TrainValid/TrainValid'
-        test_root_dir = '/Test/Test'
+        train_root_dir = os.path.join(PROJ_DIR, 'data/TrainValid/TrainValid')
+        test_root_dir = os.path.join(PROJ_DIR, 'data/Test/Test')
+        # train_root_dir = '/TrainValid/TrainValid'
+        # test_root_dir = '/Test/Test'
         print("Windows")
     elif is_wsl():  # Local machine
         train_root_dir = '/mnt/c/Users/polcg/repos/TFG/code/data/TrainValid/TrainValid'
@@ -84,6 +84,9 @@ def dataset_paths():
         train_root_dir = '/Volumes/SSD_6Gbps/dataset1/TrainValid/TrainValid'
         test_root_dir = '/Volumes/SSD_6Gbps/dataset1/Test/Test'
         print("macOS")
+    print("train dir: " + train_root_dir)
+    print("test dir: " + test_root_dir)
+
     return test_root_dir, train_root_dir
 
 

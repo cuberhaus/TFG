@@ -1,5 +1,6 @@
 import os
 import subprocess
+import clases.model_utils as model_utils
 
 # Script dir
 script_dir = os.path.dirname(__file__)  # Directory of the script file
@@ -9,3 +10,7 @@ if not os.path.exists(cycleGan_dir):
     subprocess.run(['git', 'clone', 'https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix', cycleGan_dir])
     subprocess.run(['pip', 'install', '-r', 'requirements.txt'])
 os.chdir(cycleGan_dir)
+
+test_root_dir, train_root_dir = model_utils.dataset_paths()
+
+subprocess.run(['python', 'test.py', '--dataroot', test_root_dir, '--name', 'mask2polyp', '--model', 'test', '--no_dropout'])

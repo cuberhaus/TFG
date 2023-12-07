@@ -22,5 +22,16 @@ python3 src/raytune_train_model.py --debug
 
 ## Train the CycleGAN model
 ```bash
-python3 src/cycleGAN.py
+python3 src/cyclegan_train.py
 ```
+
+## Create masks from bounding boxes (WIP)
+```bash
+# python3 src/create_masks.py
+```
+
+## Copy files to cycle GAN structure (WIP)
+```bash
+#python3 src/copy_files_to_cyclegan_structure.py
+```
+
