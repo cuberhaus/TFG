@@ -15,16 +15,8 @@ os.chdir(cycleGan_dir)
 
 test_root_dir, train_root_dir = model_utils.dataset_paths()
 
-PYTHON_INSTALLED = is_python_installed()
+# PYTHON_INSTALLED = is_python_installed()
+python_installed = python_version()
 
-if PYTHON_INSTALLED.PYTHON_3:
-    subprocess.run(['python3', 'train.py', '--dataroot', train_root_dir, '--name', 'mask2polyp', '--model', 'cycle_gan',
-                    '--display_id', '-1'])
-elif PYTHON_INSTALLED.PYTHON:
-    subprocess.run(['python', 'train.py', '--dataroot', train_root_dir, '--name', 'mask2polyp', '--model', 'cycle_gan',
-                    '--display_id', '-1'])
-else:
-    print("Python 3 is not installed.")
-    print("Python 2 is not supported.")
-    print("Please install Python 3 and try again.")
-    exit(1)
+subprocess.run([python_installed, 'train.py', '--dataroot', train_root_dir, '--name', 'mask2polyp', '--model', 'cycle_gan',
+                '--display_id', '-1'])

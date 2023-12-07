@@ -3,10 +3,21 @@ import subprocess
 from enum import Enum
 import platform
 
+
 class PYTHON_INSTALLED(Enum):
     PYTHON = 1
     PYTHON_3 = 2
     NOT_INSTALLED = 2
+
+
+def python_version():
+    python_installed = is_python_installed()
+    if python_installed.PYTHON_3:
+        return "python3"
+    elif python_installed.PYTHON:
+        return "python"
+    else:
+        return ""
 
 
 def is_python_installed():
@@ -14,10 +25,10 @@ def is_python_installed():
     python_installed = check_python_version("python")
     # Check for Python 3
     python3_installed = check_python_version("python3")
-    if python_installed:
-        return PYTHON_INSTALLED.PYTHON
-    elif python3_installed:
+    if python3_installed:
         return PYTHON_INSTALLED.PYTHON_3
+    elif python_installed:
+        return PYTHON_INSTALLED.PYTHON
     else:
         return PYTHON_INSTALLED.NOT_INSTALLED
 
