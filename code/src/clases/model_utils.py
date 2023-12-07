@@ -50,10 +50,24 @@ def prepare_dataset(max_samples=None):
         transforms.ToTensor(),
     ])
 
+    test_root_dir, train_root_dir = dataset_paths()
+
+    print("train dir: " + train_root_dir)
+    print("test dir: " + test_root_dir)
+
+    # Create instances of the custom dataset
+    train_max_samples = max_samples['train'] if max_samples and 'train' in max_samples else None
+    test_max_samples = max_samples['test'] if max_samples and 'test' in max_samples else None
+
+    train_dataset = CustomDataset(root_dir=train_root_dir, transform=transform, max_samples=train_max_samples)
+    test_dataset = CustomDataset(root_dir=test_root_dir, transform=transform, max_samples=test_max_samples)
+    return train_dataset, test_dataset
+
+
+def dataset_paths():
     system_name = platform.system()
     test_root_dir = None
     train_root_dir = None
-
     if system_name == "Windows":  # Local machine
         train_root_dir = '/TrainValid/TrainValid'
         test_root_dir = '/Test/Test'
@@ -70,17 +84,7 @@ def prepare_dataset(max_samples=None):
         train_root_dir = '/Volumes/SSD_6Gbps/dataset1/TrainValid/TrainValid'
         test_root_dir = '/Volumes/SSD_6Gbps/dataset1/Test/Test'
         print("macOS")
-
-    print("train dir: " + train_root_dir)
-    print("test dir: " + test_root_dir)
-
-    # Create instances of the custom dataset
-    train_max_samples = max_samples['train'] if max_samples and 'train' in max_samples else None
-    test_max_samples = max_samples['test'] if max_samples and 'test' in max_samples else None
-
-    train_dataset = CustomDataset(root_dir=train_root_dir, transform=transform, max_samples=train_max_samples)
-    test_dataset = CustomDataset(root_dir=test_root_dir, transform=transform, max_samples=test_max_samples)
-    return train_dataset, test_dataset
+    return test_root_dir, train_root_dir
 
 
 def collate_fn(batch):
