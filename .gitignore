@@ -1,11 +1,5 @@
 out/
-code/pytorch-CycleGAN-and-pix2pix/
 code/tmp/pytorch-CycleGAN-and-pix2pix/
-saved_models_debug/
-losses_debug/
-code/losses/
-code/saved_models/
-code/testing_model/
 /code/tmp/consolidated_code.py
 
 __pycache__/
