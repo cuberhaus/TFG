@@ -1,8 +1,9 @@
+import os.path
 import subprocess
 
 from clases.cyclegan import prepareCycleGAN
 
 python_installed, POLYP_DATASET_DIR = prepareCycleGAN()
-
+test_dataset_dir = os.path.join(POLYP_DATASET_DIR, 'testA')
 subprocess.run(
-    ['python3', 'test.py', '--dataroot', POLYP_DATASET_DIR, '--name', 'mask2polyp', '--model', 'test', '--no_dropout'])
+    [python_installed, 'test.py', '--dataroot', test_dataset_dir, '--name', 'mask2polyp', '--model', 'test', '--no_dropout'])
