@@ -18,4 +18,6 @@ def prepareCycleGAN():
     POLYP_DATASET_DIR = os.path.join(src_dir, "../data/PolypDataset")
     # PYTHON_INSTALLED = is_python_installed()
     python_installed = python_version()
+    print(POLYP_DATASET_DIR)
+    print(python_installed)
     return POLYP_DATASET_DIR, python_installed
