@@ -46,6 +46,7 @@ def consolidate_code(notebook_paths, py_files, output_file, base_path):
             outfile.write(f"# Code from {full_path}\n")
             outfile.write(notebook_code)
             outfile.write("\n\n")
+    print(f"Consolidated code written to {output_file}")
 
 
 # Get the absolute path of the current script
