@@ -8,6 +8,13 @@ import torch
 from clases.custom_dataset import CustomDataset
 from clases.model_utils import load_model_with_hyperparams, evaluate, collate_fn
 
+# Get the absolute path of the current script
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+# Directory containing the saved models
+MODEL_DIR = os.path.join(SCRIPT_DIR, '../tmp/saved_models/')
+# CSV file to store model performances
+CSV_FILE_PATH = os.path.join(SCRIPT_DIR, "../out/model_performances.csv")
+TEST_DATA_PATH = os.path.join(SCRIPT_DIR, '../data/test/')
 
 # Function to check if the filename matches the model naming pattern
 def is_model_file(filename):
@@ -21,12 +28,8 @@ def parse_model_filename(filename):
     return characteristics
 
 
-# Directory containing the saved models
-model_dir = 'path_to_saved_models'
-csv_file_path = 'model_performances.csv'  # Path for the CSV file
-
 # List all files in the model directory and filter out non-model files
-model_filenames = [f for f in os.listdir(model_dir) if is_model_file(f)]
+model_filenames = [f for f in os.listdir(MODEL_DIR) if is_model_file(f)]
 
 # Prepare your dataset
 test_dataset = CustomDataset(root_dir='path_to_test_data',
@@ -37,9 +40,9 @@ test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False, collate_fn=c
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Initialize DataFrame columns if the file doesn't exist
-if not os.path.exists(csv_file_path):
+if not os.path.exists(CSV_FILE_PATH):
     pd.DataFrame(columns=['Model', 'Batch Size', 'Learning Rate', 'Weight Decay', 'Num Epochs', 'Precision', 'Recall',
-                          'F1-Score', 'Mean IoU']).to_csv(csv_file_path, index=False)
+                          'F1-Score', 'Mean IoU']).to_csv(CSV_FILE_PATH, index=False)
 
 for model_filename in model_filenames:
     # Parse model characteristics
@@ -47,8 +50,8 @@ for model_filename in model_filenames:
 
     # Load model
     model = fasterrcnn_resnet50_fpn(pretrained=False, num_classes=2)  # Update num_classes as per your requirement
-    full_model_path = os.path.join(model_dir, model_filename)
-    model, _, _ = load_model_with_hyperparams(model, full_model_path, load_dir=model_dir)
+    full_model_path = os.path.join(MODEL_DIR, model_filename)
+    model, _, _ = load_model_with_hyperparams(model, full_model_path, load_dir=MODEL_DIR)
 
     # Evaluate the model
     model.to(device)
@@ -63,10 +66,10 @@ for model_filename in model_filenames:
         'F1-Score': metrics['f1'],
         'Mean IoU': metrics['mean_iou']
     }
-    pd.DataFrame([performance_data]).to_csv(csv_file_path, mode='a', header=False, index=False)
+    pd.DataFrame([performance_data]).to_csv(CSV_FILE_PATH, mode='a', header=False, index=False)
 
 # Read the CSV file for plotting
-model_performances = pd.read_csv(csv_file_path)
+model_performances = pd.read_csv(CSV_FILE_PATH)
 
 # Plotting performance metrics
 plt.figure(figsize=(12, 8))
