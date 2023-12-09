@@ -6,19 +6,25 @@ from torch.utils.data import DataLoader
 import torch
 
 from clases.custom_dataset import CustomDataset
-from clases.model_utils import load_model_with_hyperparams, evaluate, collate_fn
+from clases.model_utils import load_model_with_hyperparams, evaluate, collate_fn, prepare_dataset
 
 # Get the absolute path of the current script
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 # Directory containing the saved models
 MODEL_DIR = os.path.join(SCRIPT_DIR, '../tmp/saved_models/')
+print(MODEL_DIR)
 # CSV file to store model performances
 CSV_FILE_PATH = os.path.join(SCRIPT_DIR, "../out/model_performances.csv")
-TEST_DATA_PATH = os.path.join(SCRIPT_DIR, '../data/test/')
+# Path to the test data
+# TEST_DATA_PATH = os.path.join(SCRIPT_DIR, '../data/PolypDataset/testB/')
+TEST_DATA_PATH = os.path.join(SCRIPT_DIR, '/Volumes/SSD_6Gbps/dataset1/Test/Test/')
+# Path to store the model performance plot
+MODEL_PERFORMANCE_PLOT_PATH = os.path.join(SCRIPT_DIR, "../out/model_performance_comparison.png")
+
 
 # Function to check if the filename matches the model naming pattern
 def is_model_file(filename):
-    return filename.startswith('FasterRCNN_') and filename.endswith('.pth')
+    return filename.startswith('FasterRCNN_')
 
 
 # Function to parse model filename and extract characteristics
@@ -30,11 +36,13 @@ def parse_model_filename(filename):
 
 # List all files in the model directory and filter out non-model files
 model_filenames = [f for f in os.listdir(MODEL_DIR) if is_model_file(f)]
+print(model_filenames)
 
 # Prepare your dataset
-test_dataset = CustomDataset(root_dir='path_to_test_data',
-                             transform=None)  # Update with your actual path and transforms
-test_loader = DataLoader(test_dataset, batch_size=4, shuffle=False, collate_fn=collate_fn)
+train_dataset, test_dataset = prepare_dataset()  # Update with your actual dataset
+# test_dataset = CustomDataset(root_dir=TEST_DATA_PATH,
+#                              transform=None)  # Update with your actual path and transforms
+test_loader = DataLoader(test_dataset, batch_size=2, shuffle=False, collate_fn=collate_fn)
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -45,6 +53,7 @@ if not os.path.exists(CSV_FILE_PATH):
                           'F1-Score', 'Mean IoU']).to_csv(CSV_FILE_PATH, index=False)
 
 for model_filename in model_filenames:
+    print(f"Evaluating {model_filename}")
     # Parse model characteristics
     characteristics = parse_model_filename(model_filename)
 
@@ -56,6 +65,7 @@ for model_filename in model_filenames:
     # Evaluate the model
     model.to(device)
     metrics = evaluate(model, test_loader, device)
+    print(f"Metrics: {metrics}")
 
     # Append performance metrics and characteristics to the DataFrame and write to CSV
     performance_data = {
@@ -82,5 +92,5 @@ plt.title('Model Performance Comparison')
 plt.xticks(rotation=45)
 plt.legend()
 plt.tight_layout()
-plt.savefig('model_performance_comparison.png')
+plt.savefig(MODEL_PERFORMANCE_PLOT_PATH)
 plt.show()
