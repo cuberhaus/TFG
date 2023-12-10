@@ -12,7 +12,7 @@ from clases.model_utils import load_model_with_hyperparams, evaluate, collate_fn
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 # Directory containing the saved models
 # MODEL_DIR = os.path.join(SCRIPT_DIR, '../tmp/saved_models/') # Mac
-MODEL_DIR = os.path.join(SCRIPT_DIR, '../../old/saved_models/') # Remote
+MODEL_DIR = os.path.join(SCRIPT_DIR, '../../old/saved_models/')  # Remote
 if not os.path.exists(MODEL_DIR):
     os.makedirs(MODEL_DIR)
 print(MODEL_DIR)
@@ -41,7 +41,7 @@ def parse_model_filename(filename):
 
     for part in parts[1:]:  # Start from the second part as the first is the model type
         if '-' in part:
-            key, value = part.split('-',1)
+            key, value = part.split('-', 1)
             characteristics[key] = value
     return characteristics
 
