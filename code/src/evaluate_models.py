@@ -1,20 +1,20 @@
 import os
 import platform
 
-import pandas as pd
 import matplotlib.pyplot as plt
-from torchvision.models.detection import fasterrcnn_resnet50_fpn
-from torch.utils.data import DataLoader
+import pandas as pd
 import torch
+from torch.utils.data import DataLoader
+from torchvision.models.detection import fasterrcnn_resnet50_fpn
 
-from clases.custom_dataset import CustomDataset
-from clases.model_utils import load_model_with_hyperparams, evaluate, collate_fn, prepare_dataset
+from clases.model_utils import load_model_with_hyperparams, evaluate, collate_fn, prepare_dataset, parse_model_filename
 
 os_name = platform.system()
 
 # Get the absolute path of the current script
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-
+MODEL_DIR = None
+TEST_DATA_PATH = None
 if os_name == 'Linux':
     TEST_DATA_PATH = os.path.join(SCRIPT_DIR, '../data/dataset1/Test/Test/')
     MODEL_DIR = os.path.join(SCRIPT_DIR, '../../old/saved_models/')  # Remote
@@ -35,27 +35,8 @@ MODEL_PERFORMANCE_PLOT_PATH = os.path.join(SCRIPT_DIR, "../out/model_performance
 DEBUG = False
 
 
-# Function to check if the filename matches the model naming pattern
-def is_model_file(filename):
-    return filename.startswith('FasterRCNN_')
-
-
-# Function to parse model filename and extract characteristics
-def parse_model_filename(filename):
-    parts = filename.replace('.pth', '').split('_')
-
-    model_type = parts[0]  # The first part of the filename is the model type
-    characteristics = {'Model': model_type}
-
-    for part in parts[1:]:  # Start from the second part as the first is the model type
-        if '-' in part:
-            key, value = part.split('-', 1)
-            characteristics[key] = value
-    return characteristics
-
-
 # List all files in the model directory and filter out non-model files
-model_filenames = [f for f in os.listdir(MODEL_DIR) if is_model_file(f)]
+model_filenames = [f for f in os.listdir(MODEL_DIR)]
 print(model_filenames)
 
 if DEBUG:

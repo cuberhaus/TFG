@@ -248,8 +248,8 @@ def evaluate(model, val_loader, device, iou_threshold=0.5):
     model.eval()
     ious = []
     image_counter = 0  # Initialize a counter for images
-    last_printed = 0   # Track the last printed multiple of 100
-    multiple = 100     # Print every x images
+    last_printed = 0  # Track the last printed multiple of 100
+    multiple = 100  # Print every x images
 
     with torch.no_grad():
         for images, targets in val_loader:
@@ -394,3 +394,17 @@ def load_model_with_hyperparams(model, base_filename, load_dir='./saved_models/'
         print(f"Batch losses loaded from: {batch_losses_path}")
 
     return model, epoch_losses, batch_losses
+
+
+# Function to parse model filename and extract characteristics
+def parse_model_filename(filename):
+    parts = filename.replace('.pth', '').split('_')
+
+    model_type = parts[0]  # The first part of the filename is the model type
+    characteristics = {'Model': model_type}
+
+    for part in parts[1:]:  # Start from the second part as the first is the model type
+        if '-' in part:
+            key, value = part.split('-', 1)
+            characteristics[key] = value
+    return characteristics
