@@ -1,4 +1,6 @@
 import os
+import platform
+
 import pandas as pd
 import matplotlib.pyplot as plt
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
@@ -8,19 +10,25 @@ import torch
 from clases.custom_dataset import CustomDataset
 from clases.model_utils import load_model_with_hyperparams, evaluate, collate_fn, prepare_dataset
 
+os_name = platform.system()
+
 # Get the absolute path of the current script
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-# Directory containing the saved models
-# MODEL_DIR = os.path.join(SCRIPT_DIR, '../tmp/saved_models/') # Mac
-MODEL_DIR = os.path.join(SCRIPT_DIR, '../../old/saved_models/')  # Remote
+
+if os_name == 'Linux':
+    TEST_DATA_PATH = os.path.join(SCRIPT_DIR, '../data/dataset1/Test/Test/')
+    MODEL_DIR = os.path.join(SCRIPT_DIR, '../../old/saved_models/')  # Remote
+elif os_name == 'Darwin':
+    # Directory containing the saved models
+    MODEL_DIR = os.path.join(SCRIPT_DIR, '../tmp/saved_models/')  # Mac
+    # Path to the test data
+    TEST_DATA_PATH = os.path.join(SCRIPT_DIR, '/Volumes/SSD_6Gbps/dataset1/Test/Test/')  # Mac
+
 if not os.path.exists(MODEL_DIR):
     os.makedirs(MODEL_DIR)
 print(MODEL_DIR)
 # CSV file to store model performances
 CSV_FILE_PATH = os.path.join(SCRIPT_DIR, "../out/model_performances.csv")
-# Path to the test data
-TEST_DATA_PATH = os.path.join(SCRIPT_DIR, '../data/dataset1/Test/Test/')
-# TEST_DATA_PATH = os.path.join(SCRIPT_DIR, '/Volumes/SSD_6Gbps/dataset1/Test/Test/') # Mac
 # Path to store the model performance plot
 MODEL_PERFORMANCE_PLOT_PATH = os.path.join(SCRIPT_DIR, "../out/model_performance_comparison.png")
 # Set to True to run in debug mode

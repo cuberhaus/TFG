@@ -247,9 +247,18 @@ def evaluate(model, val_loader, device, iou_threshold=0.5):
     """
     model.eval()
     ious = []
+    image_counter = 0  # Initialize a counter for images
+    last_printed = 0   # Track the last printed multiple of 100
+    multiple = 100     # Print every x images
 
     with torch.no_grad():
         for images, targets in val_loader:
+            image_counter += len(images)  # Update the counter with the batch size
+            # Check if the counter has passed a multiple of 100 since the last print
+            if image_counter // multiple > last_printed:
+                print(f"Processed {image_counter} images...")
+                last_printed = image_counter // multiple  # Update the last printed multiple
+
             images = list(img.to(device) for img in images)
             outputs = model(images)
 
