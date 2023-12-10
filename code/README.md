@@ -42,3 +42,9 @@ nohup python3 cyclegan_test.py > cyclegan_test.log &
 #python3 src/copy_files_to_cyclegan_structure.py
 ```
 
+## Evaluate all models
+```bash
+#python3 src/evaluate_models.py 
+nohup python3 src/evaluate_models.py > evaluate_models.log &
+```
+

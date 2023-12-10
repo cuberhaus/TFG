@@ -32,7 +32,7 @@ CSV_FILE_PATH = os.path.join(SCRIPT_DIR, "../out/model_performances.csv")
 # Path to store the model performance plot
 MODEL_PERFORMANCE_PLOT_PATH = os.path.join(SCRIPT_DIR, "../out/model_performance_comparison.png")
 # Set to True to run in debug mode
-DEBUG = False
+DEBUG = True
 
 
 # List all files in the model directory and filter out non-model files
@@ -78,7 +78,6 @@ for model_filename in model_filenames:
 
     # Append performance metrics and characteristics to the DataFrame and write to CSV
     performance_data = {
-        'Model': model_filename,
         **characteristics,  # Unpack parsed characteristics
         'Precision': metrics['precision'],
         'Recall': metrics['recall'],
