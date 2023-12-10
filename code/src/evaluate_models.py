@@ -30,7 +30,14 @@ def is_model_file(filename):
 # Function to parse model filename and extract characteristics
 def parse_model_filename(filename):
     parts = filename.replace('.pth', '').split('_')
-    characteristics = {part.split('-')[0]: part.split('-')[1] for part in parts if '-' in part}
+
+    model_type = parts[0]  # The first part of the filename is the model type
+    characteristics = {'Model': model_type}
+
+    for part in parts[1:]:  # Start from the second part as the first is the model type
+        if '-' in part:
+            key, value = part.split('-',1)
+            characteristics[key] = value
     return characteristics
 
 
@@ -38,8 +45,14 @@ def parse_model_filename(filename):
 model_filenames = [f for f in os.listdir(MODEL_DIR) if is_model_file(f)]
 print(model_filenames)
 
+# Prepare your dataset with limited test samples for debugging
+max_samples =  {
+    'test': 5,
+    'train': 5
+}
+
 # Prepare your dataset
-train_dataset, test_dataset = prepare_dataset()  # Update with your actual dataset
+train_dataset, test_dataset = prepare_dataset(max_samples)  # Update with your actual dataset
 # test_dataset = CustomDataset(root_dir=TEST_DATA_PATH,
 #                              transform=None)  # Update with your actual path and transforms
 test_loader = DataLoader(test_dataset, batch_size=2, shuffle=False, collate_fn=collate_fn)
