@@ -7,7 +7,8 @@ import torch
 from torch.utils.data import DataLoader
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
 
-from clases.model_utils import load_model_with_hyperparams, evaluate, collate_fn, prepare_dataset, parse_model_filename
+from clases.model_utils import load_model_with_hyperparams, collate_fn, prepare_dataset, parse_model_filename, \
+    coco_evaluate
 
 os_name = platform.system()
 
@@ -73,7 +74,7 @@ for model_filename in model_filenames:
 
     # Evaluate the model
     model.to(device)
-    metrics = evaluate(model, test_loader, device)
+    metrics = coco_evaluate(model, test_loader, device)
     print(f"Metrics: {metrics}")
 
     # Append performance metrics and characteristics to the DataFrame and write to CSV
