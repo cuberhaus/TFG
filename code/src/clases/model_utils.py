@@ -243,52 +243,83 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
     return model, epoch_losses, batch_losses, epoch, saved_model_path, metric_value
 
 
+def convert_to_coco_format(box):
+    # Convert from [x_min, y_min, x_max, y_max] to [x_min, y_min, width, height]
+    x_min, y_min, x_max, y_max = box
+    width = x_max - x_min
+    height = y_max - y_min
+    return [x_min, y_min, width, height]
+
+
 def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
     results_file = os.path.join(OUT_DIR, 'results.json')
     model.eval()
-    
+    # Initialize dataset for COCO ground truth object
+    coco_gt_dataset = {
+        'images': [],  # List to store image info
+        'annotations': [],  # List to store annotations
+        'categories': []  # List to store category info
+    }
     coco_gt = COCO()  # Initialize COCO ground truth object
+    coco_gt.dataset = coco_gt_dataset  # Load dataset into COCO ground truth object
+
     coco_dt = []  # List to store predictions in COCO format
 
-    image_id = 0
+    # image_id = 0
+    ann_id = 0
     for images, targets in val_loader:
         images = list(img.to(device) for img in images)
         outputs = model(images)
 
         for target, output in zip(targets, outputs):
+            image_id = target['image_id'].item()
+            # Check if 'iscrowd' exists and is not empty
+            if 'iscrowd' in target and target['iscrowd'].numel() > 0:
+                iscrowd = target['iscrowd'].item()
+            else:
+                iscrowd = 0  # Default value if 'iscrowd' is missing or empty
             # Convert ground truth to COCO format
             for box, label in zip(target['boxes'], target['labels']):
+                box = convert_to_coco_format(box.tolist())
                 coco_gt_annotation = {
-                    'image_id': image_id,
-                    'bbox': box.tolist(),
+                    'bbox': box,
                     'category_id': label.item(),
-                    'iscrowd': 0,
-                    'area': (box[2] - box[0]) * (box[3] - box[1])
+                    'id': ann_id,
+                    'image_id': image_id,
+                    'area': (box[2] * box[3]),
+                    'iscrowd': iscrowd
                 }
                 coco_gt.dataset['annotations'].append(coco_gt_annotation)
 
             # Convert predictions to COCO format
             for box, label, score in zip(output['boxes'], output['labels'], output['scores']):
                 coco_dt_annotation = {
-                    'image_id': image_id,
-                    'bbox': box.tolist(),
+                    'bbox': box,
                     'category_id': label.item(),
+                    'id': ann_id,
+                    'image_id': image_id,
                     'score': score.item()
                 }
                 coco_dt.append(coco_dt_annotation)
+                ann_id += 1
 
-            image_id += 1
-
-    # Save predictions to a JSON file
-    with open(results_file, 'w') as f:
-        json.dump(coco_dt, f)
+    # # Save predictions to a JSON file
+    # with open(results_file, 'w') as f:
+    #     json.dump(coco_dt, f)
 
     # Load predictions and ground truths into COCO object
     coco_gt.createIndex()
-    coco_dt = coco_gt.loadRes(results_file)
+
+    # Create a new COCO object for detections
+    coco_dt_obj = COCO()
+    coco_dt_obj.dataset['annotations'] = coco_dt
+    # coco_dt_obj.dataset['images'] = [img_info for img_info in coco_gt.dataset['images']]
+    coco_dt_obj.createIndex()
+
+    # coco_dt = coco_gt.loadRes(results_file)
 
     # Create COCOEval object
-    coco_eval = COCOeval(coco_gt, coco_dt, 'bbox')
+    coco_eval = COCOeval(coco_gt, coco_dt_obj, 'bbox')
     coco_eval.params.iouThrs = [iou_threshold]  # Set IOU threshold
 
     # Run COCO evaluation
@@ -299,65 +330,65 @@ def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
     return coco_eval.stats
 
 
-# def evaluate(model, val_loader, device, iou_threshold=0.5):
-#     """
-#     Evaluate the model on the validation set.
-#     """
-#     model.eval()
-#     ious = []
-#     image_counter = 0  # Initialize a counter for images
-#     last_printed = 0  # Track the last printed multiple of 100
-#     multiple = 100  # Print every x images
-#
-#     with torch.no_grad():
-#         for images, targets in val_loader:
-#             image_counter += len(images)  # Update the counter with the batch size
-#             # Check if the counter has passed a multiple of 100 since the last print
-#             if image_counter // multiple > last_printed:
-#                 print(f"Processed {image_counter} images...")
-#                 last_printed = image_counter // multiple  # Update the last printed multiple
-#
-#             images = list(img.to(device) for img in images)
-#             outputs = model(images)
-#
-#             for target, output in zip(targets, outputs):
-#                 gt_boxes = target['boxes'].to(device)
-#                 pred_boxes = output['boxes'].to(device)
-#                 scores = output['scores'].to(device)
-#
-#                 # Compute IoU for the predicted and ground truth boxes
-#                 iou_matrix = box_iou(pred_boxes, gt_boxes)
-#
-#                 # Here, we're considering a prediction to be correct if the IoU is greater than the threshold
-#                 # This part assumes a one-to-one matching which can be improved by using a matching strategy
-#                 correct_preds = iou_matrix > iou_threshold
-#
-#                 # Now extract the IoUs for the correct predictions
-#                 # This will give us the IoUs where the prediction was correct
-#                 matched_ious = iou_matrix[correct_preds]
-#
-#                 ious.extend(matched_ious.cpu().tolist())
-#
-#     # Calculate metrics based on the IoUs
-#     true_positives = len(ious)
-#     false_positives = len(outputs) - true_positives
-#     false_negatives = len(targets) - true_positives
-#
-#     # Precision, recall, and F1 score calculations
-#     precision = true_positives / (true_positives + false_positives) if true_positives + false_positives > 0 else 0
-#     recall = true_positives / (true_positives + false_negatives) if true_positives + false_negatives > 0 else 0
-#     f1 = 2 * (precision * recall) / (precision + recall) if precision + recall > 0 else 0
-#
-#     # Calculate mean IoU
-#     mean_iou = sum(ious) / len(ious) if ious else 0
-#
-#     return {
-#         'precision': precision,
-#         'recall': recall,
-#         'f1': f1,
-#         'ious': ious,  # List of IoU for correctly predicted boxes
-#         'mean_iou': mean_iou
-#     }
+def evaluate(model, val_loader, device, iou_threshold=0.5):
+    """
+    Evaluate the model on the validation set.
+    """
+    model.eval()
+    ious = []
+    image_counter = 0  # Initialize a counter for images
+    last_printed = 0  # Track the last printed multiple of 100
+    multiple = 100  # Print every x images
+
+    with torch.no_grad():
+        for images, targets in val_loader:
+            image_counter += len(images)  # Update the counter with the batch size
+            # Check if the counter has passed a multiple of 100 since the last print
+            if image_counter // multiple > last_printed:
+                print(f"Processed {image_counter} images...")
+                last_printed = image_counter // multiple  # Update the last printed multiple
+
+            images = list(img.to(device) for img in images)
+            outputs = model(images)
+
+            for target, output in zip(targets, outputs):
+                gt_boxes = target['boxes'].to(device)
+                pred_boxes = output['boxes'].to(device)
+                scores = output['scores'].to(device)
+
+                # Compute IoU for the predicted and ground truth boxes
+                iou_matrix = box_iou(pred_boxes, gt_boxes)
+
+                # Here, we're considering a prediction to be correct if the IoU is greater than the threshold
+                # This part assumes a one-to-one matching which can be improved by using a matching strategy
+                correct_preds = iou_matrix > iou_threshold
+
+                # Now extract the IoUs for the correct predictions
+                # This will give us the IoUs where the prediction was correct
+                matched_ious = iou_matrix[correct_preds]
+
+                ious.extend(matched_ious.cpu().tolist())
+
+    # Calculate metrics based on the IoUs
+    true_positives = len(ious)
+    false_positives = len(outputs) - true_positives
+    false_negatives = len(targets) - true_positives
+
+    # Precision, recall, and F1 score calculations
+    precision = true_positives / (true_positives + false_positives) if true_positives + false_positives > 0 else 0
+    recall = true_positives / (true_positives + false_negatives) if true_positives + false_negatives > 0 else 0
+    f1 = 2 * (precision * recall) / (precision + recall) if precision + recall > 0 else 0
+
+    # Calculate mean IoU
+    mean_iou = sum(ious) / len(ious) if ious else 0
+
+    return {
+        'precision': precision,
+        'recall': recall,
+        'f1': f1,
+        'ious': ious,  # List of IoU for correctly predicted boxes
+        'mean_iou': mean_iou
+    }
 
 
 def save_model_with_hyperparams(model, model_name, hyperparams,

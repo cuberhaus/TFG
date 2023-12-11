@@ -57,10 +57,19 @@ test_loader = DataLoader(test_dataset, batch_size=2, shuffle=False, collate_fn=c
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# Initialize DataFrame columns if the file doesn't exist
 if not os.path.exists(CSV_FILE_PATH):
-    pd.DataFrame(columns=['Model', 'Batch Size', 'Learning Rate', 'Weight Decay', 'Num Epochs', 'Precision', 'Recall',
-                          'F1-Score', 'Mean IoU']).to_csv(CSV_FILE_PATH, index=False)
+    pd.DataFrame(columns=[
+        'Model', 'Batch Size', 'Learning Rate', 'Weight Decay', 'Num Epochs', 'Best_Epoch',
+        'AP_50_95_all', 'AP_50_all', 'AP_75_all',
+        'AP_50_95_small', 'AP_50_95_medium', 'AP_50_95_large',
+        'AR_50_95_all_maxDets_1', 'AR_50_95_all_maxDets_10', 'AR_50_95_all_maxDets_100',
+        'AR_50_95_small_maxDets_100', 'AR_50_95_medium_maxDets_100', 'AR_50_95_large_maxDets_100'
+    ]).to_csv(CSV_FILE_PATH, index=False)
+
+# # Initialize DataFrame columns if the file doesn't exist
+# if not os.path.exists(CSV_FILE_PATH):
+#     pd.DataFrame(columns=['Model', 'Batch Size', 'Learning Rate', 'Weight Decay', 'Num Epochs', 'Precision', 'Recall',
+#                           'F1-Score', 'Mean IoU']).to_csv(CSV_FILE_PATH, index=False)
 
 for model_filename in model_filenames:
     print(f"Evaluating {model_filename}")
@@ -80,26 +89,18 @@ for model_filename in model_filenames:
     # Append performance metrics and characteristics to the DataFrame and write to CSV
     performance_data = {
         **characteristics,  # Unpack parsed characteristics
-        'Precision': metrics['precision'],
-        'Recall': metrics['recall'],
-        'F1-Score': metrics['f1'],
-        'Mean IoU': metrics['mean_iou']
+        'AP_50_95_all': metrics[0],
+        'AP_50_all': metrics[1],
+        'AP_75_all': metrics[2],
+        'AP_50_95_small': metrics[3],
+        'AP_50_95_medium': metrics[4],
+        'AP_50_95_large': metrics[5],
+        'AR_50_95_all_maxDets_1': metrics[6],
+        'AR_50_95_all_maxDets_10': metrics[7],
+        'AR_50_95_all_maxDets_100': metrics[8],
+        'AR_50_95_small_maxDets_100': metrics[9],
+        'AR_50_95_medium_maxDets_100': metrics[10],
+        'AR_50_95_large_maxDets_100': metrics[11]
     }
     pd.DataFrame([performance_data]).to_csv(CSV_FILE_PATH, mode='a', header=False, index=False)
 
-# Read the CSV file for plotting
-model_performances = pd.read_csv(CSV_FILE_PATH)
-
-# Plotting performance metrics
-plt.figure(figsize=(12, 8))
-for metric in ['Precision', 'Recall', 'F1-Score', 'Mean IoU']:
-    plt.plot(model_performances['Model'], model_performances[metric], marker='o', label=metric)
-
-plt.xlabel('Model')
-plt.ylabel('Performance')
-plt.title('Model Performance Comparison')
-plt.xticks(rotation=45)
-plt.legend()
-plt.tight_layout()
-plt.savefig(MODEL_PERFORMANCE_PLOT_PATH)
-plt.show()
