@@ -42,13 +42,11 @@ def copy_files_to_cyclegan_structure(root_dir, target_dir, mode='train'):
         print(f"Processing video {video_number}")
         if video_number.is_dir():  # Check if it is a directory
             mask_subdir = masks_root_dir / video_number.name
-            # print(mask_subdir)
             if not mask_subdir.exists() or not mask_subdir.is_dir():
                 print(f"Mask directory does not exist: {mask_subdir}")
                 continue
 
             image_subdir = images_root_dir / video_number.name
-            # print(image_subdir)
             if not image_subdir.exists() or not image_subdir.is_dir():
                 print(f"Image directory does not exist: {image_subdir}")
                 continue
