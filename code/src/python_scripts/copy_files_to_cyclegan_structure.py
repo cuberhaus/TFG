@@ -1,3 +1,4 @@
+import os
 import shutil
 from pathlib import Path
 
@@ -75,11 +76,13 @@ def copy_files_to_cyclegan_structure(root_dir, target_dir, mode='train'):
                 # print(f"Copied {image_file} to {trainB_dir / new_image_filename}")
 
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # Example usage
-root_dir = '../../data/TrainValid/TrainValid/'  # Replace with the path to your TrainValid directory
-target_dir = '../../data/PolypDataset/'  # Replace with the path to your target dataset directory for CycleGAN
+root_dir = os.path.join(SCRIPT_DIR, '../../data/TrainValid/TrainValid/')
+target_dir = os.path.join(SCRIPT_DIR, '../../data/PolypDataset/')
 copy_files_to_cyclegan_structure(root_dir, target_dir, mode='train')
 
-root_dir = '../../data/Test/Test/'  # Replace with the path to your TrainValid directory
-target_dir = '../../data/PolypDataset/'  # Replace with the path to your target dataset directory for CycleGAN
+root_dir = os.path.join(SCRIPT_DIR, '../../data/Test/Test/')
+target_dir = os.path.join(SCRIPT_DIR, '../../data/PolypDataset/')
 copy_files_to_cyclegan_structure(root_dir, target_dir, mode='test')

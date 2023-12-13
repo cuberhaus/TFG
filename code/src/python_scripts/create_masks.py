@@ -77,8 +77,12 @@ def process_all_videos(root_dir):
             process_images_in_folder(video_images_folder, video_annotations_folder, video_mask_save_dir)
 
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 # Example usage
 dataset_root_dir = '../../data/TrainValid/TrainValid'  # Replace with the path to your TrainValid directory
+dataset_root_dir = os.path.join(SCRIPT_DIR, dataset_root_dir)
 process_all_videos(dataset_root_dir)
+
 dataset_root_dir = '../../data/Test/Test'  # Replace with the path to your TrainValid directory
+dataset_root_dir = os.path.join(SCRIPT_DIR, dataset_root_dir)
 process_all_videos(dataset_root_dir)
