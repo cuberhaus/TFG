@@ -22,6 +22,12 @@ command = [
     'mask2polyp',
     '--model',
     'cycle_gan',
+    '--batch_size',
+    '4',
+    '--epoch_count',
+    '1',
+    '--n_epochs',
+    '5',
     '--display_id',
     '-1'
 ]
