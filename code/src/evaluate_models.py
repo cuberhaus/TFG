@@ -28,18 +28,13 @@ elif os_name == 'Windows':
 
 if not os.path.exists(MODEL_DIR):
     os.makedirs(MODEL_DIR)
-print(MODEL_DIR)
-# CSV file to store model performances
+
 CSV_FILE_PATH = os.path.join(SCRIPT_DIR, "../out/model_performances.csv")
-# Path to store the model performance plot
 MODEL_PERFORMANCE_PLOT_PATH = os.path.join(SCRIPT_DIR, "../out/model_performance_comparison.png")
-# Set to True to run in debug mode
 DEBUG = True
 
 
-# List all files in the model directory and filter out non-model files
 model_filenames = [f for f in os.listdir(MODEL_DIR)]
-print(model_filenames)
 
 if DEBUG:
     max_samples = {
@@ -49,33 +44,23 @@ if DEBUG:
 else:
     max_samples = None
 
-# Prepare your dataset
-train_dataset, test_dataset = prepare_dataset(max_samples)  # Update with your actual dataset
-# test_dataset = CustomDataset(root_dir=TEST_DATA_PATH,
-#                              transform=None)  # Update with your actual path and transforms
+train_dataset, test_dataset = prepare_dataset(max_samples)
 test_loader = DataLoader(test_dataset, batch_size=2, shuffle=False, collate_fn=collate_fn)
 
 # Device configuration
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-if not os.path.exists(CSV_FILE_PATH):
-    pd.DataFrame(columns=[
-        'Model', 'Batch Size', 'Learning Rate', 'Weight Decay', 'Num Epochs', 'Best_Epoch',
-        'AP_50_95_all', 'AP_50_all', 'AP_75_all',
-        'AP_50_95_small', 'AP_50_95_medium', 'AP_50_95_large',
-        'AR_50_95_all_maxDets_1', 'AR_50_95_all_maxDets_10', 'AR_50_95_all_maxDets_100',
-        'AR_50_95_small_maxDets_100', 'AR_50_95_medium_maxDets_100', 'AR_50_95_large_maxDets_100'
-    ]).to_csv(CSV_FILE_PATH, index=False)
+if os.path.exists(CSV_FILE_PATH):
+    os.remove(CSV_FILE_PATH)
 
-# # Initialize DataFrame columns if the file doesn't exist
-# if not os.path.exists(CSV_FILE_PATH):
-#     pd.DataFrame(columns=['Model', 'Batch Size', 'Learning Rate', 'Weight Decay', 'Num Epochs', 'Precision', 'Recall',
-#                           'F1-Score', 'Mean IoU']).to_csv(CSV_FILE_PATH, index=False)
+# Check if the CSV file exists
+csv_exists = os.path.exists(CSV_FILE_PATH)
 
 for model_filename in model_filenames:
     print(f"Evaluating {model_filename}")
     # Parse model characteristics
     characteristics = parse_model_filename(model_filename)
+    print(characteristics)
 
     # Load model
     model = fasterrcnn_resnet50_fpn(pretrained=False, num_classes=2)  # Update num_classes as per your requirement
@@ -103,5 +88,11 @@ for model_filename in model_filenames:
         'AR_50_95_medium_maxDets_100': metrics[10],
         'AR_50_95_large_maxDets_100': metrics[11]
     }
-    pd.DataFrame([performance_data]).to_csv(CSV_FILE_PATH, mode='a', header=False, index=False)
+    print(f"Performance data: {performance_data}")
+    # If CSV does not exist, write with header, else append without header
+    if not csv_exists:
+        pd.DataFrame([performance_data]).to_csv(CSV_FILE_PATH, mode='a', header=True, index=False)
+        csv_exists = True  # Update the flag so headers are not added again
+    else:
+        pd.DataFrame([performance_data]).to_csv(CSV_FILE_PATH, mode='a', header=False, index=False)
 
