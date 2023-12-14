@@ -20,4 +20,4 @@ def prepareCycleGAN():
     python_installed = python_version()
     print(POLYP_DATASET_DIR)
     print(python_installed)
-    return POLYP_DATASET_DIR, python_installed
+    return POLYP_DATASET_DIR, python_installed, cycleGan_dir
