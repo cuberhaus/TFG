@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime
+import re
 
 import torch
 import torch.optim as optim
@@ -485,8 +486,6 @@ def load_model_with_hyperparams(model, base_filename, load_dir='./saved_models/'
     return model, epoch_losses, batch_losses
 
 
-import re
-
 def parse_model_filename(filename):
     # Remove the file extension
     filename = filename.replace('.pth', '')
@@ -507,5 +506,3 @@ def parse_model_filename(filename):
         characteristics[key] = value
 
     return characteristics
-
-

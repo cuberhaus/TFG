@@ -20,13 +20,11 @@ if os_name == 'Linux':
     TEST_DATA_PATH = os.path.join(SCRIPT_DIR, '../data/dataset1/Test/Test/')
     MODEL_DIR = os.path.join(SCRIPT_DIR, '../../old/saved_models/')  # Remote
 elif os_name == 'Darwin':
-    # Directory containing the saved models
     MODEL_DIR = os.path.join(SCRIPT_DIR, '../tmp/saved_models/')  # Mac
-    # Path to the test data
     TEST_DATA_PATH = os.path.join(SCRIPT_DIR, '/Volumes/SSD_6Gbps/dataset1/Test/Test/')  # Mac
 elif os_name == 'Windows':
+    MODEL_DIR = os.path.join(SCRIPT_DIR, '../tmp/saved_models/')  # Remote
     TEST_DATA_PATH = os.path.join(SCRIPT_DIR, '../data/Test/Test/')
-    MODEL_DIR = os.path.join(SCRIPT_DIR, '../../old/saved_models/')  # Remote
 
 if not os.path.exists(MODEL_DIR):
     os.makedirs(MODEL_DIR)
