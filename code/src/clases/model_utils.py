@@ -485,15 +485,27 @@ def load_model_with_hyperparams(model, base_filename, load_dir='./saved_models/'
     return model, epoch_losses, batch_losses
 
 
-# Function to parse model filename and extract characteristics
-def parse_model_filename(filename):
-    parts = filename.replace('.pth', '').split('_')
+import re
 
-    model_type = parts[0]  # The first part of the filename is the model type
+def parse_model_filename(filename):
+    # Remove the file extension
+    filename = filename.replace('.pth', '')
+
+    # Regular expression pattern for key-value pairs
+    pattern = re.compile(r'([A-Za-z_]+)-([^_]+)')
+
+    # Extract model type (assuming it's the first part of the filename)
+    parts = filename.split('_', 1)
+    model_type = parts[0]
     characteristics = {'Model': model_type}
 
-    for part in parts[1:]:  # Start from the second part as the first is the model type
-        if '-' in part:
-            key, value = part.split('-', 1)
-            characteristics[key] = value
+    # Apply pattern to find key-value pairs
+    matches = pattern.finditer(parts[1] if len(parts) > 1 else '')
+    for match in matches:
+        key = match.group(1).lstrip('_')  # Remove leading underscores from the key
+        value = match.group(2)
+        characteristics[key] = value
+
     return characteristics
+
+
