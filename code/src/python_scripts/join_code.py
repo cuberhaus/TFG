@@ -53,25 +53,47 @@ def consolidate_code(notebook_paths, py_files, output_file, base_path):
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # Define the paths
-select = 1
+select = 0
 if select == 0:
     notebook_path = [
         '../j_notebooks/main.ipynb'
     ]
     py_files = [
         '../clases/custom_dataset.py',
+        '../clases/cyclegan.py',
         '../clases/data_utils.py',
         '../clases/model_utils.py',
+        '../clases/utils.py',
+
+        '../shell_scripts/train_models.sh',
+
+        '../cyclegan_test.py',
+        '../cyclegan_train.py',
+        '../evaluate_models.py',
+        '../optuna_train_models.py',
+        '../plot_losses.py',
+        '../raytune_train_model.py',
         '../test_model.py',
         '../train_and_save_model.py',
+        '../train_models.py',
     ]
 elif select == 1:
     notebook_path = []
     py_files = [
         '../clases/custom_dataset.py',
+        '../clases/cyclegan.py',
         '../clases/data_utils.py',
         '../clases/model_utils.py',
+        '../clases/utils.py',
+
         '../shell_scripts/train_models.sh',
+
+        '../cyclegan_test.py',
+        '../cyclegan_train.py',
+        '../evaluate_models.py',
+        '../optuna_train_models.py',
+        '../plot_losses.py',
+        '../raytune_train_model.py',
         '../test_model.py',
         '../train_and_save_model.py',
         '../train_models.py',

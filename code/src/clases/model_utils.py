@@ -283,11 +283,11 @@ def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
             for box, label in zip(target['boxes'], target['labels']):
                 box = convert_to_coco_format(box.tolist())
                 coco_gt_annotation = {
-                    'bbox': box,
-                    'category_id': label.item(),
                     'id': ann_id,
                     'image_id': image_id,
+                    'category_id': label.item(),
                     'area': (box[2] * box[3]),
+                    'bbox': box,
                     'iscrowd': iscrowd
                 }
                 coco_gt.dataset['annotations'].append(coco_gt_annotation)
@@ -295,10 +295,10 @@ def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
             # Convert predictions to COCO format
             for box, label, score in zip(output['boxes'], output['labels'], output['scores']):
                 coco_dt_annotation = {
-                    'bbox': box,
-                    'category_id': label.item(),
                     'id': ann_id,
                     'image_id': image_id,
+                    'category_id': label.item(),
+                    'bbox': box,
                     'score': score.item()
                 }
                 coco_dt.append(coco_dt_annotation)
@@ -319,7 +319,7 @@ def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
 
     # coco_dt = coco_gt.loadRes(results_file)
 
-    # Create COCOEval object
+    # We set COCOeval to bbox mode
     coco_eval = COCOeval(coco_gt, coco_dt_obj, 'bbox')
     coco_eval.params.iouThrs = [iou_threshold]  # Set IOU threshold
 
