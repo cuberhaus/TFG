@@ -252,6 +252,7 @@ def convert_to_coco_format(box):
     return [x_min, y_min, width, height]
 
 
+# FIXME: coco_evaluate
 def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
     results_file = os.path.join(OUT_DIR, 'results.json')
     model.eval()
@@ -331,6 +332,7 @@ def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
     return coco_eval.stats
 
 
+# FIXME: evaluate
 def evaluate(model, val_loader, device, iou_threshold=0.5):
     """
     Evaluate the model on the validation set.
