@@ -68,6 +68,7 @@ if select == 0:
         '../shell_scripts/train_models.sh',
 
         '../python_scripts/create_masks.py',
+        '../python_scripts/copy_files_to_cyclegan_structure.py',
 
         '../cyclegan_test.py',
         '../cyclegan_train.py',
