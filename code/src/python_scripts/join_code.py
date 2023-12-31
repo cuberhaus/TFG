@@ -19,6 +19,14 @@ def extract_code_from_notebook(notebook_path):
     return '\n\n'.join(code_cells)
 
 
+def extract_from_notebook(notebook_path):
+    with open(notebook_path) as f:
+        nb = nbformat.read(f, as_version=4)
+
+    combined_cells = [cell.source for cell in nb.cells if cell.cell_type in ['code', 'markdown']]
+    return '\n\n'.join(combined_cells)
+
+
 def consolidate_code(notebook_paths, py_files, output_file, base_path):
     """
     Consolidate all the code from the notebooks and python files into a single file.
@@ -42,7 +50,7 @@ def consolidate_code(notebook_paths, py_files, output_file, base_path):
         for notebook_path in notebook_paths:
             full_path = os.path.join(base_path, notebook_path)
             print(f"Processing {full_path}")
-            notebook_code = extract_code_from_notebook(full_path)
+            notebook_code = extract_from_notebook(full_path)
             outfile.write(f"# Code from {full_path}\n")
             outfile.write(notebook_code)
             outfile.write("\n\n")

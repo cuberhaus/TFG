@@ -104,7 +104,6 @@ def cluster_bounding_boxes(bbox_centers, n_clusters=3):
     """
     Cluster bounding boxes using K-means clustering.
     """
-    # Convert from [x1, y1, x2, y2] to [x, y, width, height]
     bbox_centers = np.array(bbox_centers)
     # Apply K-means clustering
     kmeans = KMeans(n_clusters=n_clusters, random_state=0).fit(bbox_centers)
