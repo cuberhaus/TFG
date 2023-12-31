@@ -181,6 +181,40 @@ def plot_density_of_bbox_centers(bbox_centers):
 
     # Create the density plot
     plt.figure(figsize=(10, 8))
+    # ax = plt.gca()
+    ax = sns.kdeplot(data=df_centers, x='x_center', y='y_center', fill=True, cmap="Blues")
+
+    # Add a color bar representing the density scale
+    norm = plt.Normalize(df_centers.values.min(), df_centers.values.max())
+    sm = plt.cm.ScalarMappable(cmap="Blues", norm=norm)
+    sm.set_array([])
+
+    # Create a color bar as the legend
+    color_bar = plt.colorbar(sm, ax=ax)
+    color_bar.set_label('Density')
+
+    plt.title('Density Plot of Bounding Box Centers')
+    plt.xlabel('X Center')
+    plt.ylabel('Y Center')
+
+
+def plot_density_of_bbox_centers_with_clusters(bbox_centers, cluster_centers):
+    """
+    Generate a density plot of the centers of bounding boxes with cluster centers.
+
+    Parameters:
+    - bbox_centers: A numpy array or a list of bounding box centers with each center defined as [x_center, y_center].
+    - cluster_centers: A numpy array or a list of cluster centers.
+    """
+    # Convert bounding box centers to numpy array if they are not already
+    if isinstance(bbox_centers, list):
+        bbox_centers = np.array(bbox_centers)
+
+    # Convert to DataFrame for Seaborn
+    df_centers = pd.DataFrame(bbox_centers, columns=['x_center', 'y_center'])
+
+    # Create the density plot
+    plt.figure(figsize=(10, 8))
     ax = sns.kdeplot(data=df_centers, x='x_center', y='y_center', fill=True, cmap="Blues", legend=True)
 
     # Add a color bar representing the density scale
@@ -189,9 +223,17 @@ def plot_density_of_bbox_centers(bbox_centers):
     sm.set_array([])
 
     # Create a color bar as the legend
-    color_bar = plt.colorbar(sm)
+    color_bar = plt.colorbar(sm,ax=ax)
     color_bar.set_label('Density')
 
-    plt.title('Density Plot of Bounding Box Centers')
+    # Plot the cluster centers
+    if isinstance(cluster_centers, list):
+        cluster_centers = np.array(cluster_centers)
+    plt.scatter(cluster_centers[:, 0], cluster_centers[:, 1], c='red', marker='x', label='Cluster Centers')
+
+    plt.title('Density Plot of Bounding Box Centers with Cluster Centers')
     plt.xlabel('X Center')
     plt.ylabel('Y Center')
+    plt.legend()
+
+    plt.show()
