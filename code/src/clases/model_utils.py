@@ -19,9 +19,9 @@ from torchvision.ops import box_iou
 from .custom_dataset import CustomDataset
 from .utils import *
 
-SCRIPT_DIR = os.path.dirname(__file__)  # Directory of the script file
-SRC_DIR = os.path.join(SCRIPT_DIR, '../')  # Directory of the script file
-PROJ_DIR = os.path.join(SRC_DIR, '../')  # Directory of the script file
+SCRIPT_DIR = os.path.dirname(__file__)
+SRC_DIR = os.path.join(SCRIPT_DIR, '../')
+PROJ_DIR = os.path.join(SRC_DIR, '../')
 OUT_DIR = os.path.join(SRC_DIR, '..', 'out')
 
 if not os.path.exists(OUT_DIR):
@@ -29,7 +29,6 @@ if not os.path.exists(OUT_DIR):
 
 
 def prepare_dataset(max_samples=None):
-    # Define your data transformation (e.g., resizing, normalization, etc.)
     transform = transforms.Compose([
         transforms.Resize((560, 480)),
         transforms.ToTensor(),
@@ -37,7 +36,6 @@ def prepare_dataset(max_samples=None):
 
     test_root_dir, train_root_dir = dataset_paths()
 
-    # Create instances of the custom dataset
     train_max_samples = max_samples['train'] if max_samples and 'train' in max_samples else None
     test_max_samples = max_samples['test'] if max_samples and 'test' in max_samples else None
 
@@ -50,21 +48,19 @@ def dataset_paths():
     system_name = platform.system()
     test_root_dir = None
     train_root_dir = None
-    if system_name == "Windows":  # Local machine
+    if system_name == "Windows":
         train_root_dir = os.path.join(PROJ_DIR, 'data/TrainValid/TrainValid')
         test_root_dir = os.path.join(PROJ_DIR, 'data/Test/Test')
-        # train_root_dir = '/TrainValid/TrainValid'
-        # test_root_dir = '/Test/Test'
         print("Windows")
-    elif is_wsl():  # Local machine
+    elif is_wsl():
         train_root_dir = '/mnt/c/Users/polcg/repos/TFG/code/data/TrainValid/TrainValid'
         test_root_dir = '/mnt/c/Users/polcg/repos/TFG/code/data/Test/Test'
         print("wsl")
-    elif system_name == "Linux":  # Remote server
+    elif system_name == "Linux":
         train_root_dir = '/home/casacuberta/TFG/TrainValid/TrainValid'
         test_root_dir = '/home/casacuberta/TFG/Test/Test'
         print("Linux")
-    elif system_name == "Darwin":  # Local machine
+    elif system_name == "Darwin":
         train_root_dir = '/Volumes/SSD_6Gbps/dataset1/TrainValid/TrainValid'
         test_root_dir = '/Volumes/SSD_6Gbps/dataset1/Test/Test'
         print("macOS")
@@ -78,14 +74,13 @@ def collate_fn(batch):
     """
     Since each image may have a different number of objects, we need a collate function (to be passed to the DataLoader).
     """
-    images, targets = zip(*batch)  # Transpose the batch (turn list of pairs into pair of lists)
+    images, targets = zip(*batch)
 
     images = list(image for image in images)
     targets = list(target for target in targets)
 
-    images = torch.stack(images, dim=0)  # Stack images to create a 4D tensor
+    images = torch.stack(images, dim=0)
 
-    # In case of targets, we don't stack or pad because Faster R-CNN can handle varying-size targets
     return images, targets
 
 
@@ -94,28 +89,17 @@ def get_model(model_name, num_classes):
     Get the model based on its name.
     """
     if model_name == 'FasterRCNN':
-        model = fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT)  # Pre-trained model
-        # Get the number of input features for the classifier
+        model = fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT)
         in_features = model.roi_heads.box_predictor.cls_score.in_features
-        # Replace the pre-trained head with a new one
         model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
     elif model_name == 'SSD':
-        model = ssdlite320_mobilenet_v3_large(
-            weights=SSDLite320_MobileNet_V3_Large_Weights.DEFAULT)  # Pre-trained model
-        # Adjust the number of classes for SSD
+        model = ssdlite320_mobilenet_v3_large(weights=SSDLite320_MobileNet_V3_Large_Weights.DEFAULT)
         model.head.classification_head.num_classes = num_classes
     elif model_name == 'RetinaNet':
-        model = retinanet_resnet50_fpn_v2(weights=RetinaNet_ResNet50_FPN_V2_Weights.DEFAULT)  # Pre-trained model
-        # Replace the classifier with a new one
-        # model.head.classification_head.num_classes = num_classes
-
-        # Define the number of anchors
+        model = retinanet_resnet50_fpn_v2(weights=RetinaNet_ResNet50_FPN_V2_Weights.DEFAULT)
         num_anchors = model.head.classification_head.num_anchors
         in_channels = model.backbone.out_channels
-        # Create a new RetinaNet head
         model.head = RetinaNetHead(in_channels, num_classes=num_classes, num_anchors=num_anchors)
-    # elif model_name == 'MaskRCNN':
-    #     model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)
     else:
         raise Exception("Invalid model name")
     return model
@@ -125,9 +109,9 @@ def validate(model, val_loader, device):
     """
     Validate the model on the validation set.
     """
-    model.eval()  # Set the model to evaluation mode
+    model.eval()
     val_loss = 0
-    with torch.no_grad():  # Disable gradient calculation
+    with torch.no_grad():
         for images, targets in val_loader:
             images = list(img.to(device) for img in images)
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
@@ -143,27 +127,21 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
     """
     Train the model for a specified number of epochs.
     """
-    # Split the dataset into training and validation sets
+
     train_size = int(0.8 * len(train_dataset))
     val_size = len(train_dataset) - train_size
     train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [train_size, val_size])
 
-    # Create DataLoaders
     train_loader = DataLoader(train_dataset, batch_size=param["BATCH_SIZE"], shuffle=True, collate_fn=collate_fn)
     val_loader = DataLoader(val_dataset, batch_size=param["BATCH_SIZE"], collate_fn=collate_fn)
 
-    # Modify the model for your specific dataset: Change the number of classes
-    # num_classes = 1 # 1 class (Polyp) + background
     num_classes = 2  # 1 class (polyp) + 1 background
     model = get_model(model_s, num_classes)
 
-    # Define the optimizer and learning rate scheduler
     model_parameters = [p for p in model.parameters() if p.requires_grad]
     optimizer = optim.SGD(model_parameters, lr=param["LR"], momentum=0.9, weight_decay=param["WEIGHT_DECAY"])
     lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
-
-    # Define the loss function (this is handled by the model itself)
-    # criterion = torch.nn.CrossEntropyLoss()
+    # Loss function is handled by the model
 
     model = model.to(device)
 
@@ -171,17 +149,11 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
     epoch_losses = []
     batch_losses = []
 
-    # # Define the directory to save models
-    # save_dir = 'out/saved_models_debug' if debug else 'out/saved_models'
-    # losses_dir = 'out/losses_debug' if debug else 'out/losses'
-
-    # Define the directory to save models and losses based on output_base_dir
     save_dir = os.path.join(OUT_DIR, 'saved_models_debug' if debug else 'saved_models')
     print("save_dir:", save_dir)
     losses_dir = os.path.join(OUT_DIR, 'losses_debug' if debug else 'losses')
     print("losses_dir:", losses_dir)
 
-    # Create these directories if they don't exist
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     if not os.path.exists(losses_dir):
@@ -211,13 +183,11 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
             losses.backward()
             optimizer.step()
 
-        # Validation
         metrics = evaluate(model, val_loader, device)
-        metric_value = metrics[metric_choice]  # Use the specified metric
+        metric_value = metrics[metric_choice]
         if metric_value < best_val_loss:
             print(str(metric_choice) + " : " + str(metric_value))
             best_val_loss = metric_value
-            # Delete the previously saved model file, if it exists
             if saved_model_path and os.path.exists(saved_model_path):
                 os.remove(saved_model_path)
                 print(f"Deleted older model file: {saved_model_path}")
@@ -232,7 +202,6 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
                 save_dir=save_dir,
                 losses_dir=losses_dir
             )
-            # torch.save(model.state_dict(), 'saved_models/best_model.pth')
 
         print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {epoch_loss:.4f}')
         epoch_losses.append(epoch_loss)
@@ -245,7 +214,6 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
 
 
 def convert_to_coco_format(box):
-    # Convert from [x_min, y_min, x_max, y_max] to [x_min, y_min, width, height]
     x_min, y_min, x_max, y_max = box
     width = x_max - x_min
     height = y_max - y_min
@@ -258,16 +226,15 @@ def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
     model.eval()
     # Initialize dataset for COCO ground truth object
     coco_gt_dataset = {
-        'images': [],  # List to store image info
-        'annotations': [],  # List to store annotations
-        'categories': []  # List to store category info
+        'images': [],
+        'annotations': [],
+        'categories': []
     }
     coco_gt = COCO()  # Initialize COCO ground truth object
     coco_gt.dataset = coco_gt_dataset  # Load dataset into COCO ground truth object
 
     coco_dt = []  # List to store predictions in COCO format
 
-    # image_id = 0
     ann_id = 0
     for images, targets in val_loader:
         images = list(img.to(device) for img in images)
