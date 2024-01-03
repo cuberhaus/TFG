@@ -36,14 +36,11 @@ def train_and_save_model():
     else:
         train_dataset, test_dataset = prepare_dataset()
 
-    # Check device (CUDA or CPU)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    # Set number of training epochs
     num_epochs = params['NUM_EPOCHS']
 
-    # Train the model
     trained_model, epoch_losses, batch_losses, epoch, model_path, metric_value = train_model(train_dataset, params,
                                                                                              num_epochs,
                                                                                              device,

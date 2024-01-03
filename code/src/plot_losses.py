@@ -5,6 +5,8 @@ import glob
 """
 Plots all losses from the losses directory and outputs them to a new plots directory
 """
+
+
 def plot_losses(file_path, batch_plots, epoch_plots):
     with open(file_path, 'r') as file:
         losses = [float(line.strip()) for line in file.readlines()]
