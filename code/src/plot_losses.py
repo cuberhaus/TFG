@@ -2,20 +2,19 @@ import matplotlib.pyplot as plt
 import os
 import glob
 
-
+"""
+Plots all losses from the losses directory and outputs them to a new plots directory
+"""
 def plot_losses(file_path, batch_plots, epoch_plots):
-    # Read loss values from file
     with open(file_path, 'r') as file:
         losses = [float(line.strip()) for line in file.readlines()]
 
-    # Create a plot
     plt.figure()
     plt.plot(losses)
     plt.title(f"Losses for {os.path.basename(file_path)}")
     plt.xlabel("Iteration")
     plt.ylabel("Loss")
 
-    # Determine output folder based on file type
     if "batch_losses" in file_path:
         output_folder = batch_plots
     elif "epoch_losses" in file_path:
@@ -24,7 +23,6 @@ def plot_losses(file_path, batch_plots, epoch_plots):
         print(f"Unknown file type for {file_path}, skipping...")
         return
 
-    # Prepare output file path
     plot_file_name = os.path.basename(file_path).replace('.txt', '.png')
     output_file_path = os.path.join(output_folder, plot_file_name)
 
@@ -37,7 +35,6 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def main():
-    # Directory containing the loss files
     directory_losses = os.path.join(SCRIPT_DIR, '..', 'tmp/losses')
     directory_plots = os.path.join(SCRIPT_DIR, '..', 'tmp/plots_losses/')
     print(directory_plots)
@@ -45,17 +42,13 @@ def main():
     epoch_plots = os.path.join(directory_plots, 'epoch_plots')
     print(batch_plots)
 
-    # Create output folder if it doesn't exist
     if not os.path.exists(directory_plots):
         os.makedirs(directory_plots)
-    # Create output folders if they don't exist
     if not os.path.exists(batch_plots):
         os.makedirs(batch_plots)
     if not os.path.exists(epoch_plots):
         os.makedirs(epoch_plots)
 
-
-    # Iterate over all loss files in the directory
     for file_path in glob.glob(os.path.join(directory_losses, "*_losses.txt")):
         plot_losses(file_path, batch_plots, epoch_plots)
 
