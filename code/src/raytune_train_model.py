@@ -30,7 +30,6 @@ def train_model_tune(config, data_dir="./raytune", model_name='FasterRCNN', debu
         print("Freeing up memory")
         torch.cuda.empty_cache()
 
-    # Inside your train_model_tune function
     ray_train.report({'metric_value': metric_value})
 
 
@@ -40,7 +39,7 @@ def tune_model(model_name, num_samples=10, max_num_epochs=10, gpus_per_trial=1, 
         "BATCH_SIZE": tune.choice([2, 4, 8]),  # TODO: BATCH SIZE OF 16 BREAKS THINGS
         "WEIGHT_DECAY": tune.loguniform(1e-5, 1e-1),
         "NUM_EPOCHS": tune.choice(range(1, max_num_epochs + 1)),
-        "metric_choice": "f1"  # or "mean_iou", depending on your needs
+        "metric_choice": "f1"  # or "mean_iou"
     }
 
     scheduler = ASHAScheduler(
@@ -65,7 +64,6 @@ def tune_model(model_name, num_samples=10, max_num_epochs=10, gpus_per_trial=1, 
     print("Best trial config: {}".format(best_trial.config))
     print("Best trial final metric value: {}".format(best_trial.last_result["metric_value"]))
 
-    # Save the best trial hyperparameters to a CSV file
     with open('best_hyperparameters_ray_tune.csv', 'w', newline='') as csvfile:
         fieldnames = ['parameter', 'value']
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -74,7 +72,6 @@ def tune_model(model_name, num_samples=10, max_num_epochs=10, gpus_per_trial=1, 
             writer.writerow({'parameter': param, 'value': value})
 
 
-# Parsing command-line arguments
 parser = argparse.ArgumentParser(description='Hyperparameter tuning with Ray Tune.')
 parser.add_argument('model_name', type=str, help='Name of the model to train.')
 parser.add_argument('--num_samples', type=int, default=10, help='Number of samples for hyperparameter tuning.')
@@ -85,9 +82,6 @@ parser.add_argument('--debug', action='store_true', help='Run in debug mode with
 
 args = parser.parse_args()
 
-# Initialize Ray
 ray.init()
-
-# Start the tuning process
 tune_model(args.model_name, args.num_samples, args.max_num_epochs, args.gpus_per_trial, args.debug,
            data_dir="./raytune")

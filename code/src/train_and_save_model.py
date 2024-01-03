@@ -1,26 +1,21 @@
 import argparse
-import json
+import os
 import sys
 
-import os
-
-# Use __file__ to get the script's directory
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Add the 'src' directory to the system path
 sys.path.append(SCRIPT_DIR)
 
 from clases.model_utils import *
 
 
 def train_and_save_model():
-    # Parse command-line arguments
     if len(sys.argv) < 3:
-        print("Usage: python script.py 'model_name' '{\"BATCH_SIZE\": 2, \"LR\": 0.005, \"WEIGHT_DECAY\": 0.0005, "
+        print("Usage: python train_and_save_model.py 'model_name' '{\"BATCH_SIZE\": 2, \"LR\": 0.005, "
+              "\"WEIGHT_DECAY\": 0.0005,"
               "\"CONFIDENCE_THRESHOLD\": 0.5}'")
         sys.exit(1)
 
-    # Parse command-line arguments
     parser = argparse.ArgumentParser(description='Train and save model.')
     parser.add_argument('model_name', type=str, help='Name of the model to train.')
     parser.add_argument('params', type=json.loads, help='Hyperparameter settings in JSON format.')
