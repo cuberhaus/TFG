@@ -2,7 +2,7 @@
 OUTPUT_ZIP=proyecto_src.zip
 
 # Directorio de la carpeta src del proyecto
-SRC_DIR=./path_to_your_project/src
+SRC_DIR=./src
 
 # Comando para comprimir los archivos
 zip:
