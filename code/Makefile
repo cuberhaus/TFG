@@ -1,13 +1,13 @@
 # Nombre del archivo zip de salida
-OUTPUT_ZIP=proyecto_src.zip
+OUTPUT_ZIP=TFG_Pol_Casacuberta.zip
 
 # Directorio de la carpeta src del proyecto
 SRC_DIR=./src
 
-# Comando para comprimir los archivos
+# Comando para comprimir los archivos en Windows con PowerShell
 zip:
-    zip -r $(OUTPUT_ZIP) $(SRC_DIR)
+	powershell Compress-Archive -Path $(SRC_DIR) -DestinationPath $(OUTPUT_ZIP)
 
-# Comando para limpiar (eliminar el archivo zip)
+# Comando para limpiar (eliminar el archivo zip) en Windows con PowerShell
 clean:
-    rm -f $(OUTPUT_ZIP)
+	powershell Remove-Item $(OUTPUT_ZIP)
