@@ -364,39 +364,21 @@ def evaluate(model, val_loader, device, iou_threshold=0.5):
 def save_model_with_hyperparams(model, model_name, hyperparams,
                                 epoch_losses=None, batch_losses=None, epoch=None,
                                 save_dir='./out/saved_models/', losses_dir='./out/losses/'):
-    """
-    Saves the model with a filename that includes the model name and hyperparameters. Losses are saved in a separate directory.
-
-    :param epoch:
-    :param batch_losses:
-    :param epoch_losses:
-    :param model: The model to be saved.
-    :param model_name: Name of the model (string).
-    :param hyperparams: Dictionary of hyperparameters.
-    :param save_dir: Directory where the model will be saved.
-    :param losses_dir: Directory where the losses will be saved.
-    """
-    # Create the parent directories if they don't exist
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     if not os.path.exists(losses_dir):
         os.makedirs(losses_dir)
 
-    # Generate a timestamp
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 
-    # Construct the filename with model and hyperparameters
     hyperparams_str = '_'.join([f'{key}-{value}' for key, value in hyperparams.items()])
     epoch_str = f'_epoch-{epoch}' if epoch is not None else ''
     base_filename = f"{model_name}_{hyperparams_str}{epoch_str}_{timestamp}"
 
-    # Full path for the model file
     model_file_path = os.path.join(save_dir, base_filename)
 
-    # Save the model
     torch.save(model.state_dict(), model_file_path)
 
-    # Save epoch losses if provided
     if epoch_losses is not None:
         epoch_losses_path = os.path.join(losses_dir, f"{base_filename}_epoch_losses.txt")
         with open(epoch_losses_path, 'w') as file:
@@ -404,7 +386,6 @@ def save_model_with_hyperparams(model, model_name, hyperparams,
                 file.write(f"{loss}\n")
         print(f"Epoch losses saved as: {epoch_losses_path}")
 
-    # Save batch losses if provided
     if batch_losses is not None:
         batch_losses_path = os.path.join(losses_dir, f"{base_filename}_batch_losses.txt")
         with open(batch_losses_path, 'w') as file:
@@ -417,35 +398,22 @@ def save_model_with_hyperparams(model, model_name, hyperparams,
 
 
 def load_model_with_hyperparams(model, base_filename, load_dir='./saved_models/', losses_dir='./losses/'):
-    """
-    Loads the model, epoch losses, and batch losses from files.
-
-    :param model: The model object to load the state into.
-    :param base_filename: Base filename used when saving the model and losses.
-    :param load_dir: Directory where the model files are stored.
-    :param losses_dir: Directory where the loss files are stored.
-    :return: The model, epoch_losses, and batch_losses.
-    """
-    # Construct file paths
     model_file_path = os.path.join(load_dir, base_filename)
     epoch_losses_path = os.path.join(losses_dir, f"{base_filename}_epoch_losses.txt")
     batch_losses_path = os.path.join(losses_dir, f"{base_filename}_batch_losses.txt")
 
-    # Load the model
     if torch.cuda.is_available():
         model.load_state_dict(torch.load(model_file_path))
     else:
         model.load_state_dict(torch.load(model_file_path, map_location=torch.device('cpu')))
     print(f"Model loaded from: {model_file_path}")
 
-    # Load epoch losses
     epoch_losses = []
     if os.path.exists(epoch_losses_path):
         with open(epoch_losses_path, 'r') as file:
             epoch_losses = [float(line.strip()) for line in file]
         print(f"Epoch losses loaded from: {epoch_losses_path}")
 
-    # Load batch losses
     batch_losses = []
     if os.path.exists(batch_losses_path):
         with open(batch_losses_path, 'r') as file:
@@ -456,13 +424,12 @@ def load_model_with_hyperparams(model, base_filename, load_dir='./saved_models/'
 
 
 def parse_model_filename(filename):
-    # Remove the file extension
     filename = filename.replace('.pth', '')
 
-    # Regular expression pattern for key-value pairs
+    # RE pattern for key-value pairs
     pattern = re.compile(r'([A-Za-z_]+)-([^_]+)')
 
-    # Extract model type (assuming it's the first part of the filename)
+    # Extract model type
     parts = filename.split('_', 1)
     model_type = parts[0]
     characteristics = {'Model': model_type}
