@@ -290,9 +290,9 @@ def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
 def evaluate(model, val_loader, device, iou_threshold=0.5):
     model.eval()
     ious = []
-    image_counter = 0  # Initialize a counter for images
-    last_printed = 0  # Track the last printed multiple of 100
-    multiple = 100  # Print every x images
+    image_counter = 0
+    last_printed = 0
+    multiple = 100
 
     with torch.no_grad():
         for images, targets in val_loader:
