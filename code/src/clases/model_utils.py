@@ -71,9 +71,6 @@ def dataset_paths():
 
 
 def collate_fn(batch):
-    """
-    Since each image may have a different number of objects, we need a collate function (to be passed to the DataLoader).
-    """
     images, targets = zip(*batch)
 
     images = list(image for image in images)
@@ -85,9 +82,6 @@ def collate_fn(batch):
 
 
 def get_model(model_name, num_classes):
-    """
-    Get the model based on its name.
-    """
     if model_name == 'FasterRCNN':
         model = fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT)
         in_features = model.roi_heads.box_predictor.cls_score.in_features
@@ -106,9 +100,6 @@ def get_model(model_name, num_classes):
 
 
 def validate(model, val_loader, device):
-    """
-    Validate the model on the validation set.
-    """
     model.eval()
     val_loss = 0
     with torch.no_grad():
@@ -124,10 +115,6 @@ def validate(model, val_loader, device):
 
 
 def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', metric_choice='f1', debug=False):
-    """
-    Train the model for a specified number of epochs.
-    """
-
     train_size = int(0.8 * len(train_dataset))
     val_size = len(train_dataset) - train_size
     train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [train_size, val_size])
@@ -301,9 +288,6 @@ def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
 
 # FIXME: evaluate
 def evaluate(model, val_loader, device, iou_threshold=0.5):
-    """
-    Evaluate the model on the validation set.
-    """
     model.eval()
     ious = []
     image_counter = 0  # Initialize a counter for images
