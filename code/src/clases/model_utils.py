@@ -263,10 +263,10 @@ def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
         for target, output, image in zip(targets, outputs, images):
             image_id = target['image_id'].item()
             # Check if 'iscrowd' exists and is not empty
-            if 'iscrowd' in target and target['iscrowd'].numel() > 0:
-                iscrowd = target['iscrowd'].item()
-            else:
-                iscrowd = 0  # Default value if 'iscrowd' is missing or empty
+            # if 'iscrowd' in target and target['iscrowd'].numel() > 0:
+            #     iscrowd = target['iscrowd'].item()
+            # else:
+            #     iscrowd = 0  # Default value if 'iscrowd' is missing or empty
 
             # Get image dimensions
             width, height = image.size()[2], image.size()[1]
@@ -290,7 +290,7 @@ def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
                     'category_id': label.item(),
                     'area': (box[2] * box[3]),
                     'bbox': box,
-                    'iscrowd': iscrowd
+                    'iscrowd': 0
                 }
                 coco_gt.dataset['annotations'].append(coco_gt_annotation)
 
