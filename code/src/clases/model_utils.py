@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 import re
 
+from PIL import Image
 import torch
 import torch.optim as optim
 from pycocotools.coco import COCO
@@ -207,9 +208,38 @@ def convert_to_coco_format(box):
     return [x_min, y_min, width, height]
 
 
+def extract_image_info(custom_dataset):
+    images_info = []
+    for idx, img_path in enumerate(custom_dataset.image_paths):
+        with Image.open(img_path) as img:
+            width, height = img.size
+            image_info = {
+                "id": idx,
+                "file_name": os.path.basename(img_path),
+                "width": width,
+                "height": height
+            }
+            images_info.append(image_info)
+    return images_info
+
+
+def create_default_predictions(image_ids):
+    default_predictions = []
+    for image_id in image_ids:
+        default_pred = {
+            "image_id": image_id,
+            "category_id": 0,  # or -1
+            "bbox": [0, 0, 0, 0],
+            "score": 0.0
+        }
+        default_predictions.append(default_pred)
+    return default_predictions
+
+
 # FIXME: coco_evaluate
 def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
-    results_file = os.path.join(OUT_DIR, 'results.json')
+    predictions_dir = os.path.join(OUT_DIR, 'predictions.json')
+    ground_truth_dir = os.path.join(OUT_DIR, 'ground_truth.json')
     model.eval()
     # Initialize dataset for COCO ground truth object
     coco_gt_dataset = {
@@ -222,18 +252,35 @@ def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
 
     coco_dt = []  # List to store predictions in COCO format
 
+    categories = [{'id': 1, 'name': 'polyp'}]  # Define categories
+    coco_gt.dataset['categories'] = categories  # Load categories into COCO ground truth object
+
     ann_id = 0
     for images, targets in val_loader:
         images = list(img.to(device) for img in images)
         outputs = model(images)
 
-        for target, output in zip(targets, outputs):
+        for target, output, image in zip(targets, outputs, images):
             image_id = target['image_id'].item()
             # Check if 'iscrowd' exists and is not empty
             if 'iscrowd' in target and target['iscrowd'].numel() > 0:
                 iscrowd = target['iscrowd'].item()
             else:
                 iscrowd = 0  # Default value if 'iscrowd' is missing or empty
+
+            # Get image dimensions
+            width, height = image.size()[2], image.size()[1]
+            # Assuming you can reconstruct the file name from the image_id
+            file_name = f"image_{image_id}.jpg"  # Modify this according to your dataset's naming convention
+
+            image_info = {
+                "id": image_id,
+                "file_name": file_name,
+                "width": width,
+                "height": height
+            }
+            coco_gt.dataset['images'].append(image_info)
+
             # Convert ground truth to COCO format
             for box, label in zip(target['boxes'], target['labels']):
                 box = convert_to_coco_format(box.tolist())
@@ -249,6 +296,8 @@ def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
 
             # Convert predictions to COCO format
             for box, label, score in zip(output['boxes'], output['labels'], output['scores']):
+                box = box.detach().cpu().numpy().tolist()
+                box = convert_to_coco_format(box)
                 coco_dt_annotation = {
                     'id': ann_id,
                     'image_id': image_id,
@@ -260,30 +309,54 @@ def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
                 ann_id += 1
 
     # # Save predictions to a JSON file
-    # with open(results_file, 'w') as f:
-    #     json.dump(coco_dt, f)
+    with open(predictions_dir, 'w') as f:
+        json.dump(coco_dt, f)
 
-    # Load predictions and ground truths into COCO object
-    coco_gt.createIndex()
+    with open(ground_truth_dir, 'w') as f:
+        json.dump(coco_gt.dataset, f)
 
-    # Create a new COCO object for detections
-    coco_dt_obj = COCO()
-    coco_dt_obj.dataset['annotations'] = coco_dt
-    # coco_dt_obj.dataset['images'] = [img_info for img_info in coco_gt.dataset['images']]
-    coco_dt_obj.createIndex()
+    # Load the ground truth
+    cocoGt = COCO(ground_truth_dir)
 
-    # coco_dt = coco_gt.loadRes(results_file)
+    # Assuming predictions is a list of your model's predictions
+    if len(coco_dt) == 0:
+        image_ids = [img['id'] for img in cocoGt.imgs.values()]
+        predictions = create_default_predictions(image_ids)
+        coco_dt = predictions
+        cocoDt = cocoGt.loadRes(coco_dt)
+    else:
+        # Load the predictions
+        cocoDt = cocoGt.loadRes(predictions_dir)
 
-    # We set COCOeval to bbox mode
-    coco_eval = COCOeval(coco_gt, coco_dt_obj, 'bbox')
-    coco_eval.params.iouThrs = [iou_threshold]  # Set IOU threshold
+    # Initialize COCOeval object
+    cocoEval = COCOeval(cocoGt, cocoDt, 'bbox')
 
-    # Run COCO evaluation
-    coco_eval.evaluate()
-    coco_eval.accumulate()
-    coco_eval.summarize()
+    # Evaluate on the data
+    cocoEval.evaluate()
+    cocoEval.accumulate()
+    cocoEval.summarize()
 
-    return coco_eval.stats
+    # # Load predictions and ground truths into COCO object
+    # coco_gt.createIndex()
+    #
+    # # Create a new COCO object for detections
+    # coco_dt_obj = COCO()
+    # coco_dt_obj.dataset['annotations'] = coco_dt
+    # # coco_dt_obj.dataset['images'] = [img_info for img_info in coco_gt.dataset['images']]
+    # coco_dt_obj.createIndex()
+    #
+    # # coco_dt = coco_gt.loadRes(results_file)
+    #
+    # # We set COCOeval to bbox mode
+    # coco_eval = COCOeval(coco_gt, coco_dt_obj, 'bbox')
+    # coco_eval.params.iouThrs = [iou_threshold]  # Set IOU threshold
+    #
+    # # Run COCO evaluation
+    # coco_eval.evaluate()
+    # coco_eval.accumulate()
+    # coco_eval.summarize()
+
+    return cocoEval.stats
 
 
 # FIXME: evaluate
