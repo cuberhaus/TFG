@@ -45,11 +45,16 @@ nohup python3 cyclegan_test.py > cyclegan_test.log &
 ## Evaluate all models
 ```bash
 #python3 src/evaluate_models.py 
-nohup python3 src/evaluate_models.py > evaluate_models.log &
+nohup python3 evaluate_models.py > evaluate_models.log &
 ```
 
 ## Sync models
 From remote to local
 ```
 rsync -avz --progress casacuberta@teegarden.cs.upc.edu:/home/casacuberta/TFG/old/saved_models /home/pol/TFG/code/tmp
+```
+
+## Scp file
+```
+ scp casacuberta@teegarden.cs.upc.edu:/home/casacuberta/TFG/code/out/model_performances.csv C:\Users\pol\repos\TFG\code\tmp
 ```

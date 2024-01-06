@@ -171,7 +171,7 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
             losses.backward()
             optimizer.step()
 
-        metrics = evaluate(model, val_loader, device)
+        metrics = coco_evaluate(model, val_loader, device)
         metric_value = metrics[metric_choice]
         if metric_value < best_val_loss:
             print(str(metric_choice) + " : " + str(metric_value))
@@ -262,16 +262,9 @@ def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
 
         for target, output, image in zip(targets, outputs, images):
             image_id = target['image_id'].item()
-            # Check if 'iscrowd' exists and is not empty
-            # if 'iscrowd' in target and target['iscrowd'].numel() > 0:
-            #     iscrowd = target['iscrowd'].item()
-            # else:
-            #     iscrowd = 0  # Default value if 'iscrowd' is missing or empty
 
-            # Get image dimensions
             width, height = image.size()[2], image.size()[1]
-            # Assuming you can reconstruct the file name from the image_id
-            file_name = f"image_{image_id}.jpg"  # Modify this according to your dataset's naming convention
+            file_name = f"image_{image_id}.jpg"
 
             image_info = {
                 "id": image_id,
@@ -336,83 +329,63 @@ def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
     cocoEval.accumulate()
     cocoEval.summarize()
 
-    # # Load predictions and ground truths into COCO object
-    # coco_gt.createIndex()
-    #
-    # # Create a new COCO object for detections
-    # coco_dt_obj = COCO()
-    # coco_dt_obj.dataset['annotations'] = coco_dt
-    # # coco_dt_obj.dataset['images'] = [img_info for img_info in coco_gt.dataset['images']]
-    # coco_dt_obj.createIndex()
-    #
-    # # coco_dt = coco_gt.loadRes(results_file)
-    #
-    # # We set COCOeval to bbox mode
-    # coco_eval = COCOeval(coco_gt, coco_dt_obj, 'bbox')
-    # coco_eval.params.iouThrs = [iou_threshold]  # Set IOU threshold
-    #
-    # # Run COCO evaluation
-    # coco_eval.evaluate()
-    # coco_eval.accumulate()
-    # coco_eval.summarize()
-
     return cocoEval.stats
 
 
 # FIXME: evaluate
-def evaluate(model, val_loader, device, iou_threshold=0.5):
-    model.eval()
-    ious = []
-    image_counter = 0
-    last_printed = 0
-    multiple = 100
-
-    with torch.no_grad():
-        for images, targets in val_loader:
-            image_counter += len(images)  # Update the counter with the batch size
-            # Check if the counter has passed a multiple of 100 since the last print
-            if image_counter // multiple > last_printed:
-                print(f"Processed {image_counter} images...")
-                last_printed = image_counter // multiple  # Update the last printed multiple
-
-            images = list(img.to(device) for img in images)
-            outputs = model(images)
-
-            for target, output in zip(targets, outputs):
-                gt_boxes = target['boxes'].to(device)
-                pred_boxes = output['boxes'].to(device)
-                scores = output['scores'].to(device)
-
-                # Compute IoU for the predicted and ground truth boxes
-                iou_matrix = box_iou(pred_boxes, gt_boxes)
-
-                # Here, we're considering a prediction to be correct if the IoU is greater than the threshold
-                # This part assumes a one-to-one matching which can be improved by using a matching strategy
-                correct_preds = iou_matrix > iou_threshold
-
-                # Now extract the IoUs for the correct predictions
-                # This will give us the IoUs where the prediction was correct
-                matched_ious = iou_matrix[correct_preds]
-
-                ious.extend(matched_ious.cpu().tolist())
-
-    true_positives = len(ious)
-    false_positives = len(outputs) - true_positives
-    false_negatives = len(targets) - true_positives
-
-    precision = true_positives / (true_positives + false_positives) if true_positives + false_positives > 0 else 0
-    recall = true_positives / (true_positives + false_negatives) if true_positives + false_negatives > 0 else 0
-    f1 = 2 * (precision * recall) / (precision + recall) if precision + recall > 0 else 0
-
-    mean_iou = sum(ious) / len(ious) if ious else 0
-
-    return {
-        'precision': precision,
-        'recall': recall,
-        'f1': f1,
-        'ious': ious,
-        'mean_iou': mean_iou
-    }
+# def evaluate(model, val_loader, device, iou_threshold=0.5):
+#     model.eval()
+#     ious = []
+#     image_counter = 0
+#     last_printed = 0
+#     multiple = 100
+#
+#     with torch.no_grad():
+#         for images, targets in val_loader:
+#             image_counter += len(images)  # Update the counter with the batch size
+#             # Check if the counter has passed a multiple of 100 since the last print
+#             if image_counter // multiple > last_printed:
+#                 print(f"Processed {image_counter} images...")
+#                 last_printed = image_counter // multiple  # Update the last printed multiple
+#
+#             images = list(img.to(device) for img in images)
+#             outputs = model(images)
+#
+#             for target, output in zip(targets, outputs):
+#                 gt_boxes = target['boxes'].to(device)
+#                 pred_boxes = output['boxes'].to(device)
+#                 scores = output['scores'].to(device)
+#
+#                 # Compute IoU for the predicted and ground truth boxes
+#                 iou_matrix = box_iou(pred_boxes, gt_boxes)
+#
+#                 # Here, we're considering a prediction to be correct if the IoU is greater than the threshold
+#                 # This part assumes a one-to-one matching which can be improved by using a matching strategy
+#                 correct_preds = iou_matrix > iou_threshold
+#
+#                 # Now extract the IoUs for the correct predictions
+#                 # This will give us the IoUs where the prediction was correct
+#                 matched_ious = iou_matrix[correct_preds]
+#
+#                 ious.extend(matched_ious.cpu().tolist())
+#
+#     true_positives = len(ious)
+#     false_positives = len(outputs) - true_positives
+#     false_negatives = len(targets) - true_positives
+#
+#     precision = true_positives / (true_positives + false_positives) if true_positives + false_positives > 0 else 0
+#     recall = true_positives / (true_positives + false_negatives) if true_positives + false_negatives > 0 else 0
+#     f1 = 2 * (precision * recall) / (precision + recall) if precision + recall > 0 else 0
+#
+#     mean_iou = sum(ious) / len(ious) if ious else 0
+#
+#     return {
+#         'precision': precision,
+#         'recall': recall,
+#         'f1': f1,
+#         'ious': ious,
+#         'mean_iou': mean_iou
+#     }
 
 
 def save_model_with_hyperparams(model, model_name, hyperparams,

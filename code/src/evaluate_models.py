@@ -31,7 +31,7 @@ if not os.path.exists(MODEL_DIR):
 
 CSV_FILE_PATH = os.path.join(SCRIPT_DIR, "../out/model_performances.csv")
 MODEL_PERFORMANCE_PLOT_PATH = os.path.join(SCRIPT_DIR, "../out/model_performance_comparison.png")
-DEBUG = False
+DEBUG = True
 
 
 model_filenames = [f for f in os.listdir(MODEL_DIR)]
