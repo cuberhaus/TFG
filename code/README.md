@@ -14,6 +14,8 @@ python src/python_scripts/join_code.py
 ```bash
 python3 optuna_train_model.py --debug
 nohup python3 optuna_train_model.py FasterRCNN > optuna_train_model.log &
+nohup python3 optuna_train_model.py RetinaNet > optuna_train_model.log &
+nohup python3 optuna_train_model.py SSD > optuna_train_model.log &
 ```
 
 ## Optimize Parameters with Raytune
