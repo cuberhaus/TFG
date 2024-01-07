@@ -177,7 +177,7 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
         f1_score = 2 * (AP_score * AR_score) / (AP_score + AR_score)
         metric_value = f1_score
 
-        if metric_value < best_val_loss:
+        if metric_value > best_val_loss:
             print(str(metric_choice) + " : " + str(metric_value))
             best_val_loss = metric_value
             if saved_model_path and os.path.exists(saved_model_path):
