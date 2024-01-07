@@ -172,7 +172,11 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
             optimizer.step()
 
         metrics = coco_evaluate(model, val_loader, device)
-        metric_value = metrics[metric_choice]
+        AP_score = metrics[0]
+        AR_score = metrics[8]
+        f1_score = 2 * (AP_score * AR_score) / (AP_score + AR_score)
+        metric_value = f1_score
+
         if metric_value < best_val_loss:
             print(str(metric_choice) + " : " + str(metric_value))
             best_val_loss = metric_value
