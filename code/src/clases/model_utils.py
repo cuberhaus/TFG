@@ -54,12 +54,16 @@ def dataset_paths():
         test_root_dir = os.path.join(PROJ_DIR, 'data/Test/Test')
         print("Windows")
     elif is_wsl():
-        train_root_dir = '/mnt/c/Users/polcg/repos/TFG/code/data/TrainValid/TrainValid'
-        test_root_dir = '/mnt/c/Users/polcg/repos/TFG/code/data/Test/Test'
+        # train_root_dir = '/mnt/c/Users/polcg/repos/TFG/code/data/TrainValid/TrainValid'
+        # test_root_dir = '/mnt/c/Users/polcg/repos/TFG/code/data/Test/Test'
+        train_root_dir = os.path.join(PROJ_DIR, 'data/TrainValid/TrainValid')
+        test_root_dir = os.path.join(PROJ_DIR, 'data/Test/Test')
         print("wsl")
     elif system_name == "Linux":
-        train_root_dir = '/home/casacuberta/TFG/TrainValid/TrainValid'
-        test_root_dir = '/home/casacuberta/TFG/Test/Test'
+        train_root_dir = os.path.join(PROJ_DIR, 'data/TrainValid/TrainValid')
+        test_root_dir = os.path.join(PROJ_DIR, 'data/Test/Test')
+        # train_root_dir = '/home/casacuberta/TFG/TrainValid/TrainValid'
+        # test_root_dir = '/home/casacuberta/TFG/Test/Test'
         print("Linux")
     elif system_name == "Darwin":
         train_root_dir = '/Volumes/SSD_6Gbps/dataset1/TrainValid/TrainValid'
