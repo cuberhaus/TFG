@@ -61,3 +61,13 @@ rsync -avz --progress casacuberta@teegarden.cs.upc.edu:/home/casacuberta/TFG/old
 ```
  scp casacuberta@teegarden.cs.upc.edu:/home/casacuberta/TFG/code/out/model_performances.csv C:\Users\pol\repos\TFG\code\tmp
 ```
+
+## To generate environment.yml from conda environment with the dependencies:
+```
+conda env export > environment.yml
+```
+
+## To create a Conda environment with those packages:
+```
+conda env create -f environment.yml
+```
