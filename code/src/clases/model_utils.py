@@ -244,7 +244,6 @@ def create_default_predictions(image_ids):
     return default_predictions
 
 
-# FIXME: coco_evaluate
 def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
     predictions_dir = os.path.join(OUT_DIR, 'predictions.json')
     ground_truth_dir = os.path.join(OUT_DIR, 'ground_truth.json')
