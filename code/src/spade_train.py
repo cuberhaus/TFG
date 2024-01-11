@@ -10,7 +10,7 @@ testB_dir = os.path.join(POLYP_DATASET_DIR, "testB")  # images
 train_dir = os.path.join(cycleGan_dir, "train.py")
 
 command = ([python_installed, train_dir, "--name", "spade_train", "--dataset_mode", "custom", "--label_dir", testA_dir,
-            "--image_dir", testB_dir, "--label_nc", "2"])
+            "--image_dir", testB_dir, "--label_nc", "2", "--no_pairing_check"])
 print(command)
 
 # To train on your own custom dataset python train.py --name [experiment_name] --dataset_mode custom --label_dir [
