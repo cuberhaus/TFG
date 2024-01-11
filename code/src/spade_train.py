@@ -9,7 +9,7 @@ testB_dir = os.path.join(POLYP_DATASET_DIR, "testB")  # images
 
 train_dir = os.path.join(cycleGan_dir, "train.py")
 
-command = (["python", train_dir, "--name", "spade_train", "--dataset_mode", "custom", "--label_dir", testA_dir,
+command = ([python_installed, train_dir, "--name", "spade_train", "--dataset_mode", "custom", "--label_dir", testA_dir,
             "--image_dir", testB_dir, "--label_nc", "2"])
 print(command)
 
