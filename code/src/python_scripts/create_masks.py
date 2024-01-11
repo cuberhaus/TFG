@@ -13,7 +13,7 @@ def create_mask_from_bounding_boxes(image_shape, bounding_boxes):
     mask = np.zeros(image_shape[:2], dtype=np.uint8)  # image_shape is in (H, W, C) format
     for bbox in bounding_boxes:
         x1, y1, x2, y2 = bbox
-        mask[y1:y2, x1:x2] = 255
+        mask[y1:y2, x1:x2] = 1
     return mask
 
 
