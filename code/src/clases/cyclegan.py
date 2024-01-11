@@ -19,3 +19,19 @@ def prepareCycleGAN():
     print(POLYP_DATASET_DIR)
     print(python_installed)
     return POLYP_DATASET_DIR, python_installed, cycleGan_dir
+
+def prepareSPADE():
+    clases_dir = os.path.dirname(__file__)
+    src_dir = os.path.join(clases_dir, "../")
+    cycleGan_dir = os.path.join(src_dir, "../tmp/SPADE")
+
+    if not os.path.exists(cycleGan_dir):
+        subprocess.run(['git', 'clone', 'https://github.com/NVlabs/SPADE.git', cycleGan_dir])
+        requirements_dir = os.path.join(cycleGan_dir, 'requirements.txt')
+        subprocess.run(['pip', 'install', '-r', requirements_dir])
+    os.chdir(cycleGan_dir)
+    POLYP_DATASET_DIR = os.path.join(src_dir, "../data/PolypDataset")
+    python_installed = python_version()
+    print(POLYP_DATASET_DIR)
+    print(python_installed)
+    return POLYP_DATASET_DIR, python_installed, cycleGan_dir
