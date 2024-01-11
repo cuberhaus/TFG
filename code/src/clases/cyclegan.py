@@ -41,7 +41,7 @@ def prepareSPADE():
 
     # cp -rf Synchronized-BatchNorm-PyTorch/sync_batchnorm .
     # cd ../../
-    POLYP_DATASET_DIR = os.path.join(src_dir, "../data/PolypDataset")
+    POLYP_DATASET_DIR = os.path.join(src_dir, "../data/PolypDatasetSPADE")
     python_installed = python_version()
     print(POLYP_DATASET_DIR)
     print(python_installed)

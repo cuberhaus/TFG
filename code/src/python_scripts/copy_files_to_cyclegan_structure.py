@@ -47,7 +47,8 @@ def copy_files_to_cyclegan_structure(root_dir, target_dir, mode='train'):
                 continue
 
             for mask_file in mask_files:
-                new_mask_filename = f"{video_number.name}_{mask_file.name}"
+                new_mask_name = mask_file.name.replace('_mask', '')
+                new_mask_filename = f"{video_number.name}_{new_mask_name}"
                 shutil.copy(mask_file, trainA_dir / new_mask_filename)
 
             image_files = list(image_subdir.glob('*.jpg'))
@@ -62,9 +63,9 @@ def copy_files_to_cyclegan_structure(root_dir, target_dir, mode='train'):
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-root_dir = os.path.join(SCRIPT_DIR, '../../data/TrainValid/TrainValid/')
-target_dir = os.path.join(SCRIPT_DIR, '../../data/PolypDataset/')
-copy_files_to_cyclegan_structure(root_dir, target_dir, mode='train')
+# root_dir = os.path.join(SCRIPT_DIR, '../../data/TrainValid/TrainValid/')
+# target_dir = os.path.join(SCRIPT_DIR, '../../data/PolypDatasetSPADE/')
+# copy_files_to_cyclegan_structure(root_dir, target_dir, mode='train')
 
 root_dir = os.path.join(SCRIPT_DIR, '../../data/Test/Test/')
 target_dir = os.path.join(SCRIPT_DIR, '../../data/PolypDataset/')
