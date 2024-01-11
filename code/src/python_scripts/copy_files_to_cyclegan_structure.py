@@ -63,10 +63,10 @@ def copy_files_to_cyclegan_structure(root_dir, target_dir, mode='train'):
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# root_dir = os.path.join(SCRIPT_DIR, '../../data/TrainValid/TrainValid/')
-# target_dir = os.path.join(SCRIPT_DIR, '../../data/PolypDatasetSPADE/')
-# copy_files_to_cyclegan_structure(root_dir, target_dir, mode='train')
+root_dir = os.path.join(SCRIPT_DIR, '../../data/TrainValid/TrainValid/')
+target_dir = os.path.join(SCRIPT_DIR, '../../data/PolypDatasetSPADE/')
+copy_files_to_cyclegan_structure(root_dir, target_dir, mode='train')
 
-# root_dir = os.path.join(SCRIPT_DIR, '../../data/Test/Test/')
-# target_dir = os.path.join(SCRIPT_DIR, '../../data/PolypDatasetSPADE/')
-# copy_files_to_cyclegan_structure(root_dir, target_dir, mode='test')
+root_dir = os.path.join(SCRIPT_DIR, '../../data/Test/Test/')
+target_dir = os.path.join(SCRIPT_DIR, '../../data/PolypDatasetSPADE/')
+copy_files_to_cyclegan_structure(root_dir, target_dir, mode='test')
