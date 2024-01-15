@@ -13,7 +13,7 @@ En este caso se ha utilizado el conjunto de datos LDPolypVideo que consiste en v
 La detección de objetos en concreto de pólipos ya se ha hecho con anterioridad, pero en este trabajo se ha buscado mejorar la precisión con la que se detectan los pólipos, evitando falsos positivos y falsos negativos. También se han investigado diferentes posibles soluciones al problema de la generación de imagen.
 
 # Abstract
-This project aim is to investigate and develop 
+This project aim is to investigate and develop machinea learning models for image-to-image translation. The main goal is to improve the training of machine learning models in the task of polyp detection in colonoscopies. The main challenge in this kind of medical problems tends to be limitations on the scarcity, diversity and quality of the data. The objective is to
 
 # Guide
 
