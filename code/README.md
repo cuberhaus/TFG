@@ -16,6 +16,12 @@ La detección de objetos en concreto de pólipos ya se ha hecho con anterioridad
 This project aim is to investigate and develop machine learning models for image-to-image translation. The main goal is to improve the training of machine learning models in the task of polyp detection in colonoscopies. The main challenge in this kind of medical problem tends to be limitations on the scarcity, diversity and quality of the data. The objective is to take advantage of the capabilities of generative models to generate synthetic data to improve the qualities of the existing dataset. 
 In this case the dataset LDPolypVideo was used. It's made up of colonoscopy's videos, and it also contains masks (bounding boxes) which will be used to train the models. The detection of objects in particular of polyps is nothing new, but in this work we aim to improve the precision and avoid false positives and false negatives. We have also researched possible solutions to the problem of generative AI in images.
 
+### Palabras clave
+Aprendizaje automático, Visión por computador, Modelos generativos, traducción de imagen a imagen
+
+### Keywords
+Machine learning, Computer vision, Modelos generativos, traducción de imagen a imagen
+
 # Guide
 
 A continuación encontramos una guía con los comandos que se han usado con más frecuencia durante la elaboración del proyecto.
