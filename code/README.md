@@ -3,8 +3,8 @@ En la carpeta src encontramos:
 - **clases:** Contiene el código principal del proyecto a partir de este se hacen llamadas a estas funciones para hacer experimentos generalmente desde los scripts localizados en src/
 - **csv**: Contiene los scripts para formatear los resultados para añadirlos a la memoria.
 - **j_notebooks**: Contiene notebooks interactivos que sirven para ver visualmente los resultados de forma rapida y no tener que re-ejecutar código, especialmente útil para el análisis de datos.
-- **python_scripts**: Contiene scripts de python que generalmente solo se ejecutan
-- **shell_scripts**:
+- **python_scripts**: Contiene scripts de python que generalmente solo se ejecutan una vez o se ejecutan raramente.
+- **shell_scripts**: Encontramos scripts para automatizar procesos o para facilitar tareas.
 
 # Guide
 
