@@ -6,6 +6,15 @@ En la carpeta src encontramos:
 - **python_scripts**: Contiene scripts de python que generalmente solo se ejecutan una vez o se ejecutan raramente.
 - **shell_scripts**: Encontramos scripts para automatizar procesos o para facilitar tareas.
 
+# Resumen
+Este proyecto tiene como objetivo investigar y desarrollar modelos de aprendizaje profundo generativos para la traducción de imagen a imagen. En concreto el objetivo es mejorar el entrenamiento de modelos de aprendizaje profundo para la detección de pólipos en colonoscopias. El desafío en el entrenamiento de este tipo de problemas médicos suele ser que los conjuntos de datos existentes tienen limitaciones como la escasez, diversidad o calidad de los datos. 
+El objetivo es aprovechar las capacidades de los modelos generativos, para generar datos sintéticos para complementar los conjuntos de datos existentes para abordar sus limitaciones.
+En este caso se ha utilizado el conjunto de datos LDPolypVideo que consiste en videos de colonoscopias y contiene máscaras que serán utilizadas para entrenar modelos.
+La detección de objetos en concreto de pólipos ya se ha hecho con anterioridad, pero en este trabajo se ha buscado mejorar la precisión con la que se detectan los pólipos, evitando falsos positivos y falsos negativos. También se han investigado diferentes posibles soluciones al problema de la generación de imagen.
+
+# Abstract
+This project aim is to investigate and develop 
+
 # Guide
 
 A continuación encontramos una guía con los comandos que se han usado con más frecuencia durante la elaboración del proyecto.
