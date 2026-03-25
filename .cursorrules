@@ -1,0 +1,25 @@
+You are working on the `TFG` repository, which contains a deep learning polyp detection project.
+
+# Architecture
+- **Machine Learning**: PyTorch, torchvision.
+- **Backend API**: FastAPI (Python) located in `backend/`.
+- **Frontend SPA**: React (Vite) + Tailwind CSS located in `frontend/`.
+- **Legacy UI**: Streamlit dashboard located at `code/src/app.py`.
+
+# Development Rules & Guidelines
+1. **Preserve Legacy Code**:
+   - **DO NOT DELETE OR MODIFY** the original Streamlit application located at `code/src/app.py`. It serves as a historical reference and legacy test environment.
+
+2. **Backend (FastAPI)**:
+   - Ensure the API wraps the existing PyTorch inference code seamlessly (`clases.model_utils`, etc.).
+   - Follow standard FastAPI conventions (Pydantic models, dependency injection, async where applicable, though ML inference is typically synchronous or run in thread pools).
+   - The backend must handle file uploads (images) and return structured JSON data (bounding boxes, scores) or the annotated image.
+
+3. **Frontend (React)**:
+   - Use React functional components and Hooks.
+   - Style with Tailwind CSS.
+   - Use Axios or Fetch for API calls to the FastAPI backend.
+   - The UI should be professional, clean, and provide a good user experience for exploring model metrics and running inference.
+
+4. **Python Environments**:
+   - The `backend/` and legacy `code/` folders use Python. Use `requirements.txt` or similar to manage dependencies.
