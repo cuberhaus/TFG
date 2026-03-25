@@ -106,6 +106,39 @@ def run_training_script(req: TrainingRequest):
         training_state["is_training"] = False
         training_state["current_model"] = None
 
+# --- Evaluation State ---
+evaluation_state = {
+    "is_evaluating": False,
+    "message": "Idle",
+}
+
+def run_evaluation_script():
+    global evaluation_state
+    evaluation_state["is_evaluating"] = True
+    evaluation_state["message"] = "Evaluating all models in the saved models directory..."
+    
+    script_path = os.path.join(SRC_DIR, "evaluate_models.py")
+    
+    try:
+        process = subprocess.Popen(
+            [sys.executable, script_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+        
+        process.wait()
+        
+        if process.returncode == 0:
+            evaluation_state["message"] = "Evaluation completed successfully. The Performance Explorer tab should now reflect the updated data."
+        else:
+            evaluation_state["message"] = f"Evaluation failed with return code {process.returncode}."
+            
+    except Exception as e:
+        evaluation_state["message"] = f"Error during evaluation: {str(e)}"
+    finally:
+        evaluation_state["is_evaluating"] = False
+
 @app.get("/api/health")
 def health_check():
     return {"status": "ok"}
@@ -137,6 +170,17 @@ def get_loss_data(req: LossDataRequest):
                 "values": values
             })
     return {"data": data}
+
+@app.get("/api/evaluate/status")
+def get_evaluation_status():
+    return evaluation_state
+
+@app.post("/api/evaluate")
+def start_evaluation(background_tasks: BackgroundTasks):
+    if evaluation_state["is_evaluating"]:
+        raise HTTPException(status_code=400, detail="Model evaluation is already in progress.")
+    background_tasks.add_task(run_evaluation_script)
+    return {"message": "Evaluation started."}
 
 @app.get("/api/models", response_model=ModelsResponse)
 def get_models():
