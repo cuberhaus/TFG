@@ -56,7 +56,7 @@ function App() {
             }`}
           >
             <Play className="w-4 h-4" />
-            Model Training
+            Detection Training
           </button>
           <button
             onClick={() => setActiveTab('losses')}

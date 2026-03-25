@@ -54,9 +54,9 @@ export default function ModelTraining() {
   return (
     <div className="max-w-3xl mx-auto flex flex-col gap-6">
       <div>
-        <h2 className="text-xl font-semibold mb-2">Train Model</h2>
+        <h2 className="text-xl font-semibold mb-2">Train Detection Model</h2>
         <p className="text-gray-400 text-sm">
-          Configure hyperparameters and trigger PyTorch training. 
+          Configure hyperparameters and trigger PyTorch training for object detection models (FasterRCNN, RetinaNet, SSD) to identify polyps. 
           The training runs asynchronously in the backend. Check the backend terminal for epoch/batch loss logs.
         </p>
       </div>
