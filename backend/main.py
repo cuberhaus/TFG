@@ -219,6 +219,66 @@ def start_generation(req: GenRequest, background_tasks: BackgroundTasks):
     background_tasks.add_task(run_generative_script, req)
     return {"message": "Generation task started."}
 
+# --- Hyperparameter Tuning State ---
+hpo_state = {
+    "is_tuning": False,
+    "current_model": None,
+    "message": "Idle",
+}
+
+class HPOResquest(BaseModel):
+    model_name: str
+    num_trials: int
+
+def run_hpo_script(req: HPOResquest):
+    global hpo_state
+    hpo_state["is_tuning"] = True
+    hpo_state["current_model"] = req.model_name
+    hpo_state["message"] = f"Starting Hyperparameter Tuning for {req.model_name} with {req.num_trials} trials...\n"
+    
+    script_path = os.path.join(SRC_DIR, "optuna_train_model.py")
+    
+    try:
+        process = subprocess.Popen(
+            [sys.executable, script_path, req.model_name, "--n-trials", str(req.num_trials)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+        
+        import collections
+        output_lines = collections.deque(maxlen=20)
+        for line in process.stdout:
+            output_lines.append(line.strip())
+            # Real-time streaming of the last 20 lines
+            hpo_state["message"] = '\n'.join(output_lines)
+            
+        process.wait()
+        
+        if process.returncode == 0:
+            last_lines = '\n'.join(output_lines)
+            hpo_state["message"] = f"Tuning completed successfully for {req.model_name}.\nCheck best_hyperparameters.csv in the codebase.\n\nFinal Output:\n{last_lines}"
+        else:
+            last_lines = '\n'.join(output_lines)
+            hpo_state["message"] = f"Tuning failed (code {process.returncode}):\n{last_lines}"
+            
+    except Exception as e:
+        hpo_state["message"] = f"Error during tuning: {str(e)}"
+    finally:
+        hpo_state["is_tuning"] = False
+        hpo_state["current_model"] = None
+
+@app.get("/api/hpo/status")
+def get_hpo_status():
+    return hpo_state
+
+@app.post("/api/hpo/start")
+def start_hpo(req: HPOResquest, background_tasks: BackgroundTasks):
+    if hpo_state["is_tuning"]:
+        raise HTTPException(status_code=400, detail=f"A tuning job is already running for {hpo_state['current_model']}.")
+    background_tasks.add_task(run_hpo_script, req)
+    return {"message": "Hyperparameter tuning started."}
+
 @app.get("/api/health")
 def health_check():
     return {"status": "ok"}

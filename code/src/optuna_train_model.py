@@ -58,13 +58,14 @@ parser = argparse.ArgumentParser(description='Run Optuna optimization.',
 parser.add_argument('model_name', type=str, help='Name of the model to train.')
 parser.add_argument('--metric', type=str, default='f1', choices=['f1', 'mean_iou'], help='Metric to optimize.')
 parser.add_argument('--debug', action='store_true', help='Run in debug mode with a smaller subset of data.')
+parser.add_argument('--n-trials', type=int, default=5, help='Number of trials for Optuna optimization.')
 
 args = parser.parse_args()
 
 study = optuna.create_study(direction='maximize')
 study.optimize(
     lambda trial: objective(trial, metric_to_optimize=args.metric, model_name=args.model_name, debug=args.debug),
-    n_trials=5)  # TODO: more trials when we have more time
+    n_trials=args.n_trials)
 
 best_params = study.best_params
 print("Best hyperparameters: ", best_params)

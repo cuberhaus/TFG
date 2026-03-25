@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { BarChart, Search, Activity, Cpu, Play, TrendingUp, ClipboardList, Sparkles } from 'lucide-react';
+import { BarChart, Search, Activity, Cpu, Play, TrendingUp, ClipboardList, Sparkles, Sliders } from 'lucide-react';
 import PerformanceExplorer from './components/PerformanceExplorer';
 import InferenceUI from './components/InferenceUI';
 import ModelTraining from './components/ModelTraining';
 import TrainingLossViewer from './components/TrainingLossViewer';
 import ModelEvaluation from './components/ModelEvaluation';
 import GenerativeAugmentation from './components/GenerativeAugmentation';
+import HyperparameterTuning from './components/HyperparameterTuning';
 
 function App() {
   const [activeTab, setActiveTab] = useState('performance');
@@ -91,6 +92,17 @@ function App() {
             <Sparkles className="w-4 h-4" />
             Data Augmentation
           </button>
+          <button
+            onClick={() => setActiveTab('hpo')}
+            className={`flex items-center gap-2 py-3 px-6 font-medium transition-colors ${
+              activeTab === 'hpo'
+                ? 'border-b-2 border-emerald-500 text-emerald-400'
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            <Sliders className="w-4 h-4" />
+            Hyperparameter Tuning
+          </button>
         </div>
 
         <div className="bg-gray-800 rounded-lg shadow-md border border-gray-700 p-6 min-h-[500px]">
@@ -100,6 +112,7 @@ function App() {
           {activeTab === 'losses' && <TrainingLossViewer />}
           {activeTab === 'evaluation' && <ModelEvaluation />}
           {activeTab === 'generative' && <GenerativeAugmentation />}
+          {activeTab === 'hpo' && <HyperparameterTuning />}
         </div>
       </main>
     </div>
