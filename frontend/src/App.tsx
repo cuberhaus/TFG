@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { BarChart, Search, Activity, Cpu, Play, TrendingUp, ClipboardList } from 'lucide-react';
+import { BarChart, Search, Activity, Cpu, Play, TrendingUp, ClipboardList, Sparkles } from 'lucide-react';
 import PerformanceExplorer from './components/PerformanceExplorer';
 import InferenceUI from './components/InferenceUI';
 import ModelTraining from './components/ModelTraining';
 import TrainingLossViewer from './components/TrainingLossViewer';
 import ModelEvaluation from './components/ModelEvaluation';
+import GenerativeAugmentation from './components/GenerativeAugmentation';
 
 function App() {
   const [activeTab, setActiveTab] = useState('performance');
@@ -79,6 +80,17 @@ function App() {
             <ClipboardList className="w-4 h-4" />
             Model Evaluation
           </button>
+          <button
+            onClick={() => setActiveTab('generative')}
+            className={`flex items-center gap-2 py-3 px-6 font-medium transition-colors ${
+              activeTab === 'generative'
+                ? 'border-b-2 border-purple-500 text-purple-400'
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            <Sparkles className="w-4 h-4" />
+            Data Augmentation
+          </button>
         </div>
 
         <div className="bg-gray-800 rounded-lg shadow-md border border-gray-700 p-6 min-h-[500px]">
@@ -87,6 +99,7 @@ function App() {
           {activeTab === 'training' && <ModelTraining />}
           {activeTab === 'losses' && <TrainingLossViewer />}
           {activeTab === 'evaluation' && <ModelEvaluation />}
+          {activeTab === 'generative' && <GenerativeAugmentation />}
         </div>
       </main>
     </div>

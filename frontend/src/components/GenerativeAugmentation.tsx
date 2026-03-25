@@ -1,0 +1,182 @@
+import { useState, useEffect } from 'react';
+import axios from 'axios';
+import { Play, Sparkles, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
+
+interface GenStatus {
+  is_running: boolean;
+  current_task: string | null;
+  message: string;
+}
+
+export default function GenerativeAugmentation() {
+  const [taskType, setTaskType] = useState('train_cyclegan');
+  const [status, setStatus] = useState<GenStatus>({
+    is_running: false,
+    current_task: null,
+    message: 'Idle'
+  });
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchStatus = async () => {
+    try {
+      const response = await axios.get('http://localhost:8082/api/generate/status');
+      setStatus(response.data);
+    } catch (err) {
+      console.error("Failed to fetch generation status:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleStartGeneration = async () => {
+    setError(null);
+    try {
+      await axios.post('http://localhost:8082/api/generate', {
+        task_type: taskType
+      });
+      // Immediately fetch status to update UI
+      fetchStatus();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.detail || "An error occurred while starting the generative task.");
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto flex flex-col gap-6 pt-2">
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
+            <Sparkles className="w-6 h-6 text-purple-400" />
+            Generative Data Augmentation
+          </h2>
+          <p className="text-gray-400">
+            Create synthetic training data using generative AI models to improve polyp detection performance.
+          </p>
+        </div>
+      </div>
+
+      {status.is_running ? (
+        <div className="bg-purple-900/20 border border-purple-800 rounded-xl p-10 flex flex-col items-center justify-center text-center mt-4">
+          <div className="relative mb-6">
+            <div className="w-20 h-20 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <RefreshCw className="w-8 h-8 text-purple-400 animate-pulse" />
+            </div>
+          </div>
+          
+          <h3 className="text-2xl font-medium text-purple-300 mb-3">
+            Running Task: <span className="font-bold text-white uppercase tracking-wider">{status.current_task?.replace('_', ' ')}</span>
+          </h3>
+          
+          <div className="bg-gray-900/80 border border-gray-700 p-4 rounded-lg w-full max-w-2xl mt-2 text-left">
+            <p className="text-sm font-mono text-gray-300 overflow-x-auto whitespace-pre-wrap">
+              {status.message}
+            </p>
+          </div>
+          
+          <p className="text-sm text-yellow-400 mt-6 bg-yellow-900/20 px-4 py-2 rounded-full border border-yellow-700/30">
+            This process runs in the background. You can navigate away from this tab.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+          
+          <div className="md:col-span-2 space-y-6">
+            <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden shadow-lg">
+              <div className="p-6 border-b border-gray-700 bg-gray-800/50">
+                <h3 className="text-lg font-medium text-gray-200">Select Task</h3>
+              </div>
+              
+              <div className="p-6 space-y-4">
+                <label className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${taskType === 'train_cyclegan' ? 'border-purple-500 bg-purple-900/10' : 'border-gray-700 bg-gray-800 hover:bg-gray-750'}`}>
+                  <input type="radio" name="task" value="train_cyclegan" className="sr-only" checked={taskType === 'train_cyclegan'} onChange={(e) => setTaskType(e.target.value)} />
+                  <span className="flex flex-1">
+                    <span className="flex flex-col">
+                      <span className="block text-sm font-medium text-gray-100">Train CycleGAN</span>
+                      <span className="mt-1 flex items-center text-sm text-gray-400">Train an image-to-image translation model to generate realistic polyp images from masks.</span>
+                    </span>
+                  </span>
+                  {taskType === 'train_cyclegan' && <CheckCircle className="h-5 w-5 text-purple-500" />}
+                </label>
+
+                <label className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${taskType === 'test_cyclegan' ? 'border-purple-500 bg-purple-900/10' : 'border-gray-700 bg-gray-800 hover:bg-gray-750'}`}>
+                  <input type="radio" name="task" value="test_cyclegan" className="sr-only" checked={taskType === 'test_cyclegan'} onChange={(e) => setTaskType(e.target.value)} />
+                  <span className="flex flex-1">
+                    <span className="flex flex-col">
+                      <span className="block text-sm font-medium text-gray-100">Test CycleGAN (Generate Images)</span>
+                      <span className="mt-1 flex items-center text-sm text-gray-400">Run inference using a trained CycleGAN model to generate the augmented dataset.</span>
+                    </span>
+                  </span>
+                  {taskType === 'test_cyclegan' && <CheckCircle className="h-5 w-5 text-purple-500" />}
+                </label>
+
+                <label className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${taskType === 'train_spade' ? 'border-purple-500 bg-purple-900/10' : 'border-gray-700 bg-gray-800 hover:bg-gray-750'}`}>
+                  <input type="radio" name="task" value="train_spade" className="sr-only" checked={taskType === 'train_spade'} onChange={(e) => setTaskType(e.target.value)} />
+                  <span className="flex flex-1">
+                    <span className="flex flex-col">
+                      <span className="block text-sm font-medium text-gray-100">Train SPADE</span>
+                      <span className="mt-1 flex items-center text-sm text-gray-400">Train a Spatially-Adaptive Normalization (SPADE) model for high-fidelity image synthesis from semantic layouts.</span>
+                    </span>
+                  </span>
+                  {taskType === 'train_spade' && <CheckCircle className="h-5 w-5 text-purple-500" />}
+                </label>
+              </div>
+            </div>
+            
+            <button
+              onClick={handleStartGeneration}
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white px-8 py-4 rounded-xl font-medium transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-purple-900/30 text-lg"
+            >
+              <Play className="w-5 h-5 fill-current" />
+              Start Selected Job
+            </button>
+          </div>
+
+          <div className="md:col-span-1 space-y-4">
+            <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 shadow-lg">
+              <h4 className="font-medium text-gray-200 mb-3 pb-2 border-b border-gray-700">Status Output</h4>
+              
+              {error ? (
+                <div className="flex items-start gap-2 text-sm p-3 rounded bg-red-900/30 border border-red-800 text-red-300">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                  <span className="font-mono overflow-x-auto whitespace-pre-wrap">{error}</span>
+                </div>
+              ) : status.message !== 'Idle' ? (
+                <div className={`flex items-start gap-2 text-sm p-3 rounded border w-full whitespace-pre-wrap ${
+                  status.message.toLowerCase().includes('failed') || status.message.toLowerCase().includes('error')
+                    ? 'bg-red-900/30 border-red-800 text-red-300'
+                    : 'bg-green-900/30 border-green-800 text-green-300'
+                }`}>
+                  {status.message.toLowerCase().includes('failed') || status.message.toLowerCase().includes('error') ? (
+                    <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                  ) : (
+                    <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                  )}
+                  <span className="font-mono overflow-x-auto">{status.message}</span>
+                </div>
+              ) : (
+                <div className="text-gray-500 text-sm text-center py-6 italic">
+                  No recent activity.
+                </div>
+              )}
+            </div>
+            
+            <div className="bg-blue-900/20 border border-blue-800/50 rounded-xl p-5 text-sm text-blue-200 shadow-lg">
+               <h4 className="font-medium text-blue-300 mb-2 flex items-center gap-1">
+                 <Sparkles className="w-4 h-4" /> Why Generative Data?
+               </h4>
+               <p>
+                 Medical datasets for polyps are often small. By training models like CycleGAN or SPADE, we can synthetically generate thousands of new, realistic polyp images from simple shape masks, dramatically improving the robustness of our detection models.
+               </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

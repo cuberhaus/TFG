@@ -123,3 +123,8 @@ pnpm-debug.log*
 .cursor/
 .vscode/
 
+# Output directories
+out/
+!out/losses/
+!out/saved_models/
+

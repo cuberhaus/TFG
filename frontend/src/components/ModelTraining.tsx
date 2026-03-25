@@ -160,9 +160,17 @@ export default function ModelTraining() {
             )}
 
             {!error && status.message !== 'Idle' && (
-              <div className="flex items-center gap-2 p-3 bg-green-900/30 border border-green-800 rounded text-green-300 text-sm">
-                <CheckCircle className="w-5 h-5 flex-shrink-0 text-green-500" />
-                {status.message}
+              <div className={`flex items-start gap-2 p-3 border rounded text-sm whitespace-pre-wrap ${
+                status.message.toLowerCase().includes('failed') || status.message.toLowerCase().includes('error')
+                  ? 'bg-red-900/30 border-red-800 text-red-300'
+                  : 'bg-green-900/30 border-green-800 text-green-300'
+              }`}>
+                {status.message.toLowerCase().includes('failed') || status.message.toLowerCase().includes('error') ? (
+                  <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-500 mt-0.5" />
+                ) : (
+                  <CheckCircle className="w-5 h-5 flex-shrink-0 text-green-500 mt-0.5" />
+                )}
+                <div className="font-mono overflow-x-auto">{status.message}</div>
               </div>
             )}
           </div>

@@ -95,13 +95,17 @@ export default function ModelEvaluation() {
             </button>
             
             {status.message !== 'Idle' && (
-              <div className="flex items-start gap-2 text-sm text-gray-300 bg-gray-900/50 p-4 rounded-lg border border-gray-700 w-full">
-                {status.message.includes('successfully') ? (
-                  <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+              <div className={`flex items-start gap-2 text-sm p-4 rounded-lg border w-full whitespace-pre-wrap ${
+                status.message.toLowerCase().includes('failed') || status.message.toLowerCase().includes('error')
+                  ? 'bg-red-900/30 border-red-800 text-red-300'
+                  : 'bg-green-900/30 border-green-800 text-green-300'
+              }`}>
+                {status.message.toLowerCase().includes('failed') || status.message.toLowerCase().includes('error') ? (
+                  <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                 ) : (
-                  <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
                 )}
-                <span>{status.message}</span>
+                <span className="font-mono overflow-x-auto">{status.message}</span>
               </div>
             )}
           </div>

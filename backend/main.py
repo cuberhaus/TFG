@@ -92,13 +92,18 @@ def run_training_script(req: TrainingRequest):
             text=True
         )
         
-        # Optionally, one could read stdout here to capture logs
+        import collections
+        output_lines = collections.deque(maxlen=15)
+        for line in process.stdout:
+            output_lines.append(line.strip())
+            
         process.wait()
         
         if process.returncode == 0:
             training_state["message"] = f"Training completed successfully for {req.model_name}."
         else:
-            training_state["message"] = f"Training failed with return code {process.returncode}."
+            last_lines = '\n'.join(output_lines)
+            training_state["message"] = f"Training failed (code {process.returncode}):\n{last_lines}"
             
     except Exception as e:
         training_state["message"] = f"Error during training: {str(e)}"
@@ -127,17 +132,92 @@ def run_evaluation_script():
             text=True
         )
         
+        import collections
+        output_lines = collections.deque(maxlen=15)
+        for line in process.stdout:
+            output_lines.append(line.strip())
+            
         process.wait()
         
         if process.returncode == 0:
             evaluation_state["message"] = "Evaluation completed successfully. The Performance Explorer tab should now reflect the updated data."
         else:
-            evaluation_state["message"] = f"Evaluation failed with return code {process.returncode}."
+            last_lines = '\n'.join(output_lines)
+            evaluation_state["message"] = f"Evaluation failed (code {process.returncode}):\n{last_lines}"
             
     except Exception as e:
         evaluation_state["message"] = f"Error during evaluation: {str(e)}"
     finally:
         evaluation_state["is_evaluating"] = False
+
+# --- Generative Augmentation State ---
+gen_state = {
+    "is_running": False,
+    "current_task": None,
+    "message": "Idle",
+}
+
+class GenRequest(BaseModel):
+    task_type: str
+
+def run_generative_script(req: GenRequest):
+    global gen_state
+    gen_state["is_running"] = True
+    gen_state["current_task"] = req.task_type
+    gen_state["message"] = f"Starting {req.task_type}..."
+    
+    script_name = ""
+    if req.task_type == "train_cyclegan":
+        script_name = "cyclegan_train.py"
+    elif req.task_type == "test_cyclegan":
+        script_name = "cyclegan_test.py"
+    elif req.task_type == "train_spade":
+        script_name = "spade_train.py"
+    else:
+        gen_state["message"] = f"Unknown task type: {req.task_type}"
+        gen_state["is_running"] = False
+        gen_state["current_task"] = None
+        return
+        
+    script_path = os.path.join(SRC_DIR, script_name)
+    
+    try:
+        process = subprocess.Popen(
+            [sys.executable, script_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+        
+        import collections
+        output_lines = collections.deque(maxlen=15)
+        for line in process.stdout:
+            output_lines.append(line.strip())
+            
+        process.wait()
+        
+        if process.returncode == 0:
+            gen_state["message"] = f"{req.task_type} completed successfully."
+        else:
+            last_lines = '\n'.join(output_lines)
+            gen_state["message"] = f"{req.task_type} failed (code {process.returncode}):\n{last_lines}"
+            
+    except Exception as e:
+        gen_state["message"] = f"Error during {req.task_type}: {str(e)}"
+    finally:
+        gen_state["is_running"] = False
+        gen_state["current_task"] = None
+
+@app.get("/api/generate/status")
+def get_generate_status():
+    return gen_state
+
+@app.post("/api/generate")
+def start_generation(req: GenRequest, background_tasks: BackgroundTasks):
+    if gen_state["is_running"]:
+        raise HTTPException(status_code=400, detail=f"Task {gen_state['current_task']} is already running.")
+    background_tasks.add_task(run_generative_script, req)
+    return {"message": "Generation task started."}
 
 @app.get("/api/health")
 def health_check():
