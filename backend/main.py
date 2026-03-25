@@ -237,12 +237,35 @@ class LossDataRequest(BaseModel):
 @app.post("/api/losses/data")
 def get_loss_data(req: LossDataRequest):
     data = []
+    MAX_POINTS = 500  # Downsample to a maximum number of points to prevent frontend lag
+    
     for filename in req.files:
         filepath = os.path.join(LOSSES_DIR, filename)
         if os.path.exists(filepath):
             with open(filepath, "r") as f:
                 values = [float(line.strip()) for line in f if line.strip()]
             
+            # Downsample if there are too many points (crucial for batch_losses.txt)
+            if len(values) > MAX_POINTS:
+                step = len(values) / MAX_POINTS
+                # Take evenly spaced samples, but ensure we keep the first and last points
+                sampled_indices = [int(i * step) for i in range(MAX_POINTS)]
+                if sampled_indices[-1] != len(values) - 1:
+                    sampled_indices[-1] = len(values) - 1
+                
+                # To make the graph smoother, we can average the points around the sample instead of just picking one
+                # A simple moving average downsample
+                downsampled_values = []
+                window_size = max(1, int(step))
+                for i in sampled_indices:
+                    start_idx = max(0, i - window_size // 2)
+                    end_idx = min(len(values), i + window_size // 2 + 1)
+                    window = values[start_idx:end_idx]
+                    avg_val = sum(window) / len(window) if window else values[i]
+                    downsampled_values.append(avg_val)
+                    
+                values = downsampled_values
+
             short_name = filename.replace("_epoch_losses.txt", "").replace("_batch_losses.txt", "")
             data.append({
                 "filename": filename,
