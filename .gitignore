@@ -1,7 +1,7 @@
 code/src/checkpoints/
 code/tmp/SPADE/
 saved_models/
-out/
+
 code/tmp/pytorch-CycleGAN-and-pix2pix/
 /code/tmp/consolidated_code.py
 
@@ -123,5 +123,3 @@ pnpm-debug.log*
 .cursor/
 .vscode/
 
-# Ensure output models/metrics stay local
-/out/

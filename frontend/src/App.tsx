@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { BarChart, Search, Activity, Cpu, Play } from 'lucide-react';
+import { BarChart, Search, Activity, Cpu, Play, TrendingUp } from 'lucide-react';
 import PerformanceExplorer from './components/PerformanceExplorer';
 import InferenceUI from './components/InferenceUI';
 import ModelTraining from './components/ModelTraining';
+import TrainingLossViewer from './components/TrainingLossViewer';
 
 function App() {
   const [activeTab, setActiveTab] = useState('performance');
@@ -55,12 +56,24 @@ function App() {
             <Play className="w-4 h-4" />
             Model Training
           </button>
+          <button
+            onClick={() => setActiveTab('losses')}
+            className={`flex items-center gap-2 py-3 px-6 font-medium transition-colors ${
+              activeTab === 'losses'
+                ? 'border-b-2 border-blue-500 text-blue-400'
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            <TrendingUp className="w-4 h-4" />
+            Training Losses
+          </button>
         </div>
 
         <div className="bg-gray-800 rounded-lg shadow-md border border-gray-700 p-6 min-h-[500px]">
           {activeTab === 'performance' && <PerformanceExplorer />}
           {activeTab === 'inference' && <InferenceUI />}
           {activeTab === 'training' && <ModelTraining />}
+          {activeTab === 'losses' && <TrainingLossViewer />}
         </div>
       </main>
     </div>

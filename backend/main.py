@@ -35,6 +35,7 @@ app.add_middleware(
 
 SAVED_MODELS_DIR = os.path.join(PROJ_DIR, "out", "saved_models")
 CSV_PATH = os.path.join(SRC_DIR, "csv", "model_performances.csv")
+LOSSES_DIR = os.path.join(PROJ_DIR, "out", "losses")
 
 class ModelInfo(BaseModel):
     filename: str
@@ -108,6 +109,34 @@ def run_training_script(req: TrainingRequest):
 @app.get("/api/health")
 def health_check():
     return {"status": "ok"}
+
+@app.get("/api/losses/files")
+def get_loss_files():
+    if not os.path.isdir(LOSSES_DIR):
+        return {"files": [], "source_path": LOSSES_DIR}
+    
+    files = [f for f in os.listdir(LOSSES_DIR) if f.endswith("_losses.txt")]
+    return {"files": files, "source_path": LOSSES_DIR}
+
+class LossDataRequest(BaseModel):
+    files: List[str]
+
+@app.post("/api/losses/data")
+def get_loss_data(req: LossDataRequest):
+    data = []
+    for filename in req.files:
+        filepath = os.path.join(LOSSES_DIR, filename)
+        if os.path.exists(filepath):
+            with open(filepath, "r") as f:
+                values = [float(line.strip()) for line in f if line.strip()]
+            
+            short_name = filename.replace("_epoch_losses.txt", "").replace("_batch_losses.txt", "")
+            data.append({
+                "filename": filename,
+                "short_name": short_name,
+                "values": values
+            })
+    return {"data": data}
 
 @app.get("/api/models", response_model=ModelsResponse)
 def get_models():
