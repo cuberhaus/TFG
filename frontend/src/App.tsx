@@ -68,9 +68,10 @@ function App() {
       <div className="flex flex-1 overflow-hidden relative">
         {/* Sidebar */}
         <aside 
-          className={`${isSidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full'} flex-shrink-0 transition-all duration-300 ease-in-out bg-gray-800 border-r border-gray-700 flex flex-col shadow-xl z-30 absolute md:relative h-full`}
+          className="flex-shrink-0 transition-all duration-300 ease-in-out bg-gray-800 border-r border-gray-700 flex flex-col shadow-xl z-30 absolute md:relative h-full overflow-hidden"
+          style={{ width: isSidebarOpen ? '16rem' : '0px', transform: isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)' }}
         >
-          <nav className="flex-1 py-4 px-3 space-y-4 overflow-y-auto">
+          <nav className="flex-1 py-4 px-3 space-y-4 overflow-y-auto w-64">
             {navGroups.map((group) => (
               <div key={group.title} className="space-y-1.5">
                 <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
