@@ -1,5 +1,10 @@
 import os
 import sys
+
+# Fix for Intel MKL incompatible with libgomp error inside PyTorch subprocesses
+os.environ["MKL_THREADING_LAYER"] = "GNU"
+os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
+
 import io
 import base64
 import subprocess
@@ -159,6 +164,8 @@ gen_state = {
 
 class GenRequest(BaseModel):
     task_type: str
+    experiment_name: Optional[str] = "mask2polyp"
+    epoch: Optional[str] = "latest"
 
 def run_generative_script(req: GenRequest):
     global gen_state
@@ -167,10 +174,15 @@ def run_generative_script(req: GenRequest):
     gen_state["message"] = f"Starting {req.task_type}..."
     
     script_name = ""
+    cmd_args = []
     if req.task_type == "train_cyclegan":
         script_name = "cyclegan_train.py"
     elif req.task_type == "test_cyclegan":
         script_name = "cyclegan_test.py"
+        if req.experiment_name:
+            cmd_args.extend(["--name", req.experiment_name])
+        if req.epoch:
+            cmd_args.extend(["--epoch", req.epoch])
     elif req.task_type == "train_spade":
         script_name = "spade_train.py"
     else:
@@ -183,23 +195,25 @@ def run_generative_script(req: GenRequest):
     
     try:
         process = subprocess.Popen(
-            [sys.executable, script_path],
+            [sys.executable, script_path] + cmd_args,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True
         )
         
         import collections
-        output_lines = collections.deque(maxlen=15)
+        output_lines = collections.deque(maxlen=20)
         for line in process.stdout:
             output_lines.append(line.strip())
+            # Real-time streaming of the output
+            gen_state["message"] = '\n'.join(output_lines)
             
         process.wait()
         
+        last_lines = '\n'.join(output_lines)
         if process.returncode == 0:
-            gen_state["message"] = f"{req.task_type} completed successfully."
+            gen_state["message"] = f"{req.task_type} completed successfully.\n\nFinal Output:\n{last_lines}"
         else:
-            last_lines = '\n'.join(output_lines)
             gen_state["message"] = f"{req.task_type} failed (code {process.returncode}):\n{last_lines}"
             
     except Exception as e:
@@ -207,6 +221,33 @@ def run_generative_script(req: GenRequest):
     finally:
         gen_state["is_running"] = False
         gen_state["current_task"] = None
+
+@app.get("/api/generate/cyclegan-experiments")
+def get_cyclegan_experiments():
+    cyclegan_dir = os.path.join(PROJ_DIR, "code", "tmp", "pytorch-CycleGAN-and-pix2pix", "checkpoints")
+    if not os.path.isdir(cyclegan_dir):
+        return {"experiments": {}}
+    
+    experiments = {}
+    for exp_folder in os.listdir(cyclegan_dir):
+        exp_path = os.path.join(cyclegan_dir, exp_folder)
+        if os.path.isdir(exp_path):
+            epochs = set()
+            for file in os.listdir(exp_path):
+                if file.endswith("_net_G_A.pth") or file.endswith("_net_G.pth"):
+                    # Extract the prefix before '_net_'
+                    epoch_str = file.split("_net_")[0]
+                    epochs.add(epoch_str)
+            # Sort the epochs, putting 'latest' at the top, then sorting the rest numerically
+            epochs_list = list(epochs)
+            epochs_list.sort(key=lambda x: -1 if x == 'latest' else (int(x) if x.isdigit() else 9999))
+            
+            # If a folder has no valid .pth files, we can still list it, but give it an empty list
+            if not epochs_list:
+                 epochs_list = ["latest"] # Fallback
+            experiments[exp_folder] = epochs_list
+            
+    return {"experiments": experiments}
 
 @app.get("/api/generate/status")
 def get_generate_status():

@@ -7,3 +7,5 @@ torchvision
 pillow
 pycocotools
 optuna
+dominate
+wandb

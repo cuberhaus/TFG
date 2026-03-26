@@ -60,10 +60,15 @@ def dataset_paths():
         test_root_dir = os.path.join(PROJ_DIR, 'data/Test/Test')
         print("wsl")
     elif system_name == "Linux":
-        train_root_dir = os.path.join(PROJ_DIR, 'data/TrainValid/TrainValid')
-        test_root_dir = os.path.join(PROJ_DIR, 'data/Test/Test')
-        # train_root_dir = '/home/casacuberta/TFG/TrainValid/TrainValid'
-        # test_root_dir = '/home/casacuberta/TFG/Test/Test'
+        # Modified to handle absolute paths correctly for this specific machine
+        train_root_dir = os.path.join(PROJ_DIR, 'data', 'TrainValid', 'TrainValid')
+        test_root_dir = os.path.join(PROJ_DIR, 'data', 'Test', 'Test')
+        
+        # Fallback to local 'data' folder inside 'code' directory if the external one doesn't exist
+        if not os.path.exists(train_root_dir):
+            train_root_dir = os.path.join(SRC_DIR, '..', 'data', 'TrainValid')
+            test_root_dir = os.path.join(SRC_DIR, '..', 'data', 'Test')
+            
         print("Linux")
     elif system_name == "Darwin":
         train_root_dir = '/Volumes/SSD_6Gbps/dataset1/TrainValid/TrainValid'

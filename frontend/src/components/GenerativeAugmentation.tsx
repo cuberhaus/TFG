@@ -10,6 +10,11 @@ interface GenStatus {
 
 export default function GenerativeAugmentation() {
   const [taskType, setTaskType] = useState('train_cyclegan');
+  const [experimentName, setExperimentName] = useState('');
+  // Mapping of Experiment Name -> Array of Available Epoch Strings
+  const [availableExperiments, setAvailableExperiments] = useState<Record<string, string[]>>({});
+  const [epoch, setEpoch] = useState('latest');
+  
   const [status, setStatus] = useState<GenStatus>({
     is_running: false,
     current_task: null,
@@ -26,17 +31,46 @@ export default function GenerativeAugmentation() {
     }
   };
 
+  const fetchExperiments = async () => {
+    try {
+      const response = await axios.get('http://localhost:8082/api/generate/cyclegan-experiments');
+      const exps = response.data.experiments;
+      setAvailableExperiments(exps);
+      const expKeys = Object.keys(exps);
+      if (expKeys.length > 0 && !experimentName) {
+        setExperimentName(expKeys[0]);
+        // Set epoch to the first available for that experiment (usually 'latest' due to backend sorting)
+        if (exps[expKeys[0]] && exps[expKeys[0]].length > 0) {
+            setEpoch(exps[expKeys[0]][0]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch experiments:", err);
+    }
+  };
+
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 3000);
+    fetchExperiments();
+    // Poll more frequently to get real-time terminal feel
+    const interval = setInterval(fetchStatus, 1500);
     return () => clearInterval(interval);
   }, []);
+
+  // When experiment name changes, reset the epoch to the first available one for that new experiment
+  useEffect(() => {
+     if (experimentName && availableExperiments[experimentName] && availableExperiments[experimentName].length > 0) {
+         setEpoch(availableExperiments[experimentName][0]);
+     }
+  }, [experimentName, availableExperiments]);
 
   const handleStartGeneration = async () => {
     setError(null);
     try {
       await axios.post('http://localhost:8082/api/generate', {
-        task_type: taskType
+        task_type: taskType,
+        experiment_name: taskType === 'test_cyclegan' ? experimentName : undefined,
+        epoch: taskType === 'test_cyclegan' ? epoch : undefined
       });
       // Immediately fetch status to update UI
       fetchStatus();
@@ -107,12 +141,61 @@ export default function GenerativeAugmentation() {
                 <label className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${taskType === 'test_cyclegan' ? 'border-purple-500 bg-purple-900/10' : 'border-gray-700 bg-gray-800 hover:bg-gray-750'}`}>
                   <input type="radio" name="task" value="test_cyclegan" className="sr-only" checked={taskType === 'test_cyclegan'} onChange={(e) => setTaskType(e.target.value)} />
                   <span className="flex flex-1">
-                    <span className="flex flex-col">
+                    <span className="flex flex-col w-full">
                       <span className="block text-sm font-medium text-gray-100">Test CycleGAN (Generate Images)</span>
                       <span className="mt-1 flex items-center text-sm text-gray-400">Run inference using a trained CycleGAN model to generate the augmented dataset.</span>
+                      
+                      {taskType === 'test_cyclegan' && (
+                        <div className="mt-4 grid grid-cols-2 gap-4 border-t border-gray-700 pt-4">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Experiment Name</label>
+                            {Object.keys(availableExperiments).length > 0 ? (
+                              <select 
+                                value={experimentName}
+                                onChange={(e) => setExperimentName(e.target.value)}
+                                className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500"
+                              >
+                                {Object.keys(availableExperiments).map(exp => (
+                                  <option key={exp} value={exp}>{exp}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input 
+                                type="text" 
+                                value={experimentName}
+                                onChange={(e) => setExperimentName(e.target.value)}
+                                className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500"
+                                placeholder="No experiments found..."
+                              />
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Epoch Checkpoint</label>
+                            {experimentName && availableExperiments[experimentName] && availableExperiments[experimentName].length > 0 ? (
+                              <select 
+                                value={epoch}
+                                onChange={(e) => setEpoch(e.target.value)}
+                                className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500"
+                              >
+                                {availableExperiments[experimentName].map(ep => (
+                                  <option key={ep} value={ep}>{ep}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input 
+                                type="text" 
+                                value={epoch}
+                                onChange={(e) => setEpoch(e.target.value)}
+                                className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500"
+                                placeholder="latest"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </span>
                   </span>
-                  {taskType === 'test_cyclegan' && <CheckCircle className="h-5 w-5 text-purple-500" />}
+                  {taskType === 'test_cyclegan' && <CheckCircle className="h-5 w-5 text-purple-500 absolute right-4 top-4" />}
                 </label>
 
                 <label className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${taskType === 'train_spade' ? 'border-purple-500 bg-purple-900/10' : 'border-gray-700 bg-gray-800 hover:bg-gray-750'}`}>
@@ -157,7 +240,7 @@ export default function GenerativeAugmentation() {
                   ) : (
                     <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
                   )}
-                  <span className="font-mono overflow-x-auto">{status.message}</span>
+                  <span className="font-mono overflow-x-auto max-h-[300px] block">{status.message}</span>
                 </div>
               ) : (
                 <div className="text-gray-500 text-sm text-center py-6 italic">

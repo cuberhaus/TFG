@@ -33,9 +33,7 @@ command = [
     '--epoch_count',
     '1',
     '--n_epochs',
-    n_epochs,
-    '--display_id',
-    '-1'
+    n_epochs
 ]
 print(command)
 subprocess.run(command)
