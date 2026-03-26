@@ -48,7 +48,7 @@ function App() {
       <div className="flex flex-1 overflow-hidden relative">
         {/* Sidebar */}
         <aside 
-          className={`${isSidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full'} flex-shrink-0 transition-all duration-300 ease-in-out bg-gray-800 border-r border-gray-700 flex flex-col shadow-xl z-10 absolute md:relative h-full`}
+          className={`${isSidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full'} flex-shrink-0 transition-all duration-300 ease-in-out bg-gray-800 border-r border-gray-700 flex flex-col shadow-xl z-30 absolute md:relative h-full`}
         >
           <nav className="flex-1 py-4 px-3 space-y-1.5 overflow-y-auto">
             {navItems.map((item) => {
@@ -76,7 +76,7 @@ function App() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-900 w-full relative">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-900 relative">
           <div className="max-w-6xl mx-auto w-full">
             <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-6 min-h-[600px]">
               {activeTab === 'performance' && <PerformanceExplorer />}
