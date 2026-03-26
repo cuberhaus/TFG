@@ -65,46 +65,51 @@ function App() {
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden relative">
+      <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <aside 
-          className="flex-shrink-0 transition-all duration-300 ease-in-out bg-gray-800 border-r border-gray-700 flex flex-col shadow-xl z-30 absolute md:relative h-full overflow-hidden"
-          style={{ width: isSidebarOpen ? '16rem' : '0px', transform: isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)' }}
+          className="bg-gray-800 border-r border-gray-700 flex flex-col shadow-xl transition-all duration-300 ease-in-out overflow-hidden z-10"
+          style={{ 
+            width: isSidebarOpen ? '16rem' : '0px',
+            minWidth: isSidebarOpen ? '16rem' : '0px'
+          }}
         >
-          <nav className="flex-1 py-4 px-3 space-y-4 overflow-y-auto w-64">
-            {navGroups.map((group) => (
-              <div key={group.title} className="space-y-1.5">
-                <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-                  {group.title}
-                </h3>
-                {group.items.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => setActiveTab(item.id)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${
-                        isActive 
-                          ? 'bg-gray-700 text-white shadow-sm border border-gray-600' 
-                          : 'text-gray-400 hover:text-gray-200 hover:bg-gray-750 border border-transparent'
-                      }`}
-                    >
-                      <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? item.color : 'text-gray-500'}`} />
-                      <span className="text-sm text-left truncate">{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-          </nav>
-          <div className="p-4 border-t border-gray-700 text-xs text-gray-500 text-center">
-            TFG Project <br/>© {new Date().getFullYear()}
+          <div className="w-64 flex flex-col h-full">
+            <nav className="flex-1 py-4 px-3 space-y-4 overflow-y-auto">
+              {navGroups.map((group) => (
+                <div key={group.title} className="space-y-1.5">
+                  <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                    {group.title}
+                  </h3>
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${
+                          isActive 
+                            ? 'bg-gray-700 text-white shadow-sm border border-gray-600' 
+                            : 'text-gray-400 hover:text-gray-200 hover:bg-gray-750 border border-transparent'
+                        }`}
+                      >
+                        <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? item.color : 'text-gray-500'}`} />
+                        <span className="text-sm text-left truncate">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </nav>
+            <div className="p-4 border-t border-gray-700 text-xs text-gray-500 text-center">
+              TFG Project <br/>© {new Date().getFullYear()}
+            </div>
           </div>
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-900 relative">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-900 w-full relative">
           <div className="max-w-6xl mx-auto w-full">
             <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-6 min-h-[600px]">
               {activeTab === 'performance' && <PerformanceExplorer />}
