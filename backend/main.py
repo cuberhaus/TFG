@@ -76,6 +76,17 @@ class TrainingRequest(BaseModel):
 
 def run_training_script(req: TrainingRequest):
     global training_state
+    
+    # Pre-check for training dataset
+    import glob
+    train_ann_dir = os.path.join(SRC_DIR, "../data/TrainValid/Annotations")
+    train_img_dir = os.path.join(SRC_DIR, "../data/TrainValid/JPEGImages")
+    if not os.path.exists(train_ann_dir) or not glob.glob(os.path.join(train_ann_dir, "*.*")):
+        training_state["is_training"] = False
+        training_state["message"] = "Error: Training dataset is empty. Please upload annotations to data/TrainValid/Annotations and images to data/TrainValid/JPEGImages."
+        training_state["current_model"] = None
+        return
+        
     training_state["is_training"] = True
     training_state["current_model"] = req.model_name
     training_state["message"] = f"Training {req.model_name}..."
@@ -124,6 +135,20 @@ evaluation_state = {
 
 def run_evaluation_script():
     global evaluation_state
+    
+    # Pre-check for evaluation datasets (train and test are both used in prepare_dataset)
+    import glob
+    train_ann_dir = os.path.join(SRC_DIR, "../data/TrainValid/Annotations")
+    test_ann_dir = os.path.join(SRC_DIR, "../data/Test/Annotations")
+    if not os.path.exists(train_ann_dir) or not glob.glob(os.path.join(train_ann_dir, "*.*")):
+        evaluation_state["is_evaluating"] = False
+        evaluation_state["message"] = "Error: Training dataset is empty. The evaluation script requires data in data/TrainValid/Annotations."
+        return
+    if not os.path.exists(test_ann_dir) or not glob.glob(os.path.join(test_ann_dir, "*.*")):
+        evaluation_state["is_evaluating"] = False
+        evaluation_state["message"] = "Error: Test dataset is empty. Please upload data to data/Test/Annotations and data/Test/JPEGImages."
+        return
+
     evaluation_state["is_evaluating"] = True
     evaluation_state["message"] = "Evaluating all models in the saved models directory..."
     
@@ -305,6 +330,16 @@ class HPOResquest(BaseModel):
 
 def run_hpo_script(req: HPOResquest):
     global hpo_state
+    
+    # Pre-check for HPO dataset
+    import glob
+    train_ann_dir = os.path.join(SRC_DIR, "../data/TrainValid/Annotations")
+    if not os.path.exists(train_ann_dir) or not glob.glob(os.path.join(train_ann_dir, "*.*")):
+        hpo_state["is_tuning"] = False
+        hpo_state["message"] = "Error: Training dataset is empty. Please upload annotations to data/TrainValid/Annotations and images to data/TrainValid/JPEGImages."
+        hpo_state["current_model"] = None
+        return
+
     hpo_state["is_tuning"] = True
     hpo_state["current_model"] = req.model_name
     hpo_state["message"] = f"Starting Hyperparameter Tuning for {req.model_name} with {req.num_trials} trials...\n"

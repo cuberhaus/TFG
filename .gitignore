@@ -128,3 +128,8 @@ out/
 !out/losses/
 !out/saved_models/
 
+# Generated logs & checkpoints
+checkpoints/
+*.pkl
+opt.txt
+
