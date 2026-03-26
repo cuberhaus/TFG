@@ -16,6 +16,13 @@ def prepareCycleGAN():
     os.chdir(cycleGan_dir)
     POLYP_DATASET_DIR = os.path.join(src_dir, "../data/PolypDataset")
     python_installed = python_version()
+    
+    # Ensure dataset directories exist
+    os.makedirs(os.path.join(POLYP_DATASET_DIR, 'trainA'), exist_ok=True)
+    os.makedirs(os.path.join(POLYP_DATASET_DIR, 'trainB'), exist_ok=True)
+    os.makedirs(os.path.join(POLYP_DATASET_DIR, 'testA'), exist_ok=True)
+    os.makedirs(os.path.join(POLYP_DATASET_DIR, 'testB'), exist_ok=True)
+
     print(POLYP_DATASET_DIR)
     print(python_installed)
     return POLYP_DATASET_DIR, python_installed, cycleGan_dir
@@ -43,6 +50,13 @@ def prepareSPADE():
     # cd ../../
     POLYP_DATASET_DIR = os.path.join(src_dir, "../data/PolypDatasetSPADE")
     python_installed = python_version()
+    
+    # Ensure dataset directories exist
+    os.makedirs(os.path.join(POLYP_DATASET_DIR, 'trainA'), exist_ok=True)
+    os.makedirs(os.path.join(POLYP_DATASET_DIR, 'trainB'), exist_ok=True)
+    os.makedirs(os.path.join(POLYP_DATASET_DIR, 'testA'), exist_ok=True)
+    os.makedirs(os.path.join(POLYP_DATASET_DIR, 'testB'), exist_ok=True)
+    
     print(POLYP_DATASET_DIR)
     print(python_installed)
     return POLYP_DATASET_DIR, python_installed, cycleGan_dir

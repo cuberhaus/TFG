@@ -193,6 +193,38 @@ def run_generative_script(req: GenRequest):
         
     script_path = os.path.join(SRC_DIR, script_name)
     
+    # Pre-check dataset folders for empty images
+    try:
+        import glob
+        if req.task_type == "train_cyclegan":
+            data_dir = os.path.join(SRC_DIR, "../data/PolypDataset")
+            trainA_files = glob.glob(os.path.join(data_dir, "trainA", "*.*"))
+            trainB_files = glob.glob(os.path.join(data_dir, "trainB", "*.*"))
+            if not trainA_files or not trainB_files:
+                gen_state["message"] = "Error: Training dataset is empty. Please upload images to PolypDataset/trainA and trainB directories."
+                gen_state["is_running"] = False
+                gen_state["current_task"] = None
+                return
+        elif req.task_type == "test_cyclegan":
+            data_dir = os.path.join(SRC_DIR, "../data/PolypDataset")
+            testA_files = glob.glob(os.path.join(data_dir, "testA", "*.*"))
+            if not testA_files:
+                gen_state["message"] = "Error: Test dataset is empty. Please upload images to PolypDataset/testA directory."
+                gen_state["is_running"] = False
+                gen_state["current_task"] = None
+                return
+        elif req.task_type == "train_spade":
+            data_dir = os.path.join(SRC_DIR, "../data/PolypDatasetSPADE")
+            trainA_files = glob.glob(os.path.join(data_dir, "trainA", "*.*"))
+            trainB_files = glob.glob(os.path.join(data_dir, "trainB", "*.*"))
+            if not trainA_files or not trainB_files:
+                gen_state["message"] = "Error: SPADE Training dataset is empty. Please upload images to PolypDatasetSPADE/trainA and trainB directories."
+                gen_state["is_running"] = False
+                gen_state["current_task"] = None
+                return
+    except Exception as e:
+        print(f"Error checking directories: {e}")
+
     try:
         process = subprocess.Popen(
             [sys.executable, script_path] + cmd_args,
