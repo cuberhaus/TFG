@@ -11,18 +11,38 @@ import HyperparameterTuning from './components/HyperparameterTuning';
 import DatasetExplorer from './components/DatasetExplorer';
 
 function App() {
-  const [activeTab, setActiveTab] = useState('performance');
+  const [activeTab, setActiveTab] = useState('dataset');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  const navItems = [
-    { id: 'dataset', label: 'Dataset Explorer', icon: FolderSearch, color: 'text-blue-400' },
-    { id: 'performance', label: 'Performance Explorer', icon: BarChart, color: 'text-indigo-400' },
-    { id: 'inference', label: 'Inference', icon: Search, color: 'text-cyan-400' },
-    { id: 'training', label: 'Detection Training', icon: Play, color: 'text-teal-400' },
-    { id: 'losses', label: 'Training Losses', icon: TrendingUp, color: 'text-emerald-400' },
-    { id: 'evaluation', label: 'Model Evaluation', icon: ClipboardList, color: 'text-green-400' },
-    { id: 'generative', label: 'Data Augmentation', icon: Sparkles, color: 'text-purple-400' },
-    { id: 'hpo', label: 'Hyperparameter Tuning', icon: Sliders, color: 'text-fuchsia-400' },
+  const navGroups = [
+    {
+      title: "Data & Exploration",
+      items: [
+        { id: 'dataset', label: 'Dataset Explorer', icon: FolderSearch, color: 'text-blue-400' },
+        { id: 'generative', label: 'Data Augmentation', icon: Sparkles, color: 'text-purple-400' },
+      ]
+    },
+    {
+      title: "Training & Optimization",
+      items: [
+        { id: 'hpo', label: 'Hyperparameter Tuning', icon: Sliders, color: 'text-fuchsia-400' },
+        { id: 'training', label: 'Detection Training', icon: Play, color: 'text-teal-400' },
+        { id: 'losses', label: 'Training Losses', icon: TrendingUp, color: 'text-emerald-400' },
+      ]
+    },
+    {
+      title: "Evaluation & Analytics",
+      items: [
+        { id: 'evaluation', label: 'Model Evaluation', icon: ClipboardList, color: 'text-green-400' },
+        { id: 'performance', label: 'Performance Explorer', icon: BarChart, color: 'text-indigo-400' },
+      ]
+    },
+    {
+      title: "Inference & Testing",
+      items: [
+        { id: 'inference', label: 'Inference', icon: Search, color: 'text-cyan-400' },
+      ]
+    }
   ];
 
   return (
@@ -50,25 +70,32 @@ function App() {
         <aside 
           className={`${isSidebarOpen ? 'w-64 translate-x-0' : 'w-0 -translate-x-full'} flex-shrink-0 transition-all duration-300 ease-in-out bg-gray-800 border-r border-gray-700 flex flex-col shadow-xl z-30 absolute md:relative h-full`}
         >
-          <nav className="flex-1 py-4 px-3 space-y-1.5 overflow-y-auto">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg font-medium transition-all ${
-                    isActive 
-                      ? 'bg-gray-700 text-white shadow-sm border border-gray-600' 
-                      : 'text-gray-400 hover:text-gray-200 hover:bg-gray-750 border border-transparent'
-                  }`}
-                >
-                  <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? item.color : 'text-gray-500'}`} />
-                  <span className="text-sm text-left truncate">{item.label}</span>
-                </button>
-              );
-            })}
+          <nav className="flex-1 py-4 px-3 space-y-4 overflow-y-auto">
+            {navGroups.map((group) => (
+              <div key={group.title} className="space-y-1.5">
+                <h3 className="px-3 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                  {group.title}
+                </h3>
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveTab(item.id)}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${
+                        isActive 
+                          ? 'bg-gray-700 text-white shadow-sm border border-gray-600' 
+                          : 'text-gray-400 hover:text-gray-200 hover:bg-gray-750 border border-transparent'
+                      }`}
+                    >
+                      <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? item.color : 'text-gray-500'}`} />
+                      <span className="text-sm text-left truncate">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
           <div className="p-4 border-t border-gray-700 text-xs text-gray-500 text-center">
             TFG Project <br/>© {new Date().getFullYear()}
