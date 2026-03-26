@@ -9,6 +9,7 @@ import io
 import base64
 import subprocess
 import json
+import random
 from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -80,10 +81,10 @@ def run_training_script(req: TrainingRequest):
     # Pre-check for training dataset
     import glob
     train_ann_dir = os.path.join(SRC_DIR, "../data/TrainValid/Annotations")
-    train_img_dir = os.path.join(SRC_DIR, "../data/TrainValid/JPEGImages")
-    if not os.path.exists(train_ann_dir) or not glob.glob(os.path.join(train_ann_dir, "*.*")):
+    train_img_dir = os.path.join(SRC_DIR, "../data/TrainValid/Images")
+    if not os.path.exists(train_ann_dir) or not glob.glob(os.path.join(train_ann_dir, "*", "*.*")):
         training_state["is_training"] = False
-        training_state["message"] = "Error: Training dataset is empty. Please upload annotations to data/TrainValid/Annotations and images to data/TrainValid/JPEGImages."
+        training_state["message"] = "Error: Training dataset is empty. Please upload annotations to data/TrainValid/Annotations and images to data/TrainValid/Images."
         training_state["current_model"] = None
         return
         
@@ -140,13 +141,13 @@ def run_evaluation_script():
     import glob
     train_ann_dir = os.path.join(SRC_DIR, "../data/TrainValid/Annotations")
     test_ann_dir = os.path.join(SRC_DIR, "../data/Test/Annotations")
-    if not os.path.exists(train_ann_dir) or not glob.glob(os.path.join(train_ann_dir, "*.*")):
+    if not os.path.exists(train_ann_dir) or not glob.glob(os.path.join(train_ann_dir, "*", "*.*")):
         evaluation_state["is_evaluating"] = False
         evaluation_state["message"] = "Error: Training dataset is empty. The evaluation script requires data in data/TrainValid/Annotations."
         return
-    if not os.path.exists(test_ann_dir) or not glob.glob(os.path.join(test_ann_dir, "*.*")):
+    if not os.path.exists(test_ann_dir) or not glob.glob(os.path.join(test_ann_dir, "*", "*.*")):
         evaluation_state["is_evaluating"] = False
-        evaluation_state["message"] = "Error: Test dataset is empty. Please upload data to data/Test/Annotations and data/Test/JPEGImages."
+        evaluation_state["message"] = "Error: Test dataset is empty. Please upload data to data/Test/Annotations and data/Test/Images."
         return
 
     evaluation_state["is_evaluating"] = True
@@ -306,6 +307,68 @@ def get_cyclegan_experiments():
             
     return {"experiments": experiments}
 
+@app.get("/api/generate/results")
+def get_generation_results(experiment: str = None, epoch: str = "latest"):
+    results_dir = os.path.join(PROJ_DIR, "code", "tmp", "pytorch-CycleGAN-and-pix2pix", "results")
+    if not os.path.isdir(results_dir):
+        return {"images": []}
+    
+    images_data = []
+    
+    # If no experiment specified, grab the first one available
+    if not experiment:
+        experiments = [f for f in os.listdir(results_dir) if os.path.isdir(os.path.join(results_dir, f))]
+        if not experiments:
+            return {"images": []}
+        experiment = experiments[0]
+        
+    exp_dir = os.path.join(results_dir, experiment)
+    if not os.path.isdir(exp_dir):
+        return {"images": []}
+        
+    test_dir = os.path.join(exp_dir, f"test_{epoch}")
+    if not os.path.isdir(test_dir):
+        # try to find any test_ folder
+        test_folders = [f for f in os.listdir(exp_dir) if f.startswith("test_") and os.path.isdir(os.path.join(exp_dir, f))]
+        if not test_folders:
+            return {"images": []}
+        test_dir = os.path.join(exp_dir, test_folders[-1])
+        
+    images_folder = os.path.join(test_dir, "images")
+    if not os.path.isdir(images_folder):
+        return {"images": []}
+        
+    # Group images by base name (without _real or _fake suffix)
+    image_groups = {}
+    for img_name in os.listdir(images_folder):
+        if img_name.endswith(".png") or img_name.endswith(".jpg"):
+            if "_real" in img_name:
+                base_name = img_name.replace("_real", "")
+                group_key = "real"
+            elif "_fake" in img_name:
+                base_name = img_name.replace("_fake", "")
+                group_key = "fake"
+            else:
+                base_name = img_name
+                group_key = "other"
+                
+            if base_name not in image_groups:
+                image_groups[base_name] = {}
+                
+            img_path = os.path.join(images_folder, img_name)
+            with open(img_path, "rb") as image_file:
+                encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
+                image_groups[base_name][group_key] = f"data:image/png;base64,{encoded_string}"
+                
+    for base_name, group in image_groups.items():
+        images_data.append({
+            "base_name": base_name,
+            "real": group.get("real"),
+            "fake": group.get("fake")
+        })
+        
+    return {"images": images_data, "experiment": experiment, "test_dir": os.path.basename(test_dir)}
+
 @app.get("/api/generate/status")
 def get_generate_status():
     return gen_state
@@ -334,9 +397,9 @@ def run_hpo_script(req: HPOResquest):
     # Pre-check for HPO dataset
     import glob
     train_ann_dir = os.path.join(SRC_DIR, "../data/TrainValid/Annotations")
-    if not os.path.exists(train_ann_dir) or not glob.glob(os.path.join(train_ann_dir, "*.*")):
+    if not os.path.exists(train_ann_dir) or not glob.glob(os.path.join(train_ann_dir, "*", "*.*")):
         hpo_state["is_tuning"] = False
-        hpo_state["message"] = "Error: Training dataset is empty. Please upload annotations to data/TrainValid/Annotations and images to data/TrainValid/JPEGImages."
+        hpo_state["message"] = "Error: Training dataset is empty. Please upload annotations to data/TrainValid/Annotations and images to data/TrainValid/Images."
         hpo_state["current_model"] = None
         return
 
@@ -386,6 +449,124 @@ def start_hpo(req: HPOResquest, background_tasks: BackgroundTasks):
         raise HTTPException(status_code=400, detail=f"A tuning job is already running for {hpo_state['current_model']}.")
     background_tasks.add_task(run_hpo_script, req)
     return {"message": "Hyperparameter tuning started."}
+
+# --- Dataset Explorer Endpoint ---
+@app.get("/api/dataset/{split}")
+def get_dataset_images(split: str, page: int = 1, limit: int = 12):
+    if split == "train":
+        root_dir = os.path.join(SRC_DIR, "../data/TrainValid")
+    elif split == "test":
+        root_dir = os.path.join(SRC_DIR, "../data/Test")
+    else:
+        raise HTTPException(status_code=400, detail="Invalid split. Use 'train' or 'test'.")
+        
+    ann_root = os.path.join(root_dir, "Annotations")
+    img_root = os.path.join(root_dir, "Images")
+    
+    if not os.path.isdir(ann_root) or not os.path.isdir(img_root):
+        return {"images": [], "total": 0, "page": page, "limit": limit}
+        
+    # Collect all image/annotation pairs
+    all_items = []
+    
+    try:
+        for subdir in sorted(os.listdir(ann_root)):
+            ann_sub = os.path.join(ann_root, subdir)
+            img_sub = os.path.join(img_root, subdir)
+            
+            if os.path.isdir(ann_sub) and os.path.isdir(img_sub):
+                for filename in sorted(os.listdir(ann_sub)):
+                    if filename.endswith(".txt"):
+                        img_filename = filename.replace(".txt", ".jpg")
+                        img_path = os.path.join(img_sub, img_filename)
+                        ann_path = os.path.join(ann_sub, filename)
+                        
+                        if os.path.exists(img_path):
+                            all_items.append({
+                                "id": f"{subdir}/{img_filename}",
+                                "img_path": img_path,
+                                "ann_path": ann_path,
+                                "subdir": subdir,
+                                "filename": img_filename
+                            })
+    except Exception as e:
+        print(f"Error reading dataset: {e}")
+        return {"images": [], "total": 0, "page": page, "limit": limit}
+        
+    total_items = len(all_items)
+    
+    # Pagination
+    start_idx = (page - 1) * limit
+    end_idx = start_idx + limit
+    paginated_items = all_items[start_idx:end_idx]
+    
+    results = []
+    for item in paginated_items:
+        # Parse annotation
+        boxes = []
+        try:
+            with open(item["ann_path"], 'r') as f:
+                lines = f.readlines()
+            if lines:
+                num_objs = int(lines[0].strip())
+                for i in range(1, num_objs + 1):
+                    if i < len(lines):
+                        vals = list(map(int, lines[i].strip().split()))
+                        if len(vals) == 4:
+                            boxes.append(vals) # [xmin, ymin, xmax, ymax]
+        except Exception as e:
+            print(f"Error parsing {item['ann_path']}: {e}")
+            
+        # Read and encode image
+        try:
+            with Image.open(item["img_path"]) as img:
+                width, height = img.size
+                # Convert to RGB if not
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+                
+                # Resize for preview to save bandwidth (e.g., max 500px width)
+                img.thumbnail((500, 500))
+                
+                # Calculate scale factor to adjust boxes
+                scale_x = img.width / width
+                scale_y = img.height / height
+                
+                scaled_boxes = []
+                for b in boxes:
+                    scaled_boxes.append([
+                        int(b[0] * scale_x),
+                        int(b[1] * scale_y),
+                        int(b[2] * scale_x),
+                        int(b[3] * scale_y)
+                    ])
+                    
+                buffered = io.BytesIO()
+                img.save(buffered, format="JPEG", quality=80)
+                img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+                
+                results.append({
+                    "id": item["id"],
+                    "subdir": item["subdir"],
+                    "filename": item["filename"],
+                    "image": f"data:image/jpeg;base64,{img_str}",
+                    "width": img.width,
+                    "height": img.height,
+                    "boxes": scaled_boxes,
+                    "original_boxes": boxes,
+                    "original_width": width,
+                    "original_height": height
+                })
+        except Exception as e:
+            print(f"Error processing image {item['img_path']}: {e}")
+            
+    return {
+        "images": results,
+        "total": total_items,
+        "page": page,
+        "limit": limit,
+        "total_pages": (total_items + limit - 1) // limit
+    }
 
 @app.get("/api/health")
 def health_check():
@@ -553,3 +734,87 @@ async def predict(
     img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
     
     return PredictionResponse(boxes=result_boxes, image_base64=img_str)
+
+@app.post("/api/predict/batch")
+async def predict_batch(
+    model_arch: str = Form("FasterRCNN"),
+    model_file: str = Form(...),
+    confidence: float = Form(0.5)
+):
+    test_img_dir = os.path.join(SRC_DIR, "../data/Test/Images")
+    if not os.path.exists(test_img_dir):
+        raise HTTPException(status_code=400, detail="Test dataset not found.")
+        
+    all_images = []
+    for subdir in os.listdir(test_img_dir):
+        subdir_path = os.path.join(test_img_dir, subdir)
+        if os.path.isdir(subdir_path):
+            for file in os.listdir(subdir_path):
+                if file.lower().endswith(('.png', '.jpg', '.jpeg')):
+                    all_images.append(os.path.join(subdir_path, file))
+                    
+    if not all_images:
+        raise HTTPException(status_code=400, detail="No images found in Test dataset.")
+        
+    # Select 9 random images
+    selected_images = random.sample(all_images, min(9, len(all_images)))
+    
+    num_classes = 2
+    model = get_model(model_arch, num_classes)
+    model_path = os.path.join(SAVED_MODELS_DIR, model_file)
+    
+    model, _, _ = load_model_with_hyperparams(model, model_path, load_dir=SAVED_MODELS_DIR)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    model.eval()
+
+    transform = transforms.Compose([
+        transforms.Resize((560, 480)), 
+        transforms.ToTensor()
+    ])
+    
+    results = []
+    
+    with torch.no_grad():
+        for img_path in selected_images:
+            try:
+                img = Image.open(img_path).convert("RGB")
+                img_tensor = transform(img).unsqueeze(0).to(device)
+                
+                output = model(img_tensor)[0]
+                
+                keep = output["scores"] >= confidence
+                boxes = output["boxes"][keep].cpu()
+                scores = output["scores"][keep].cpu()
+                
+                result_boxes = []
+                if len(boxes) > 0:
+                    for i in range(len(boxes)):
+                        result_boxes.append(DetectionBox(
+                            score=scores[i].item(),
+                            x_min=boxes[i][0].item(),
+                            y_min=boxes[i][1].item(),
+                            x_max=boxes[i][2].item(),
+                            y_max=boxes[i][3].item()
+                        ))
+                        
+                    img_byte = transform(img).mul(255).byte()
+                    label_strings = [f"polyp {s:.2f}" for s in scores.tolist()]
+                    drawn = draw_bounding_boxes(img_byte, boxes, labels=label_strings, colors="red", width=2)
+                    result_img = to_pil_image(drawn)
+                else:
+                    result_img = img.resize((480, 560))
+                    
+                buffered = io.BytesIO()
+                result_img.save(buffered, format="JPEG")
+                img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+                
+                results.append({
+                    "filename": os.path.basename(img_path),
+                    "boxes": result_boxes,
+                    "image_base64": img_str
+                })
+            except Exception as e:
+                print(f"Error processing {img_path}: {e}")
+                
+    return {"results": results}

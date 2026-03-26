@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { UploadCloud, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { UploadCloud, Image as ImageIcon, AlertCircle, Layers } from 'lucide-react';
 
 interface ModelInfo {
   filename: str;
@@ -19,6 +19,9 @@ export default function InferenceUI() {
   const [resultImg, setResultImg] = useState<string | null>(null);
   const [boxes, setBoxes] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
+  
+  const [mode, setMode] = useState<'single' | 'batch'>('single');
+  const [batchResults, setBatchResults] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchModels = async () => {
@@ -48,7 +51,7 @@ export default function InferenceUI() {
   };
 
   const handlePredict = async () => {
-    if (!file) return;
+    if (mode === 'single' && !file) return;
     if (!selectedModel) {
       setError("Please select a model weights file.");
       return;
@@ -57,22 +60,28 @@ export default function InferenceUI() {
     setLoading(true);
     setError(null);
     setResultImg(null);
+    setBoxes([]);
+    setBatchResults([]);
 
     const formData = new FormData();
-    formData.append('file', file);
     formData.append('model_arch', modelArch);
     formData.append('model_file', selectedModel);
     formData.append('confidence', confidence.toString());
 
     try {
-      const response = await axios.post('http://localhost:8082/api/predict', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
-      
-      setResultImg(`data:image/jpeg;base64,${response.data.image_base64}`);
-      setBoxes(response.data.boxes);
+      if (mode === 'single' && file) {
+        formData.append('file', file);
+        const response = await axios.post('http://localhost:8082/api/predict', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        setResultImg(`data:image/jpeg;base64,${response.data.image_base64}`);
+        setBoxes(response.data.boxes);
+      } else if (mode === 'batch') {
+        const response = await axios.post('http://localhost:8082/api/predict/batch', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        setBatchResults(response.data.results);
+      }
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.detail || "An error occurred during prediction.");
@@ -87,6 +96,21 @@ export default function InferenceUI() {
       <div className="md:col-span-1 bg-gray-700 p-6 rounded-lg border border-gray-600 flex flex-col gap-5">
         <h3 className="text-lg font-semibold border-b border-gray-600 pb-2">Configuration</h3>
         
+        <div className="flex bg-gray-800 rounded-lg p-1 border border-gray-600">
+          <button
+            onClick={() => setMode('single')}
+            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${mode === 'single' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-gray-200'}`}
+          >
+            Single Image
+          </button>
+          <button
+            onClick={() => setMode('batch')}
+            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${mode === 'batch' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-gray-200'}`}
+          >
+            Batch Test (Random 9)
+          </button>
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">Model Architecture</label>
           <select 
@@ -137,27 +161,34 @@ export default function InferenceUI() {
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Upload Image</label>
-          <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-500 border-dashed rounded-lg cursor-pointer bg-gray-800 hover:bg-gray-750 transition-colors">
-            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-              <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
-              <p className="text-sm text-gray-400">Click to upload image</p>
-            </div>
-            <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
-          </label>
-        </div>
+        {mode === 'single' ? (
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Upload Image</label>
+            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-500 border-dashed rounded-lg cursor-pointer bg-gray-800 hover:bg-gray-750 transition-colors">
+              <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
+                <p className="text-sm text-gray-400">Click to upload image</p>
+              </div>
+              <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+            </label>
+          </div>
+        ) : (
+          <div className="bg-blue-900/20 border border-blue-800 p-4 rounded-lg text-sm text-blue-300 flex items-start gap-3 mt-2">
+            <Layers className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <p>Batch inference will automatically select 9 random images from your Test dataset and run the selected model on all of them.</p>
+          </div>
+        )}
 
         <button
           onClick={handlePredict}
-          disabled={!file || loading || models.length === 0}
+          disabled={(mode === 'single' && !file) || loading || models.length === 0}
           className={`w-full py-3 rounded font-medium mt-4 transition-colors ${
-            !file || loading || models.length === 0
+            (mode === 'single' && !file) || loading || models.length === 0
               ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
               : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg'
           }`}
         >
-          {loading ? 'Running Model...' : 'Run Detection'}
+          {loading ? 'Running Model...' : mode === 'batch' ? 'Run Batch Inference' : 'Run Detection'}
         </button>
 
         {error && (
@@ -169,65 +200,100 @@ export default function InferenceUI() {
 
       {/* Image Preview / Result Column */}
       <div className="md:col-span-2 bg-gray-900 rounded-lg border border-gray-700 p-4 flex flex-col items-center justify-center min-h-[400px]">
-        {!previewUrl && !resultImg ? (
-          <div className="flex flex-col items-center text-gray-500">
-            <ImageIcon className="w-16 h-16 mb-4 opacity-50" />
-            <p>Upload an image to see results</p>
+        {loading ? (
+          <div className="animate-pulse flex flex-col items-center">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+            <p className="text-blue-400">Processing images through PyTorch...</p>
           </div>
-        ) : (
-          <div className="w-full flex flex-col items-center">
-            {loading ? (
-              <div className="animate-pulse flex flex-col items-center">
-                <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                <p className="text-blue-400">Processing image through PyTorch...</p>
-              </div>
-            ) : (
-              <>
-                <img 
-                  src={resultImg || previewUrl || ''} 
-                  alt="Prediction" 
-                  className="max-w-full max-h-[500px] object-contain rounded shadow-lg border border-gray-700"
-                />
-                
-                {resultImg && (
-                  <div className="mt-6 w-full max-w-lg">
-                    <h4 className="text-md font-semibold mb-2 flex justify-between items-center">
-                      Detection Results 
-                      <span className="bg-blue-900 text-blue-300 text-xs px-2 py-1 rounded">
-                        {boxes.length} found
-                      </span>
-                    </h4>
-                    {boxes.length > 0 ? (
-                      <div className="bg-gray-800 rounded border border-gray-700 overflow-hidden">
-                        <table className="w-full text-sm text-left">
-                          <thead className="bg-gray-700 text-gray-300">
-                            <tr>
-                              <th className="px-4 py-2">Score</th>
-                              <th className="px-4 py-2">Bounding Box (x1, y1, x2, y2)</th>
+        ) : mode === 'single' ? (
+          !previewUrl && !resultImg ? (
+            <div className="flex flex-col items-center text-gray-500">
+              <ImageIcon className="w-16 h-16 mb-4 opacity-50" />
+              <p>Upload an image to see results</p>
+            </div>
+          ) : (
+            <div className="w-full flex flex-col items-center">
+              <img 
+                src={resultImg || previewUrl || ''} 
+                alt="Prediction" 
+                className="max-w-full max-h-[500px] object-contain rounded shadow-lg border border-gray-700"
+              />
+              
+              {resultImg && (
+                <div className="mt-6 w-full max-w-lg">
+                  <h4 className="text-md font-semibold mb-2 flex justify-between items-center">
+                    Detection Results 
+                    <span className="bg-blue-900 text-blue-300 text-xs px-2 py-1 rounded">
+                      {boxes.length} found
+                    </span>
+                  </h4>
+                  {boxes.length > 0 ? (
+                    <div className="bg-gray-800 rounded border border-gray-700 overflow-hidden">
+                      <table className="w-full text-sm text-left">
+                        <thead className="bg-gray-700 text-gray-300">
+                          <tr>
+                            <th className="px-4 py-2">Score</th>
+                            <th className="px-4 py-2">Bounding Box (x1, y1, x2, y2)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {boxes.map((b, i) => (
+                            <tr key={i} className="border-t border-gray-700">
+                              <td className="px-4 py-2 font-medium text-red-400">{(b.score * 100).toFixed(1)}%</td>
+                              <td className="px-4 py-2 text-gray-400">
+                                [{b.x_min.toFixed(0)}, {b.y_min.toFixed(0)}, {b.x_max.toFixed(0)}, {b.y_max.toFixed(0)}]
+                              </td>
                             </tr>
-                          </thead>
-                          <tbody>
-                            {boxes.map((b, i) => (
-                              <tr key={i} className="border-t border-gray-700">
-                                <td className="px-4 py-2 font-medium text-red-400">{(b.score * 100).toFixed(1)}%</td>
-                                <td className="px-4 py-2 text-gray-400">
-                                  [{b.x_min.toFixed(0)}, {b.y_min.toFixed(0)}, {b.x_max.toFixed(0)}, {b.y_max.toFixed(0)}]
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="text-gray-400 text-sm text-center py-4 bg-gray-800 rounded border border-gray-700">
+                      No polyps detected above the {(confidence * 100).toFixed(0)}% confidence threshold.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        ) : (
+          /* Batch Mode Results */
+          batchResults.length === 0 ? (
+            <div className="flex flex-col items-center text-gray-500">
+              <Layers className="w-16 h-16 mb-4 opacity-50" />
+              <p>Click "Run Batch Inference" to see a grid of 9 random predictions</p>
+            </div>
+          ) : (
+            <div className="w-full">
+              <h3 className="text-lg font-medium mb-4 flex items-center justify-between">
+                Batch Inference Results
+                <span className="text-sm font-normal text-gray-400 bg-gray-800 px-3 py-1 rounded border border-gray-700">
+                  {batchResults.length} Images Processed
+                </span>
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 w-full">
+                {batchResults.map((res, idx) => (
+                  <div key={idx} className="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden group">
+                    <div className="bg-gray-900 aspect-[4/3] flex items-center justify-center p-2 relative">
+                      <img 
+                        src={`data:image/jpeg;base64,${res.image_base64}`} 
+                        alt={`Prediction ${idx}`} 
+                        className="max-w-full max-h-full object-contain"
+                      />
+                      <div className="absolute top-2 right-2 bg-black/70 text-white text-[10px] px-2 py-1 rounded backdrop-blur-sm flex items-center gap-1 border border-gray-600">
+                        <span className={`w-2 h-2 rounded-full ${res.boxes.length > 0 ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                        {res.boxes.length} detected
                       </div>
-                    ) : (
-                      <p className="text-gray-400 text-sm text-center py-4 bg-gray-800 rounded border border-gray-700">
-                        No polyps detected above the {(confidence * 100).toFixed(0)}% confidence threshold.
-                      </p>
-                    )}
+                    </div>
+                    <div className="p-2 border-t border-gray-700 text-xs text-gray-400 truncate text-center" title={res.filename}>
+                      {res.filename}
+                    </div>
                   </div>
-                )}
-              </>
-            )}
-          </div>
+                ))}
+              </div>
+            </div>
+          )
         )}
       </div>
     </div>

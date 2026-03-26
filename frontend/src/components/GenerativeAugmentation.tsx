@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Play, Sparkles, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { Play, Sparkles, CheckCircle, AlertCircle, RefreshCw, Image as ImageIcon } from 'lucide-react';
 
 interface GenStatus {
   is_running: boolean;
   current_task: string | null;
   message: string;
+}
+
+interface GenImage {
+  base_name: string;
+  real: string | null;
+  fake: string | null;
 }
 
 export default function GenerativeAugmentation() {
@@ -21,6 +27,13 @@ export default function GenerativeAugmentation() {
     message: 'Idle'
   });
   const [error, setError] = useState<string | null>(null);
+  
+  // Gallery state
+  const [showGallery, setShowGallery] = useState(false);
+  const [galleryImages, setGalleryImages] = useState<GenImage[]>([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
+  const [galleryExp, setGalleryExp] = useState('');
+  const [galleryEpoch, setGalleryEpoch] = useState('');
 
   const fetchStatus = async () => {
     try {
@@ -39,13 +52,28 @@ export default function GenerativeAugmentation() {
       const expKeys = Object.keys(exps);
       if (expKeys.length > 0 && !experimentName) {
         setExperimentName(expKeys[0]);
-        // Set epoch to the first available for that experiment (usually 'latest' due to backend sorting)
         if (exps[expKeys[0]] && exps[expKeys[0]].length > 0) {
             setEpoch(exps[expKeys[0]][0]);
         }
       }
     } catch (err) {
       console.error("Failed to fetch experiments:", err);
+    }
+  };
+
+  const fetchGallery = async (exp: string, ep: string) => {
+    setGalleryLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get(`http://localhost:8082/api/generate/results?experiment=${exp}&epoch=${ep}`);
+      setGalleryImages(response.data.images);
+      setGalleryExp(response.data.experiment || exp);
+      setGalleryEpoch(response.data.test_dir || ep);
+    } catch (err) {
+      console.error("Failed to fetch gallery:", err);
+      setError("Failed to load results gallery.");
+    } finally {
+      setGalleryLoading(false);
     }
   };
 
@@ -92,9 +120,94 @@ export default function GenerativeAugmentation() {
             Create synthetic training data using generative AI models to improve polyp detection performance.
           </p>
         </div>
+        {!showGallery && (
+           <button 
+             onClick={() => {
+               setShowGallery(true);
+               fetchGallery(experimentName, epoch);
+             }}
+             className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-600 px-4 py-2 rounded-lg text-sm transition-colors"
+           >
+             <ImageIcon className="w-4 h-4" />
+             View Results Gallery
+           </button>
+        )}
       </div>
 
-      {status.is_running ? (
+      {showGallery ? (
+        <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+           <div className="flex items-center justify-between bg-gray-800 border border-gray-700 p-4 rounded-xl">
+             <div className="flex items-center gap-4">
+               <div>
+                 <span className="text-xs text-gray-400 block uppercase tracking-wider">Experiment</span>
+                 <span className="font-mono text-purple-300 font-semibold">{galleryExp || 'None'}</span>
+               </div>
+               <div className="w-px h-8 bg-gray-700"></div>
+               <div>
+                 <span className="text-xs text-gray-400 block uppercase tracking-wider">Epoch / Test</span>
+                 <span className="font-mono text-purple-300">{galleryEpoch || 'None'}</span>
+               </div>
+             </div>
+             
+             <div className="flex gap-2">
+               <button 
+                 onClick={() => fetchGallery(experimentName, epoch)}
+                 className="p-2 bg-gray-700 hover:bg-gray-600 rounded border border-gray-600 text-gray-300"
+                 title="Refresh"
+               >
+                 <RefreshCw className={`w-4 h-4 ${galleryLoading ? 'animate-spin' : ''}`} />
+               </button>
+               <button 
+                 onClick={() => setShowGallery(false)}
+                 className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded font-medium text-sm transition-colors"
+               >
+                 Back to Tasks
+               </button>
+             </div>
+           </div>
+
+           {galleryLoading ? (
+             <div className="flex flex-col items-center justify-center py-20 text-gray-400">
+               <RefreshCw className="w-8 h-8 animate-spin mb-4 text-purple-500" />
+               <p>Loading generated images...</p>
+             </div>
+           ) : galleryImages.length === 0 ? (
+             <div className="flex flex-col items-center justify-center py-20 text-gray-400 bg-gray-800/50 border border-gray-700 rounded-xl border-dashed">
+               <ImageIcon className="w-12 h-12 mb-4 text-gray-600" />
+               <p className="text-lg">No results found.</p>
+               <p className="text-sm mt-2">Run the "Test CycleGAN" job to generate some synthetic images first!</p>
+             </div>
+           ) : (
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+               {galleryImages.map((img, idx) => (
+                 <div key={idx} className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden shadow-lg group">
+                   <div className="p-3 border-b border-gray-700 bg-gray-800/80 flex justify-between items-center">
+                     <span className="text-xs font-mono text-gray-400 truncate max-w-[200px]" title={img.base_name}>{img.base_name}</span>
+                   </div>
+                   <div className="grid grid-cols-2 gap-px bg-gray-700">
+                     <div className="bg-gray-900 aspect-square relative group/img">
+                       {img.real ? (
+                         <img src={img.real} alt="Real Mask" className="w-full h-full object-cover" />
+                       ) : (
+                         <div className="w-full h-full flex items-center justify-center text-gray-600 text-xs">No Real</div>
+                       )}
+                       <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-[10px] text-center py-1 opacity-0 group-hover/img:opacity-100 transition-opacity">Input Mask</div>
+                     </div>
+                     <div className="bg-gray-900 aspect-square relative group/img">
+                       {img.fake ? (
+                         <img src={img.fake} alt="Generated Polyp" className="w-full h-full object-cover" />
+                       ) : (
+                         <div className="w-full h-full flex items-center justify-center text-gray-600 text-xs">No Fake</div>
+                       )}
+                       <div className="absolute bottom-0 left-0 right-0 bg-purple-900/80 text-[10px] text-purple-100 text-center py-1 opacity-0 group-hover/img:opacity-100 transition-opacity">Generated Polyp</div>
+                     </div>
+                   </div>
+                 </div>
+               ))}
+             </div>
+           )}
+        </div>
+      ) : status.is_running ? (
         <div className="bg-purple-900/20 border border-purple-800 rounded-xl p-10 flex flex-col items-center justify-center text-center mt-4">
           <div className="relative mb-6">
             <div className="w-20 h-20 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"></div>
