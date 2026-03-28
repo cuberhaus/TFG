@@ -20,6 +20,7 @@ def train_and_save_model():
     parser.add_argument('model_name', type=str, help='Name of the model to train.')
     parser.add_argument('params', type=json.loads, help='Hyperparameter settings in JSON format.')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode.')
+    parser.add_argument('--max-samples', type=int, default=None, help='Limit total training+test samples.')
 
     args = parser.parse_args()
 
@@ -27,11 +28,12 @@ def train_and_save_model():
     params = args.params
     debug = args.debug
 
-    if debug:
-        max_samples = {
-            'train': 20,
-            'test': 10
-        }
+    if args.max_samples:
+        n = args.max_samples
+        max_samples = {'train': n, 'test': max(n // 4, 2)}
+        train_dataset, test_dataset = prepare_dataset(max_samples)
+    elif debug:
+        max_samples = {'train': 20, 'test': 10}
         train_dataset, test_dataset = prepare_dataset(max_samples)
     else:
         train_dataset, test_dataset = prepare_dataset()

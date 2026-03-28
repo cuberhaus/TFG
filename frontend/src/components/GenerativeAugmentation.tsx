@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Play, Sparkles, CheckCircle, AlertCircle, RefreshCw, Image as ImageIcon, Wand2 } from 'lucide-react';
+import { Play, Square, Sparkles, CheckCircle, AlertCircle, RefreshCw, Image as ImageIcon, Wand2 } from 'lucide-react';
 
 interface GenStatus {
   is_running: boolean;
@@ -121,6 +121,15 @@ export default function GenerativeAugmentation() {
      }
   }, [experimentName, availableExperiments]);
 
+  const handleCancelGeneration = async () => {
+    try {
+      await axios.post('http://localhost:8082/api/generate/cancel');
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.detail || "Failed to cancel generation.");
+    }
+  };
+
   const handleStartGeneration = async () => {
     setError(null);
     try {
@@ -129,7 +138,6 @@ export default function GenerativeAugmentation() {
         experiment_name: taskType === 'test_cyclegan' ? experimentName : undefined,
         epoch: taskType === 'test_cyclegan' ? epoch : undefined
       });
-      // Immediately fetch status to update UI
       fetchStatus();
     } catch (err: any) {
       console.error(err);
@@ -311,9 +319,18 @@ export default function GenerativeAugmentation() {
             </p>
           </div>
           
-          <p className="text-sm text-yellow-400 mt-6 bg-yellow-900/20 px-4 py-2 rounded-full border border-yellow-700/30">
-            This process runs in the background. You can navigate away from this tab.
-          </p>
+          <div className="flex items-center gap-4 mt-6">
+            <p className="text-sm text-yellow-400 bg-yellow-900/20 px-4 py-2 rounded-full border border-yellow-700/30">
+              Runs in background. You can navigate away.
+            </p>
+            <button
+              onClick={handleCancelGeneration}
+              className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm rounded-full transition-colors"
+            >
+              <Square className="w-3.5 h-3.5" />
+              Cancel
+            </button>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">

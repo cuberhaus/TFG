@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Sliders, Settings, Play, AlertCircle, CheckCircle, Terminal } from 'lucide-react';
+import { Sliders, Settings, Play, Square, AlertCircle, CheckCircle, Terminal } from 'lucide-react';
 
 interface HPOStatus {
   is_tuning: boolean;
@@ -49,6 +49,15 @@ export default function HyperparameterTuning() {
     }
   };
 
+  const handleCancelTuning = async () => {
+    try {
+      await axios.post('http://localhost:8082/api/hpo/cancel');
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.detail || "Failed to cancel tuning.");
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto flex flex-col gap-6 pt-2">
       <div>
@@ -84,8 +93,15 @@ export default function HyperparameterTuning() {
             <span className="animate-pulse inline-block w-2 h-4 bg-emerald-500 ml-1 align-middle"></span>
           </div>
           
-          <div className="p-3 bg-gray-800 border-t border-gray-700 text-xs text-yellow-500 text-center">
-             Job running in background. You can safely navigate to other tabs.
+          <div className="p-3 bg-gray-800 border-t border-gray-700 flex items-center justify-between">
+             <span className="text-xs text-yellow-500">Job running in background. You can safely navigate to other tabs.</span>
+             <button
+               onClick={handleCancelTuning}
+               className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-sm rounded transition-colors"
+             >
+               <Square className="w-3.5 h-3.5" />
+               Cancel
+             </button>
           </div>
         </div>
       ) : (

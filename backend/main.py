@@ -37,6 +37,7 @@ def _find_python() -> str:
     return "python3"
 
 PYTHON = _find_python()
+import signal
 import torch
 from torchvision import transforms
 from torchvision.utils import draw_bounding_boxes
@@ -89,6 +90,8 @@ class TrainingRequest(BaseModel):
     lr: float
     weight_decay: float
     num_epochs: int
+    max_samples: Optional[int] = None
+    debug: bool = False
 
 def run_training_script(req: TrainingRequest):
     global training_state
@@ -116,12 +119,19 @@ def run_training_script(req: TrainingRequest):
         "CONFIDENCE_THRESHOLD": 0.5
     }
     
+    cmd = [PYTHON, script_path, req.model_name, json.dumps(params)]
+    if req.max_samples:
+        cmd.extend(["--max-samples", str(req.max_samples)])
+    if req.debug:
+        cmd.append("--debug")
+
     try:
         process = subprocess.Popen(
-            [PYTHON, script_path, req.model_name, json.dumps(params)],
+            cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True
+            text=True,
+            start_new_session=True,
         )
         training_state["pid"] = process.pid
         
@@ -152,6 +162,7 @@ def run_training_script(req: TrainingRequest):
 evaluation_state = {
     "is_evaluating": False,
     "message": "Idle",
+    "pid": None,
 }
 
 def run_evaluation_script():
@@ -180,8 +191,10 @@ def run_evaluation_script():
             [PYTHON, script_path],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True
+            text=True,
+            start_new_session=True,
         )
+        evaluation_state["pid"] = process.pid
         
         import collections
         output_lines = collections.deque(maxlen=30)
@@ -194,6 +207,8 @@ def run_evaluation_script():
         last_lines = '\n'.join(output_lines)
         if process.returncode == 0:
             evaluation_state["message"] = f"Evaluation completed successfully.\n\n{last_lines}"
+        elif process.returncode < 0:
+            evaluation_state["message"] = "Evaluation cancelled."
         else:
             evaluation_state["message"] = f"Evaluation failed (code {process.returncode}):\n{last_lines}"
             
@@ -201,6 +216,7 @@ def run_evaluation_script():
         evaluation_state["message"] = f"Error during evaluation: {str(e)}"
     finally:
         evaluation_state["is_evaluating"] = False
+        evaluation_state["pid"] = None
 
 # --- Dataset Preparation State ---
 prep_state = {
@@ -362,6 +378,7 @@ gen_state = {
     "is_running": False,
     "current_task": None,
     "message": "Idle",
+    "pid": None,
 }
 
 class GenRequest(BaseModel):
@@ -432,14 +449,15 @@ def run_generative_script(req: GenRequest):
             [PYTHON, script_path] + cmd_args,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True
+            text=True,
+            start_new_session=True,
         )
+        gen_state["pid"] = process.pid
         
         import collections
         output_lines = collections.deque(maxlen=20)
         for line in process.stdout:
             output_lines.append(line.strip())
-            # Real-time streaming of the output
             gen_state["message"] = '\n'.join(output_lines)
             
         process.wait()
@@ -447,6 +465,8 @@ def run_generative_script(req: GenRequest):
         last_lines = '\n'.join(output_lines)
         if process.returncode == 0:
             gen_state["message"] = f"{req.task_type} completed successfully.\n\nFinal Output:\n{last_lines}"
+        elif process.returncode < 0:
+            gen_state["message"] = f"{req.task_type} cancelled."
         else:
             gen_state["message"] = f"{req.task_type} failed (code {process.returncode}):\n{last_lines}"
             
@@ -455,6 +475,7 @@ def run_generative_script(req: GenRequest):
     finally:
         gen_state["is_running"] = False
         gen_state["current_task"] = None
+        gen_state["pid"] = None
 
 @app.get("/api/generate/cyclegan-experiments")
 def get_cyclegan_experiments():
@@ -556,11 +577,26 @@ def start_generation(req: GenRequest, background_tasks: BackgroundTasks):
     background_tasks.add_task(run_generative_script, req)
     return {"message": "Generation task started."}
 
+@app.post("/api/generate/cancel")
+def cancel_generation():
+    pid = gen_state.get("pid")
+    if not pid:
+        raise HTTPException(status_code=400, detail="No generative task is running.")
+    try:
+        os.killpg(os.getpgid(pid), signal.SIGTERM)
+    except (ProcessLookupError, PermissionError):
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    return {"message": "Generation cancellation requested."}
+
 # --- Hyperparameter Tuning State ---
 hpo_state = {
     "is_tuning": False,
     "current_model": None,
     "message": "Idle",
+    "pid": None,
 }
 
 class HPOResquest(BaseModel):
@@ -590,23 +626,25 @@ def run_hpo_script(req: HPOResquest):
             [PYTHON, script_path, req.model_name, "--n-trials", str(req.num_trials)],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            text=True
+            text=True,
+            start_new_session=True,
         )
+        hpo_state["pid"] = process.pid
         
         import collections
         output_lines = collections.deque(maxlen=20)
         for line in process.stdout:
             output_lines.append(line.strip())
-            # Real-time streaming of the last 20 lines
             hpo_state["message"] = '\n'.join(output_lines)
             
         process.wait()
         
+        last_lines = '\n'.join(output_lines)
         if process.returncode == 0:
-            last_lines = '\n'.join(output_lines)
             hpo_state["message"] = f"Tuning completed successfully for {req.model_name}.\nCheck best_hyperparameters.csv in the codebase.\n\nFinal Output:\n{last_lines}"
+        elif process.returncode < 0:
+            hpo_state["message"] = f"Tuning cancelled for {req.model_name}."
         else:
-            last_lines = '\n'.join(output_lines)
             hpo_state["message"] = f"Tuning failed (code {process.returncode}):\n{last_lines}"
             
     except Exception as e:
@@ -614,6 +652,7 @@ def run_hpo_script(req: HPOResquest):
     finally:
         hpo_state["is_tuning"] = False
         hpo_state["current_model"] = None
+        hpo_state["pid"] = None
 
 @app.get("/api/hpo/status")
 def get_hpo_status():
@@ -625,6 +664,20 @@ def start_hpo(req: HPOResquest, background_tasks: BackgroundTasks):
         raise HTTPException(status_code=400, detail=f"A tuning job is already running for {hpo_state['current_model']}.")
     background_tasks.add_task(run_hpo_script, req)
     return {"message": "Hyperparameter tuning started."}
+
+@app.post("/api/hpo/cancel")
+def cancel_hpo():
+    pid = hpo_state.get("pid")
+    if not pid:
+        raise HTTPException(status_code=400, detail="No HPO process is running.")
+    try:
+        os.killpg(os.getpgid(pid), signal.SIGTERM)
+    except (ProcessLookupError, PermissionError):
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    return {"message": "HPO cancellation requested."}
 
 # --- Dataset Explorer Endpoint ---
 @app.get("/api/dataset/{split}")
@@ -844,6 +897,20 @@ def start_evaluation(background_tasks: BackgroundTasks):
     background_tasks.add_task(run_evaluation_script)
     return {"message": "Evaluation started."}
 
+@app.post("/api/evaluate/cancel")
+def cancel_evaluation():
+    pid = evaluation_state.get("pid")
+    if not pid:
+        raise HTTPException(status_code=400, detail="No evaluation process is running.")
+    try:
+        os.killpg(os.getpgid(pid), signal.SIGTERM)
+    except (ProcessLookupError, PermissionError):
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    return {"message": "Evaluation cancellation requested."}
+
 @app.get("/api/models", response_model=ModelsResponse)
 def get_models():
     if not os.path.isdir(SAVED_MODELS_DIR):
@@ -861,6 +928,20 @@ def start_training(req: TrainingRequest, background_tasks: BackgroundTasks):
         raise HTTPException(status_code=400, detail="A model is already being trained.")
     background_tasks.add_task(run_training_script, req)
     return {"message": "Training started."}
+
+@app.post("/api/train/cancel")
+def cancel_training():
+    pid = training_state.get("pid")
+    if not pid:
+        raise HTTPException(status_code=400, detail="No training process is running.")
+    try:
+        os.killpg(os.getpgid(pid), signal.SIGTERM)
+    except (ProcessLookupError, PermissionError):
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    return {"message": "Training cancellation requested."}
 
 @app.get("/api/performance")
 def get_performance():
