@@ -54,9 +54,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-SAVED_MODELS_DIR = os.path.join(PROJ_DIR, "out", "saved_models")
+SAVED_MODELS_DIR = os.path.join(PROJ_DIR, "code", "out", "saved_models")
 CSV_PATH = os.path.join(SRC_DIR, "csv", "model_performances.csv")
-LOSSES_DIR = os.path.join(PROJ_DIR, "out", "losses")
+LOSSES_DIR = os.path.join(PROJ_DIR, "code", "out", "losses")
 
 class ModelInfo(BaseModel):
     filename: str
