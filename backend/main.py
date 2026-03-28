@@ -8,6 +8,7 @@ os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
 import io
 import base64
 import subprocess
+import shutil
 import json
 import random
 from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks, HTTPException
@@ -23,6 +24,19 @@ SRC_DIR = os.path.join(PROJ_DIR, "code", "src")
 sys.path.insert(0, SRC_DIR)
 
 from clases.model_utils import get_model, load_model_with_hyperparams
+
+# sys.executable may point to an Electron app (e.g. Cursor) when launched
+# from an IDE terminal, so resolve the real Python interpreter.
+def _find_python() -> str:
+    if os.path.basename(sys.executable).startswith("python"):
+        return sys.executable
+    for name in ("python3", "python"):
+        path = shutil.which(name)
+        if path:
+            return path
+    return "python3"
+
+PYTHON = _find_python()
 import torch
 from torchvision import transforms
 from torchvision.utils import draw_bounding_boxes
@@ -103,7 +117,7 @@ def run_training_script(req: TrainingRequest):
     
     try:
         process = subprocess.Popen(
-            [sys.executable, script_path, req.model_name, json.dumps(params)],
+            [PYTHON, script_path, req.model_name, json.dumps(params)],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True
@@ -157,7 +171,7 @@ def run_evaluation_script():
     
     try:
         process = subprocess.Popen(
-            [sys.executable, script_path],
+            [PYTHON, script_path],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True
@@ -180,6 +194,139 @@ def run_evaluation_script():
         evaluation_state["message"] = f"Error during evaluation: {str(e)}"
     finally:
         evaluation_state["is_evaluating"] = False
+
+# --- Dataset Preparation State ---
+prep_state = {
+    "is_running": False,
+    "message": "Idle",
+}
+
+def run_prepare_cyclegan():
+    """Generate masks from annotations, then copy into CycleGAN folder structure."""
+    global prep_state
+    import cv2
+    import numpy as np
+    import glob as globmod
+    from clases.custom_dataset import parse_annotation
+
+    prep_state["is_running"] = True
+    prep_state["message"] = "Starting dataset preparation..."
+
+    data_root = os.path.join(PROJ_DIR, "code", "data")
+    splits = [
+        ("TrainValid", "train"),
+        ("Test", "test"),
+    ]
+
+    try:
+        # Step 1: Generate masks from bounding-box annotations
+        total_masks = 0
+        for split_dir, _ in splits:
+            root = os.path.join(data_root, split_dir)
+            images_root = os.path.join(root, "Images")
+            ann_root = os.path.join(root, "Annotations")
+            masks_root = os.path.join(root, "Masks")
+
+            if not os.path.isdir(images_root) or not os.path.isdir(ann_root):
+                prep_state["message"] = f"Skipping {split_dir}: Images or Annotations folder missing."
+                continue
+
+            for video_id in sorted(os.listdir(images_root)):
+                img_dir = os.path.join(images_root, video_id)
+                ann_dir = os.path.join(ann_root, video_id)
+                mask_dir = os.path.join(masks_root, video_id)
+                if not os.path.isdir(img_dir):
+                    continue
+
+                os.makedirs(mask_dir, exist_ok=True)
+                for fname in os.listdir(img_dir):
+                    if not fname.lower().endswith(".jpg"):
+                        continue
+                    img_path = os.path.join(img_dir, fname)
+                    ann_path = os.path.join(ann_dir, fname.replace(".jpg", ".txt"))
+                    if not os.path.isfile(ann_path):
+                        continue
+
+                    img = cv2.imread(img_path)
+                    if img is None:
+                        continue
+
+                    bboxes = parse_annotation(ann_path)
+                    mask = np.zeros(img.shape[:2], dtype=np.uint8)
+                    for x1, y1, x2, y2 in bboxes:
+                        mask[y1:y2, x1:x2] = 255
+
+                    mask_name = os.path.splitext(fname)[0] + "_mask.png"
+                    cv2.imwrite(os.path.join(mask_dir, mask_name), mask)
+                    total_masks += 1
+
+                    if total_masks % 500 == 0:
+                        prep_state["message"] = f"Step 1/2 — Generated {total_masks:,} masks..."
+
+        prep_state["message"] = f"Step 1/2 done — {total_masks:,} masks generated. Copying to CycleGAN structure..."
+
+        # Step 2: Copy into PolypDataset and PolypDatasetSPADE
+        import shutil as sh
+        targets = ["PolypDataset", "PolypDatasetSPADE"]
+        total_copied = 0
+
+        for target_name in targets:
+            target_root = os.path.join(data_root, target_name)
+            for split_dir, mode in splits:
+                root = os.path.join(data_root, split_dir)
+                images_root = os.path.join(root, "Images")
+                masks_root = os.path.join(root, "Masks")
+
+                dir_a = os.path.join(target_root, f"{mode}A")
+                dir_b = os.path.join(target_root, f"{mode}B")
+                os.makedirs(dir_a, exist_ok=True)
+                os.makedirs(dir_b, exist_ok=True)
+
+                if not os.path.isdir(images_root) or not os.path.isdir(masks_root):
+                    continue
+
+                for video_id in sorted(os.listdir(masks_root)):
+                    mask_dir = os.path.join(masks_root, video_id)
+                    img_dir = os.path.join(images_root, video_id)
+                    if not os.path.isdir(mask_dir):
+                        continue
+
+                    for mask_file in os.listdir(mask_dir):
+                        if not mask_file.endswith(".png"):
+                            continue
+                        flat_name = mask_file.replace("_mask", "")
+                        sh.copy2(os.path.join(mask_dir, mask_file), os.path.join(dir_a, f"{video_id}_{flat_name}"))
+                        total_copied += 1
+
+                    if os.path.isdir(img_dir):
+                        for img_file in os.listdir(img_dir):
+                            if not img_file.lower().endswith(".jpg"):
+                                continue
+                            sh.copy2(os.path.join(img_dir, img_file), os.path.join(dir_b, f"{video_id}_{img_file}"))
+                            total_copied += 1
+
+                    if total_copied % 2000 == 0:
+                        prep_state["message"] = f"Step 2/2 — Copied {total_copied:,} files..."
+
+        prep_state["message"] = (
+            f"Done! Generated {total_masks:,} masks and copied {total_copied:,} files "
+            f"into PolypDataset and PolypDatasetSPADE."
+        )
+    except Exception as e:
+        prep_state["message"] = f"Error: {str(e)}"
+    finally:
+        prep_state["is_running"] = False
+
+@app.get("/api/prepare/status")
+def get_prepare_status():
+    return prep_state
+
+@app.post("/api/prepare")
+def start_prepare(background_tasks: BackgroundTasks):
+    if prep_state["is_running"]:
+        raise HTTPException(status_code=400, detail="Preparation is already running.")
+    background_tasks.add_task(run_prepare_cyclegan)
+    return {"message": "Dataset preparation started."}
 
 # --- Generative Augmentation State ---
 gen_state = {
@@ -253,7 +400,7 @@ def run_generative_script(req: GenRequest):
 
     try:
         process = subprocess.Popen(
-            [sys.executable, script_path] + cmd_args,
+            [PYTHON, script_path] + cmd_args,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True
@@ -411,7 +558,7 @@ def run_hpo_script(req: HPOResquest):
     
     try:
         process = subprocess.Popen(
-            [sys.executable, script_path, req.model_name, "--n-trials", str(req.num_trials)],
+            [PYTHON, script_path, req.model_name, "--n-trials", str(req.num_trials)],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True

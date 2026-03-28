@@ -166,30 +166,52 @@ export default function DatasetExplorer() {
     const allFiles: { file: File; path: string }[] = [];
     let scanned = 0;
 
-    const entries: FileSystemEntry[] = [];
+    const topEntries: FileSystemEntry[] = [];
     for (let i = 0; i < items.length; i++) {
       const entry = items[i].webkitGetAsEntry?.();
-      if (entry) entries.push(entry);
+      if (entry) topEntries.push(entry);
     }
 
-    if (entries.length === 0) {
+    if (topEntries.length === 0) {
       setUploadProgress({ phase: 'error', scanned: 0, total: 0, completed: 0, message: 'Could not read dropped items. Try using the "Browse Folders" button instead.' });
       return;
     }
 
-    const hasValidRoot = entries.some(e => e.isDirectory && ALLOWED_ROOTS.includes(e.name));
-    if (!hasValidRoot) {
-      const names = entries.map(e => e.name).join(', ');
+    // Collect entries to scan: either direct allowed-root folders,
+    // or look one level deeper inside parent folders for them.
+    const entriesToScan: FileSystemEntry[] = [];
+
+    for (const entry of topEntries) {
+      if (!entry.isDirectory) continue;
+
+      if (ALLOWED_ROOTS.includes(entry.name)) {
+        entriesToScan.push(entry);
+      } else {
+        // Parent folder — look for allowed children inside it
+        const children = await readAllEntries(
+          (entry as FileSystemDirectoryEntry).createReader()
+        );
+        for (const child of children) {
+          if (child.isDirectory && ALLOWED_ROOTS.includes(child.name)) {
+            entriesToScan.push(child);
+          }
+        }
+      }
+    }
+
+    if (entriesToScan.length === 0) {
+      const names = topEntries.map(e => e.name).join(', ');
       setUploadProgress({
         phase: 'error', scanned: 0, total: 0, completed: 0,
-        message: `Dropped "${names}" — expected a folder named ${ALLOWED_ROOTS.join(', ')}. If your folder contains these subfolders, drop them individually.`
+        message: `Dropped "${names}" — no TrainValid, Test, PolypDataset, or PolypDatasetSPADE folder found inside.`
       });
       return;
     }
 
-    for (const entry of entries) {
-      if (!entry.isDirectory || !ALLOWED_ROOTS.includes(entry.name)) continue;
+    const foundNames = entriesToScan.map(e => e.name).join(', ');
+    setUploadProgress(prev => prev ? { ...prev, message: `Found ${foundNames}. Scanning files...` } : null);
 
+    for (const entry of entriesToScan) {
       const files = await traverseEntry(entry, '', () => {
         scanned++;
         if (scanned % 200 === 0) {
@@ -219,10 +241,19 @@ export default function DatasetExplorer() {
       const relativePath = (file as any).webkitRelativePath as string;
       if (!relativePath) continue;
 
-      const topFolder = relativePath.split('/')[0];
-      if (!ALLOWED_ROOTS.includes(topFolder)) continue;
+      const parts = relativePath.split('/');
 
-      allFiles.push({ file, path: relativePath });
+      // Direct match: TrainValid/Images/100/0001.jpg
+      if (ALLOWED_ROOTS.includes(parts[0])) {
+        allFiles.push({ file, path: relativePath });
+        continue;
+      }
+
+      // Parent folder selected: MyData/TrainValid/Images/100/0001.jpg
+      // Strip the parent and keep from the allowed root onward
+      if (parts.length >= 2 && ALLOWED_ROOTS.includes(parts[1])) {
+        allFiles.push({ file, path: parts.slice(1).join('/') });
+      }
     }
 
     if (allFiles.length === 0) {

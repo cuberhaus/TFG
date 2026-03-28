@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Play, Sparkles, CheckCircle, AlertCircle, RefreshCw, Image as ImageIcon } from 'lucide-react';
+import { Play, Sparkles, CheckCircle, AlertCircle, RefreshCw, Image as ImageIcon, Wand2 } from 'lucide-react';
 
 interface GenStatus {
   is_running: boolean;
   current_task: string | null;
+  message: string;
+}
+
+interface PrepStatus {
+  is_running: boolean;
   message: string;
 }
 
@@ -17,7 +22,6 @@ interface GenImage {
 export default function GenerativeAugmentation() {
   const [taskType, setTaskType] = useState('train_cyclegan');
   const [experimentName, setExperimentName] = useState('');
-  // Mapping of Experiment Name -> Array of Available Epoch Strings
   const [availableExperiments, setAvailableExperiments] = useState<Record<string, string[]>>({});
   const [epoch, setEpoch] = useState('latest');
   
@@ -27,6 +31,9 @@ export default function GenerativeAugmentation() {
     message: 'Idle'
   });
   const [error, setError] = useState<string | null>(null);
+
+  const [prepStatus, setPrepStatus] = useState<PrepStatus>({ is_running: false, message: 'Idle' });
+  const [prepError, setPrepError] = useState<string | null>(null);
   
   // Gallery state
   const [showGallery, setShowGallery] = useState(false);
@@ -41,6 +48,25 @@ export default function GenerativeAugmentation() {
       setStatus(response.data);
     } catch (err) {
       console.error("Failed to fetch generation status:", err);
+    }
+  };
+
+  const fetchPrepStatus = async () => {
+    try {
+      const response = await axios.get('http://localhost:8082/api/prepare/status');
+      setPrepStatus(response.data);
+    } catch (err) {
+      console.error("Failed to fetch preparation status:", err);
+    }
+  };
+
+  const handleStartPreparation = async () => {
+    setPrepError(null);
+    try {
+      await axios.post('http://localhost:8082/api/prepare');
+      fetchPrepStatus();
+    } catch (err: any) {
+      setPrepError(err.response?.data?.detail || "Failed to start dataset preparation.");
     }
   };
 
@@ -79,9 +105,12 @@ export default function GenerativeAugmentation() {
 
   useEffect(() => {
     fetchStatus();
+    fetchPrepStatus();
     fetchExperiments();
-    // Poll more frequently to get real-time terminal feel
-    const interval = setInterval(fetchStatus, 1500);
+    const interval = setInterval(() => {
+      fetchStatus();
+      fetchPrepStatus();
+    }, 1500);
     return () => clearInterval(interval);
   }, []);
 
@@ -133,6 +162,62 @@ export default function GenerativeAugmentation() {
            </button>
         )}
       </div>
+
+      {/* Dataset Preparation Section */}
+      {(prepStatus.is_running || prepStatus.message !== 'Idle') && (
+        <div className={`rounded-xl border p-5 ${
+          prepStatus.is_running
+            ? 'bg-amber-900/20 border-amber-800'
+            : prepStatus.message.startsWith('Error')
+            ? 'bg-red-900/20 border-red-800'
+            : 'bg-green-900/20 border-green-800'
+        }`}>
+          <div className="flex items-center gap-3">
+            {prepStatus.is_running ? (
+              <RefreshCw className="w-5 h-5 text-amber-400 animate-spin flex-shrink-0" />
+            ) : prepStatus.message.startsWith('Error') ? (
+              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+            ) : (
+              <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+            )}
+            <span className={`text-sm font-medium ${
+              prepStatus.is_running ? 'text-amber-300'
+                : prepStatus.message.startsWith('Error') ? 'text-red-300'
+                : 'text-green-300'
+            }`}>
+              {prepStatus.message}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {!showGallery && !status.is_running && (
+        <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 flex items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <Wand2 className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <h3 className="text-sm font-medium text-gray-200">Prepare CycleGAN Dataset</h3>
+              <p className="text-xs text-gray-400 mt-1">
+                Generate binary masks from bounding box annotations and copy images + masks into the CycleGAN folder structure (PolypDataset &amp; PolypDatasetSPADE).
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleStartPreparation}
+            disabled={prepStatus.is_running}
+            className="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shadow-lg"
+          >
+            {prepStatus.is_running ? (
+              <><RefreshCw className="w-4 h-4 animate-spin" /> Preparing...</>
+            ) : (
+              <><Wand2 className="w-4 h-4" /> Prepare Dataset</>
+            )}
+          </button>
+          {prepError && (
+            <span className="text-xs text-red-400">{prepError}</span>
+          )}
+        </div>
+      )}
 
       {showGallery ? (
         <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
