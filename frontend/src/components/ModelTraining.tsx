@@ -178,7 +178,7 @@ export default function ModelTraining() {
                 type="number" 
                 min="1"
                 value={batchSize}
-                onChange={(e) => setBatchSize(parseInt(e.target.value))}
+                onChange={(e) => setBatchSize(parseInt(e.target.value) || 1)}
                 className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white outline-none focus:border-blue-500"
               />
             </div>
@@ -190,7 +190,7 @@ export default function ModelTraining() {
                 step="0.001"
                 min="0.0001"
                 value={learningRate}
-                onChange={(e) => setLearningRate(parseFloat(e.target.value))}
+                onChange={(e) => setLearningRate(parseFloat(e.target.value) || 0.0001)}
                 className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white outline-none focus:border-blue-500"
               />
             </div>
@@ -202,7 +202,7 @@ export default function ModelTraining() {
                 step="0.0001"
                 min="0"
                 value={weightDecay}
-                onChange={(e) => setWeightDecay(parseFloat(e.target.value))}
+                onChange={(e) => setWeightDecay(parseFloat(e.target.value) || 0.0001)}
                 className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white outline-none focus:border-blue-500"
               />
             </div>
@@ -213,7 +213,7 @@ export default function ModelTraining() {
                 type="number" 
                 min="1"
                 value={numEpochs}
-                onChange={(e) => setNumEpochs(parseInt(e.target.value))}
+                onChange={(e) => setNumEpochs(parseInt(e.target.value) || 1)}
                 className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white outline-none focus:border-blue-500"
               />
             </div>

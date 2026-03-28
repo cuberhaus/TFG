@@ -22,6 +22,8 @@ frontend:
 install:
 	@echo "Installing backend dependencies..."
 	cd backend && pip install -r requirements.txt
+	@echo "Installing ML/code dependencies..."
+	cd code && pip install -r requirements.txt
 	@echo "Installing frontend dependencies..."
 	cd frontend && npm install
 

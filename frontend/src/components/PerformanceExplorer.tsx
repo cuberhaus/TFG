@@ -92,7 +92,7 @@ export default function PerformanceExplorer() {
         <h3 className="text-lg font-medium mb-4 text-center">Detection Metrics by Configuration</h3>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
-            data={data.slice(0, 10)} // Show top 10 to avoid clutter
+            data={[...data].sort((a, b) => (b.F1 || 0) - (a.F1 || 0)).slice(0, 10)}
             margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#4b5563" />

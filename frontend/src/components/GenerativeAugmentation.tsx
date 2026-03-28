@@ -428,17 +428,17 @@ export default function GenerativeAugmentation() {
                         <div className="mt-4 border-t border-gray-700 pt-4 grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">Batch Size</label>
-                            <input type="number" min="1" value={cganBatchSize} onChange={(e) => setCganBatchSize(parseInt(e.target.value))}
+                            <input type="number" min="1" value={cganBatchSize} onChange={(e) => setCganBatchSize(parseInt(e.target.value) || 1)}
                               className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">Epochs</label>
-                            <input type="number" min="1" value={cganEpochs} onChange={(e) => setCganEpochs(parseInt(e.target.value))}
+                            <input type="number" min="1" value={cganEpochs} onChange={(e) => setCganEpochs(parseInt(e.target.value) || 1)}
                               className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">Learning Rate</label>
-                            <input type="number" step="0.0001" min="0.00001" value={cganLr} onChange={(e) => setCganLr(parseFloat(e.target.value))}
+                            <input type="number" step="0.0001" min="0.00001" value={cganLr} onChange={(e) => setCganLr(parseFloat(e.target.value) || 0.0001)}
                               className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
                           </div>
                           <div>
@@ -453,12 +453,12 @@ export default function GenerativeAugmentation() {
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">Load Size</label>
-                            <input type="number" min="64" value={cganLoadSize} onChange={(e) => setCganLoadSize(parseInt(e.target.value))}
+                            <input type="number" min="64" value={cganLoadSize} onChange={(e) => setCganLoadSize(parseInt(e.target.value) || 64)}
                               className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">Crop Size</label>
-                            <input type="number" min="64" value={cganCropSize} onChange={(e) => setCganCropSize(parseInt(e.target.value))}
+                            <input type="number" min="64" value={cganCropSize} onChange={(e) => setCganCropSize(parseInt(e.target.value) || 64)}
                               className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
                           </div>
                           <div className="col-span-2">
@@ -547,23 +547,23 @@ export default function GenerativeAugmentation() {
                         <div className="mt-4 border-t border-gray-700 pt-4 grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">Batch Size</label>
-                            <input type="number" min="1" value={spadeBatchSize} onChange={(e) => setSpadeBatchSize(parseInt(e.target.value))}
+                            <input type="number" min="1" value={spadeBatchSize} onChange={(e) => setSpadeBatchSize(parseInt(e.target.value) || 1)}
                               className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">Learning Rate</label>
-                            <input type="number" step="0.0001" min="0.00001" value={spadeLr} onChange={(e) => setSpadeLr(parseFloat(e.target.value))}
+                            <input type="number" step="0.0001" min="0.00001" value={spadeLr} onChange={(e) => setSpadeLr(parseFloat(e.target.value) || 0.0001)}
                               className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">Epochs (niter)</label>
-                            <input type="number" min="1" value={spadeNiter} onChange={(e) => setSpadeNiter(parseInt(e.target.value))}
+                            <input type="number" min="1" value={spadeNiter} onChange={(e) => setSpadeNiter(parseInt(e.target.value) || 1)}
                               className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
                             <p className="text-[10px] text-gray-500 mt-0.5">Epochs at initial LR</p>
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">Decay Epochs</label>
-                            <input type="number" min="0" value={spadeNiterDecay} onChange={(e) => setSpadeNiterDecay(parseInt(e.target.value))}
+                            <input type="number" min="0" value={spadeNiterDecay} onChange={(e) => setSpadeNiterDecay(parseInt(e.target.value) || 0)}
                               className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
                             <p className="text-[10px] text-gray-500 mt-0.5">Epochs to decay LR to 0</p>
                           </div>
@@ -577,13 +577,13 @@ export default function GenerativeAugmentation() {
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">Load Size</label>
-                            <input type="number" min="64" value={spadeLoadSize} onChange={(e) => setSpadeLoadSize(parseInt(e.target.value))}
+                            <input type="number" min="64" value={spadeLoadSize} onChange={(e) => setSpadeLoadSize(parseInt(e.target.value) || 64)}
                               className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
                           </div>
                           <div className="col-span-2 grid grid-cols-2 gap-3">
                             <div>
                               <label className="block text-xs font-medium text-gray-400 mb-1">Crop Size</label>
-                              <input type="number" min="64" value={spadeCropSize} onChange={(e) => setSpadeCropSize(parseInt(e.target.value))}
+                              <input type="number" min="64" value={spadeCropSize} onChange={(e) => setSpadeCropSize(parseInt(e.target.value) || 64)}
                                 className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
                             </div>
                             <div>

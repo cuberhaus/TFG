@@ -28,9 +28,7 @@ def main():
         print(f"Error: JSON file not found at {json_file}")
         sys.exit(1)
 
-    debug_flag = ""
-    if len(sys.argv) == 3 and sys.argv[2] == "--debug":
-        debug_flag = "--debug"
+    debug = len(sys.argv) == 3 and sys.argv[2] == "--debug"
 
     for entry in data:
         model_name = entry['model_name']
@@ -41,7 +39,10 @@ def main():
 
         train_and_save_model_script = os.path.join(SCRIPT_DIR, "train_and_save_model.py")
 
-        subprocess.run(["python3", train_and_save_model_script, model_name, params, debug_flag])
+        cmd = ["python3", train_and_save_model_script, model_name, params]
+        if debug:
+            cmd.append("--debug")
+        subprocess.run(cmd)
 
 
 if __name__ == "__main__":

@@ -36,6 +36,12 @@ export default function InferenceUI() {
     fetchModels();
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
@@ -153,7 +159,7 @@ export default function InferenceUI() {
             type="range" 
             min="0" max="1" step="0.05"
             value={confidence}
-            onChange={(e) => setConfidence(parseFloat(e.target.value))}
+            onChange={(e) => setConfidence(parseFloat(e.target.value) || 0.5)}
             className="w-full"
           />
         </div>

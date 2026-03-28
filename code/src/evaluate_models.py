@@ -58,8 +58,7 @@ for model_filename in model_filenames:
 
     model_name = model_filename.split('_')[0]
     model = get_model(model_name, num_classes=2)
-    full_model_path = os.path.join(MODEL_DIR, model_filename)
-    model, _, _ = load_model_with_hyperparams(model, full_model_path, load_dir=MODEL_DIR)
+    model, _, _ = load_model_with_hyperparams(model, model_filename, load_dir=MODEL_DIR)
 
     # Evaluate the model
     model.to(device)

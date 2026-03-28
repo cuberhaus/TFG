@@ -206,7 +206,7 @@ export default function HyperparameterTuning() {
                     max="50"
                     step="1"
                     value={numTrials}
-                    onChange={(e) => setNumTrials(parseInt(e.target.value))}
+                    onChange={(e) => setNumTrials(parseInt(e.target.value) || 1)}
                     className="w-full accent-emerald-500 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
                   />
                   <div className="flex justify-between text-xs text-gray-500 mt-2">
@@ -240,7 +240,7 @@ export default function HyperparameterTuning() {
                       min="1"
                       max="100"
                       value={debug ? 1 : maxEpochs}
-                      onChange={(e) => setMaxEpochs(parseInt(e.target.value))}
+                      onChange={(e) => setMaxEpochs(parseInt(e.target.value) || 1)}
                       disabled={debug}
                       className={`w-full bg-gray-900 border rounded-lg px-4 py-3 text-white outline-none transition-colors ${
                         debug ? 'border-yellow-700/50 cursor-not-allowed' : 'border-gray-600 focus:border-emerald-500'

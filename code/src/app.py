@@ -226,9 +226,8 @@ with tab_infer:
                     with st.spinner("Loading model and running inference..."):
                         num_classes = 2
                         model = get_model(model_arch, num_classes)
-                        model_path = os.path.join(model_dir, model_file)
                         model, _, _ = load_model_with_hyperparams(
-                            model, model_path, load_dir=model_dir
+                            model, model_file, load_dir=model_dir
                         )
                         device = torch.device(
                             "cuda" if torch.cuda.is_available() else "cpu"

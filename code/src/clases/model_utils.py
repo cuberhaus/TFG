@@ -187,6 +187,8 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
             f1_score = 0.0
         metric_value = f1_score
 
+        epoch_losses.append(epoch_loss)
+
         if metric_value > best_metric:
             print(str(metric_choice) + " : " + str(metric_value))
             best_metric = metric_value
@@ -206,13 +208,12 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
             )
 
         print(f'Epoch [{epoch + 1}/{num_epochs}], Loss: {epoch_loss:.4f}')
-        epoch_losses.append(epoch_loss)
         lr_scheduler.step()
 
         for param_group in optimizer.param_groups:
             print(f'Learning Rate: {param_group["lr"]:.6f}')
 
-    return model, epoch_losses, batch_losses, epoch, saved_model_path, metric_value
+    return model, epoch_losses, batch_losses, epoch, saved_model_path, best_metric
 
 
 def convert_to_coco_format(box):
@@ -242,7 +243,7 @@ def create_default_predictions(image_ids):
     for image_id in image_ids:
         default_pred = {
             "image_id": image_id,
-            "category_id": 0,  # or -1
+            "category_id": 1,
             "bbox": [0, 0, 0, 0],
             "score": 0.0
         }

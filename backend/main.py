@@ -482,7 +482,10 @@ def run_generative_script(req: GenRequest):
                 gen_state["current_task"] = None
                 return
     except Exception as e:
-        print(f"Error checking directories: {e}")
+        gen_state["message"] = f"Error checking directories: {e}"
+        gen_state["is_running"] = False
+        gen_state["current_task"] = None
+        return
 
     _run_subprocess([PYTHON, "-u", script_path] + cmd_args, gen_state, req.task_type,
                     running_key="is_running", model_key="current_task", max_lines=20)
@@ -529,11 +532,15 @@ def get_generation_results(experiment: str = None, epoch: str = "latest"):
             return {"images": []}
         experiment = experiments[0]
         
-    exp_dir = os.path.join(results_dir, experiment)
+    exp_dir = os.path.realpath(os.path.join(results_dir, experiment))
+    if not exp_dir.startswith(os.path.realpath(results_dir) + os.sep):
+        return {"images": []}
     if not os.path.isdir(exp_dir):
         return {"images": []}
         
-    test_dir = os.path.join(exp_dir, f"test_{epoch}")
+    test_dir = os.path.realpath(os.path.join(exp_dir, f"test_{epoch}"))
+    if not test_dir.startswith(os.path.realpath(results_dir) + os.sep):
+        return {"images": []}
     if not os.path.isdir(test_dir):
         # try to find any test_ folder
         test_folders = [f for f in os.listdir(exp_dir) if f.startswith("test_") and os.path.isdir(os.path.join(exp_dir, f))]
@@ -654,10 +661,13 @@ def get_hpo_results():
     results_path = os.path.join(PROJ_DIR, "code", "out", "hpo_results.json")
     if not os.path.exists(results_path):
         return {"found": False}
-    with open(results_path, "r") as f:
-        data = json.load(f)
-    data["found"] = True
-    return data
+    try:
+        with open(results_path, "r") as f:
+            data = json.load(f)
+        data["found"] = True
+        return data
+    except (json.JSONDecodeError, OSError) as e:
+        raise HTTPException(status_code=500, detail=f"Could not read HPO results: {e}")
 
 # --- Dataset Explorer Endpoint ---
 @app.get("/api/dataset/{split}")
@@ -921,25 +931,28 @@ def get_performance():
     if not os.path.exists(CSV_PATH):
         return {"data": [], "source_path": CSV_PATH}
     
-    df = pd.read_csv(CSV_PATH)
-    
-    def _f1(row):
-        ap, ar = row.get("AP_50_95_all", 0), row.get("AR_50_95_all_maxDets_100", 0)
-        return 2 * ap * ar / (ap + ar) if (ap + ar) > 0 else 0.0
+    try:
+        df = pd.read_csv(CSV_PATH)
         
-    df["F1"] = df.apply(_f1, axis=1)
-    df["LR_fmt"] = df["LR"].map(lambda x: f"{x:.2e}")
-    df["Config"] = (
-        df["Model"]
-        + " bs="
-        + df["BATCH_SIZE"].astype(str)
-        + " lr="
-        + df["LR_fmt"]
-        + " ep="
-        + df["NUM_EPOCHS"].astype(str)
-    )
-    
-    return {"data": df.to_dict(orient="records"), "source_path": CSV_PATH}
+        def _f1(row):
+            ap, ar = row.get("AP_50_95_all", 0), row.get("AR_50_95_all_maxDets_100", 0)
+            return 2 * ap * ar / (ap + ar) if (ap + ar) > 0 else 0.0
+            
+        df["F1"] = df.apply(_f1, axis=1)
+        df["LR_fmt"] = df["LR"].map(lambda x: f"{x:.2e}")
+        df["Config"] = (
+            df["Model"]
+            + " bs="
+            + df["BATCH_SIZE"].astype(str)
+            + " lr="
+            + df["LR_fmt"]
+            + " ep="
+            + df["NUM_EPOCHS"].astype(str)
+        )
+        
+        return {"data": df.to_dict(orient="records"), "source_path": CSV_PATH}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error reading performance data: {e}")
 
 _model_cache = {}
 
@@ -980,8 +993,11 @@ def predict(
     model_file: str = Form(...),
     confidence: float = Form(0.5)
 ):
-    contents = file.file.read()
-    img = Image.open(io.BytesIO(contents)).convert("RGB")
+    try:
+        contents = file.file.read()
+        img = Image.open(io.BytesIO(contents)).convert("RGB")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid or corrupt image file.")
 
     model, device = _get_cached_model(model_arch, model_file)
     use_amp = device.type == 'cuda'
