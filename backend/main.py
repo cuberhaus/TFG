@@ -385,6 +385,7 @@ class GenRequest(BaseModel):
     task_type: str
     experiment_name: Optional[str] = "mask2polyp"
     epoch: Optional[str] = "latest"
+    # CycleGAN params
     batch_size: Optional[int] = 4
     n_epochs: Optional[int] = 5
     lr: Optional[float] = 0.0002
@@ -392,6 +393,15 @@ class GenRequest(BaseModel):
     load_size: Optional[int] = 286
     crop_size: Optional[int] = 256
     max_dataset_size: Optional[int] = None
+    # SPADE params
+    spade_batch_size: Optional[int] = 1
+    spade_niter: Optional[int] = 50
+    spade_niter_decay: Optional[int] = 0
+    spade_lr: Optional[float] = 0.0002
+    spade_netG: Optional[str] = "spade"
+    spade_load_size: Optional[int] = 1024
+    spade_crop_size: Optional[int] = 512
+    spade_max_dataset_size: Optional[int] = None
 
 def run_generative_script(req: GenRequest):
     global gen_state
@@ -421,6 +431,17 @@ def run_generative_script(req: GenRequest):
             cmd_args.extend(["--epoch", req.epoch])
     elif req.task_type == "train_spade":
         script_name = "spade_train.py"
+        cmd_args.extend([
+            "--batch-size", str(req.spade_batch_size),
+            "--niter", str(req.spade_niter),
+            "--niter-decay", str(req.spade_niter_decay),
+            "--lr", str(req.spade_lr),
+            "--netG", req.spade_netG,
+            "--load-size", str(req.spade_load_size),
+            "--crop-size", str(req.spade_crop_size),
+        ])
+        if req.spade_max_dataset_size is not None:
+            cmd_args.extend(["--max-dataset-size", str(req.spade_max_dataset_size)])
     else:
         gen_state["message"] = f"Unknown task type: {req.task_type}"
         gen_state["is_running"] = False

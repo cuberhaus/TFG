@@ -32,6 +32,15 @@ export default function GenerativeAugmentation() {
   const [cganLoadSize, setCganLoadSize] = useState(286);
   const [cganCropSize, setCganCropSize] = useState(256);
   const [cganMaxDataset, setCganMaxDataset] = useState<number | ''>('');
+
+  const [spadeBatchSize, setSpadeBatchSize] = useState(1);
+  const [spadeNiter, setSpadeNiter] = useState(50);
+  const [spadeNiterDecay, setSpadeNiterDecay] = useState(0);
+  const [spadeLr, setSpadeLr] = useState(0.0002);
+  const [spadeNetG, setSpadeNetG] = useState('spade');
+  const [spadeLoadSize, setSpadeLoadSize] = useState(1024);
+  const [spadeCropSize, setSpadeCropSize] = useState(512);
+  const [spadeMaxDataset, setSpadeMaxDataset] = useState<number | ''>('');
   
   const [status, setStatus] = useState<GenStatus>({
     is_running: false,
@@ -170,6 +179,16 @@ export default function GenerativeAugmentation() {
           load_size: cganLoadSize,
           crop_size: cganCropSize,
           ...(cganMaxDataset ? { max_dataset_size: cganMaxDataset } : {}),
+        } : {}),
+        ...(taskType === 'train_spade' ? {
+          spade_batch_size: spadeBatchSize,
+          spade_niter: spadeNiter,
+          spade_niter_decay: spadeNiterDecay,
+          spade_lr: spadeLr,
+          spade_netG: spadeNetG,
+          spade_load_size: spadeLoadSize,
+          spade_crop_size: spadeCropSize,
+          ...(spadeMaxDataset ? { spade_max_dataset_size: spadeMaxDataset } : {}),
         } : {}),
       });
       fetchStatus();
@@ -520,12 +539,67 @@ export default function GenerativeAugmentation() {
                 <label className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${taskType === 'train_spade' ? 'border-purple-500 bg-purple-900/10' : 'border-gray-700 bg-gray-800 hover:bg-gray-750'}`}>
                   <input type="radio" name="task" value="train_spade" className="sr-only" checked={taskType === 'train_spade'} onChange={(e) => setTaskType(e.target.value)} />
                   <span className="flex flex-1">
-                    <span className="flex flex-col">
+                    <span className="flex flex-col w-full">
                       <span className="block text-sm font-medium text-gray-100">Train SPADE</span>
                       <span className="mt-1 flex items-center text-sm text-gray-400">Train a Spatially-Adaptive Normalization (SPADE) model for high-fidelity image synthesis from semantic layouts.</span>
+
+                      {taskType === 'train_spade' && (
+                        <div className="mt-4 border-t border-gray-700 pt-4 grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Batch Size</label>
+                            <input type="number" min="1" value={spadeBatchSize} onChange={(e) => setSpadeBatchSize(parseInt(e.target.value))}
+                              className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Learning Rate</label>
+                            <input type="number" step="0.0001" min="0.00001" value={spadeLr} onChange={(e) => setSpadeLr(parseFloat(e.target.value))}
+                              className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Epochs (niter)</label>
+                            <input type="number" min="1" value={spadeNiter} onChange={(e) => setSpadeNiter(parseInt(e.target.value))}
+                              className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
+                            <p className="text-[10px] text-gray-500 mt-0.5">Epochs at initial LR</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Decay Epochs</label>
+                            <input type="number" min="0" value={spadeNiterDecay} onChange={(e) => setSpadeNiterDecay(parseInt(e.target.value))}
+                              className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
+                            <p className="text-[10px] text-gray-500 mt-0.5">Epochs to decay LR to 0</p>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Generator</label>
+                            <select value={spadeNetG} onChange={(e) => setSpadeNetG(e.target.value)}
+                              className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500">
+                              <option value="spade">SPADE</option>
+                              <option value="pix2pixhd">Pix2PixHD</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Load Size</label>
+                            <input type="number" min="64" value={spadeLoadSize} onChange={(e) => setSpadeLoadSize(parseInt(e.target.value))}
+                              className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
+                          </div>
+                          <div className="col-span-2 grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-400 mb-1">Crop Size</label>
+                              <input type="number" min="64" value={spadeCropSize} onChange={(e) => setSpadeCropSize(parseInt(e.target.value))}
+                                className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-400 mb-1">
+                                Max Dataset Size <span className="text-gray-500">(optional)</span>
+                              </label>
+                              <input type="number" min="1" placeholder="All" value={spadeMaxDataset}
+                                onChange={(e) => setSpadeMaxDataset(e.target.value ? parseInt(e.target.value) : '')}
+                                className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500 placeholder-gray-500" />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </span>
                   </span>
-                  {taskType === 'train_spade' && <CheckCircle className="h-5 w-5 text-purple-500" />}
+                  {taskType === 'train_spade' && <CheckCircle className="h-5 w-5 text-purple-500 absolute right-4 top-4" />}
                 </label>
               </div>
             </div>
