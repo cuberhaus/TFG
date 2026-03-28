@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Play, Settings, AlertCircle, CheckCircle } from 'lucide-react';
+import { Play, Settings, AlertCircle, CheckCircle, Terminal } from 'lucide-react';
 
 export default function ModelTraining() {
   const [modelArch, setModelArch] = useState('FasterRCNN');
@@ -16,8 +16,9 @@ export default function ModelTraining() {
   });
   const [error, setError] = useState<string | null>(null);
   
+  const logRef = useRef<HTMLPreElement>(null);
+
   useEffect(() => {
-    // Poll status every 3 seconds
     const fetchStatus = async () => {
       try {
         const response = await axios.get('http://localhost:8082/api/train/status');
@@ -28,9 +29,15 @@ export default function ModelTraining() {
     };
     
     fetchStatus();
-    const interval = setInterval(fetchStatus, 3000);
+    const interval = setInterval(fetchStatus, status.is_training ? 1000 : 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [status.is_training]);
+
+  useEffect(() => {
+    if (logRef.current) {
+      logRef.current.scrollTop = logRef.current.scrollHeight;
+    }
+  }, [status.message]);
 
   const handleStartTraining = async () => {
     setError(null);
@@ -62,18 +69,31 @@ export default function ModelTraining() {
       </div>
 
       {status.is_training ? (
-        <div className="bg-blue-900/30 border border-blue-800 rounded-lg p-8 flex flex-col items-center justify-center text-center">
-          <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <h3 className="text-xl font-medium text-blue-400 mb-2">Training in Progress</h3>
-          <p className="text-gray-300">
-            Currently training <span className="font-bold text-white">{status.current_model}</span>
-          </p>
-          <p className="text-sm text-gray-400 mt-4">
-            {status.message}
-          </p>
-          <p className="text-xs text-yellow-500 mt-6 bg-yellow-900/20 px-4 py-2 rounded border border-yellow-700/50">
-            You can navigate away from this tab. The training will continue in the background.
-          </p>
+        <div className="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden">
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-700 bg-gray-800">
+            <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
+            <div>
+              <h3 className="text-base font-medium text-blue-400">
+                Training <span className="text-white">{status.current_model}</span>
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">Live logs — polling every second</p>
+            </div>
+          </div>
+          <div className="relative">
+            <div className="absolute top-2 right-2 flex items-center gap-1.5 text-xs text-gray-500 bg-gray-900/80 px-2 py-1 rounded">
+              <Terminal className="w-3 h-3" />
+              stdout
+            </div>
+            <pre
+              ref={logRef}
+              className="p-4 text-xs font-mono text-gray-300 bg-gray-900 overflow-auto max-h-80 leading-relaxed whitespace-pre-wrap"
+            >{status.message || 'Waiting for output...'}</pre>
+          </div>
+          <div className="px-4 py-2 border-t border-gray-700 bg-gray-800">
+            <p className="text-xs text-yellow-500">
+              You can navigate away — training continues in the background.
+            </p>
+          </div>
         </div>
       ) : (
         <div className="bg-gray-700 p-6 rounded-lg border border-gray-600 shadow-sm">

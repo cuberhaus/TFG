@@ -80,6 +80,7 @@ training_state = {
     "is_training": False,
     "current_model": None,
     "message": "Idle",
+    "pid": None,
 }
 
 class TrainingRequest(BaseModel):
@@ -122,18 +123,22 @@ def run_training_script(req: TrainingRequest):
             stderr=subprocess.STDOUT,
             text=True
         )
+        training_state["pid"] = process.pid
         
         import collections
-        output_lines = collections.deque(maxlen=15)
+        output_lines = collections.deque(maxlen=30)
         for line in process.stdout:
             output_lines.append(line.strip())
+            training_state["message"] = '\n'.join(output_lines)
             
         process.wait()
         
+        last_lines = '\n'.join(output_lines)
         if process.returncode == 0:
-            training_state["message"] = f"Training completed successfully for {req.model_name}."
+            training_state["message"] = f"Training completed successfully for {req.model_name}.\n\n{last_lines}"
+        elif process.returncode < 0:
+            training_state["message"] = f"Training cancelled for {req.model_name}."
         else:
-            last_lines = '\n'.join(output_lines)
             training_state["message"] = f"Training failed (code {process.returncode}):\n{last_lines}"
             
     except Exception as e:
@@ -141,6 +146,7 @@ def run_training_script(req: TrainingRequest):
     finally:
         training_state["is_training"] = False
         training_state["current_model"] = None
+        training_state["pid"] = None
 
 # --- Evaluation State ---
 evaluation_state = {
@@ -178,16 +184,17 @@ def run_evaluation_script():
         )
         
         import collections
-        output_lines = collections.deque(maxlen=15)
+        output_lines = collections.deque(maxlen=30)
         for line in process.stdout:
             output_lines.append(line.strip())
+            evaluation_state["message"] = '\n'.join(output_lines)
             
         process.wait()
         
+        last_lines = '\n'.join(output_lines)
         if process.returncode == 0:
-            evaluation_state["message"] = "Evaluation completed successfully. The Performance Explorer tab should now reflect the updated data."
+            evaluation_state["message"] = f"Evaluation completed successfully.\n\n{last_lines}"
         else:
-            last_lines = '\n'.join(output_lines)
             evaluation_state["message"] = f"Evaluation failed (code {process.returncode}):\n{last_lines}"
             
     except Exception as e:
