@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
-import { UploadCloud, Image as ImageIcon, AlertCircle, Layers } from 'lucide-react';
+import { UploadCloud, Image as ImageIcon, AlertCircle, Layers, Search } from 'lucide-react';
 
 export default function InferenceUI() {
   const [models, setModels] = useState<string[]>([]);
@@ -94,21 +94,32 @@ export default function InferenceUI() {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <div className="max-w-6xl mx-auto flex flex-col gap-6 pt-2">
+      <div>
+        <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
+          <Search className="w-6 h-6 text-cyan-400" />
+          Inference
+        </h2>
+        <p className="text-gray-400">
+          Run polyp detection on individual images or batch test with random samples from the dataset.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {/* Settings Column */}
-      <div className="md:col-span-1 bg-gray-700 p-6 rounded-lg border border-gray-600 flex flex-col gap-5">
-        <h3 className="text-lg font-semibold border-b border-gray-600 pb-2">Configuration</h3>
+      <div className="md:col-span-1 bg-gray-800 p-6 rounded-xl border border-gray-700 flex flex-col gap-5">
+        <h3 className="text-lg font-medium border-b border-gray-700 pb-2 text-gray-200">Configuration</h3>
         
-        <div className="flex bg-gray-800 rounded-lg p-1 border border-gray-600">
+        <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-700">
           <button
             onClick={() => setMode('single')}
-            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${mode === 'single' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-gray-200'}`}
+            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${mode === 'single' ? 'bg-cyan-600 text-white shadow' : 'text-gray-400 hover:text-gray-200'}`}
           >
             Single Image
           </button>
           <button
             onClick={() => setMode('batch')}
-            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${mode === 'batch' ? 'bg-blue-600 text-white shadow' : 'text-gray-400 hover:text-gray-200'}`}
+            className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-colors ${mode === 'batch' ? 'bg-cyan-600 text-white shadow' : 'text-gray-400 hover:text-gray-200'}`}
           >
             Batch Test (Random 9)
           </button>
@@ -119,7 +130,7 @@ export default function InferenceUI() {
           <select 
             value={modelArch}
             onChange={(e) => setModelArch(e.target.value)}
-            className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white outline-none focus:border-blue-500"
+            className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2.5 text-white outline-none focus:border-cyan-500 transition-colors"
           >
             <option value="FasterRCNN">FasterRCNN</option>
             <option value="RetinaNet">RetinaNet</option>
@@ -138,7 +149,7 @@ export default function InferenceUI() {
             <select 
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
-              className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white outline-none focus:border-blue-500"
+              className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2.5 text-white outline-none focus:border-cyan-500 transition-colors"
             >
               {models.map(m => (
                 <option key={m} value={m}>{m}</option>

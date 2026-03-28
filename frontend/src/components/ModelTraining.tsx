@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
-import { Play, Square, X, Settings, AlertCircle, CheckCircle, Terminal } from 'lucide-react';
+import { Play, Square, X, Settings, AlertCircle, CheckCircle, Terminal, Crosshair } from 'lucide-react';
 
 export default function ModelTraining() {
   const [modelArch, setModelArch] = useState('FasterRCNN');
@@ -86,12 +86,15 @@ export default function ModelTraining() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto flex flex-col gap-6">
+    <div className="max-w-4xl mx-auto flex flex-col gap-6 pt-2">
       <div>
-        <h2 className="text-xl font-semibold mb-2">Train Detection Model</h2>
-        <p className="text-gray-400 text-sm">
+        <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
+          <Crosshair className="w-6 h-6 text-teal-400" />
+          Detection Training
+        </h2>
+        <p className="text-gray-400">
           Configure hyperparameters and trigger PyTorch training for object detection models (FasterRCNN, RetinaNet, SSD) to identify polyps. 
-          The training runs asynchronously in the backend. Check the backend terminal for epoch/batch loss logs.
+          The training runs asynchronously in the backend.
         </p>
       </div>
 
@@ -118,30 +121,26 @@ export default function ModelTraining() {
       )}
 
       {status.is_training ? (
-        <div className="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden">
-          <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-700 bg-gray-800">
-            <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin flex-shrink-0"></div>
-            <div>
-              <h3 className="text-base font-medium text-blue-400">
-                Training <span className="text-white">{status.current_model}</span>
+        <div className="bg-teal-900/10 border border-teal-900/50 rounded-xl overflow-hidden shadow-lg flex flex-col h-[500px]">
+          <div className="bg-gray-800/80 border-b border-gray-700 p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 border-2 border-teal-500 border-t-transparent rounded-full animate-spin"></div>
+              <h3 className="font-medium text-teal-400">
+                Training <span className="font-bold text-white">{status.current_model}</span>
               </h3>
-              <p className="text-xs text-gray-500 mt-0.5">Live logs — polling every second</p>
             </div>
+            <span className="text-xs text-gray-500 flex items-center gap-1">
+              <Terminal className="w-3 h-3" /> Live Output
+            </span>
           </div>
-          <div className="relative">
-            <div className="absolute top-2 right-2 flex items-center gap-1.5 text-xs text-gray-500 bg-gray-900/80 px-2 py-1 rounded">
-              <Terminal className="w-3 h-3" />
-              stdout
-            </div>
-            <pre
-              ref={logRef}
-              className="p-4 text-xs font-mono text-gray-300 bg-gray-900 overflow-auto max-h-80 leading-relaxed whitespace-pre-wrap log-scroll"
-            >{status.message || 'Waiting for output...'}</pre>
+
+          <div ref={logRef} className="p-4 bg-[#0d1117] flex-1 overflow-y-auto font-mono text-sm text-gray-300 leading-relaxed log-scroll">
+            <div className="whitespace-pre-wrap">{status.message || 'Waiting for output...'}</div>
+            <span className="animate-pulse inline-block w-2 h-4 bg-teal-500 ml-1 align-middle"></span>
           </div>
-          <div className="px-4 py-3 border-t border-gray-700 bg-gray-800 flex items-center justify-between">
-            <p className="text-xs text-yellow-500">
-              You can navigate away — training continues in the background.
-            </p>
+
+          <div className="p-3 bg-gray-800 border-t border-gray-700 flex items-center justify-between">
+            <span className="text-xs text-yellow-500">Job running in background. You can safely navigate to other tabs.</span>
             <button
               onClick={handleCancelTraining}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-sm rounded transition-colors"
@@ -152,8 +151,8 @@ export default function ModelTraining() {
           </div>
         </div>
       ) : (
-        <div className="bg-gray-700 p-6 rounded-lg border border-gray-600 shadow-sm">
-          <div className="flex items-center gap-2 mb-6 border-b border-gray-600 pb-3">
+        <div className="bg-gray-800 p-6 rounded-xl border border-gray-700 shadow-sm">
+          <div className="flex items-center gap-2 mb-6 border-b border-gray-700 pb-3">
             <Settings className="text-gray-400 w-5 h-5" />
             <h3 className="text-lg font-medium text-gray-200">Hyperparameters</h3>
           </div>
@@ -164,7 +163,7 @@ export default function ModelTraining() {
               <select 
                 value={modelArch}
                 onChange={(e) => setModelArch(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white outline-none focus:border-blue-500"
+                className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2.5 text-white outline-none focus:border-teal-500 transition-colors"
               >
                 <option value="FasterRCNN">FasterRCNN</option>
                 <option value="RetinaNet">RetinaNet</option>
@@ -179,7 +178,7 @@ export default function ModelTraining() {
                 min="1"
                 value={batchSize}
                 onChange={(e) => setBatchSize(parseInt(e.target.value) || 1)}
-                className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white outline-none focus:border-blue-500"
+                className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2.5 text-white outline-none focus:border-teal-500 transition-colors"
               />
             </div>
 
@@ -191,7 +190,7 @@ export default function ModelTraining() {
                 min="0.0001"
                 value={learningRate}
                 onChange={(e) => setLearningRate(parseFloat(e.target.value) || 0.0001)}
-                className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white outline-none focus:border-blue-500"
+                className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2.5 text-white outline-none focus:border-teal-500 transition-colors"
               />
             </div>
 
@@ -203,7 +202,7 @@ export default function ModelTraining() {
                 min="0"
                 value={weightDecay}
                 onChange={(e) => setWeightDecay(parseFloat(e.target.value) || 0.0001)}
-                className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white outline-none focus:border-blue-500"
+                className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2.5 text-white outline-none focus:border-teal-500 transition-colors"
               />
             </div>
 
@@ -214,7 +213,7 @@ export default function ModelTraining() {
                 min="1"
                 value={numEpochs}
                 onChange={(e) => setNumEpochs(parseInt(e.target.value) || 1)}
-                className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white outline-none focus:border-blue-500"
+                className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2.5 text-white outline-none focus:border-teal-500 transition-colors"
               />
             </div>
 
@@ -228,44 +227,41 @@ export default function ModelTraining() {
                 placeholder="All"
                 value={maxSamples}
                 onChange={(e) => setMaxSamples(e.target.value ? parseInt(e.target.value) : '')}
-                className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white outline-none focus:border-blue-500 placeholder-gray-500"
+                className="w-full bg-gray-900 border border-gray-600 rounded-lg px-3 py-2.5 text-white outline-none focus:border-teal-500 placeholder-gray-500 transition-colors"
               />
               <p className="text-xs text-gray-500 mt-1">Limit dataset size for quick testing</p>
             </div>
           </div>
 
-          <div className="mt-4 flex items-center gap-3">
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={debug}
-                onChange={(e) => setDebug(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-9 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-yellow-600"></div>
-            </label>
+          <div className="mt-5 flex items-center justify-between bg-gray-900/50 rounded-lg p-3 border border-gray-700">
             <div>
-              <span className="text-sm font-medium text-gray-300">Debug mode</span>
-              <p className="text-xs text-gray-500">Saves to separate debug directories (saved_models_debug, losses_debug)</p>
+              <span className="text-sm font-medium text-gray-300">Debug Mode</span>
+              <p className="text-xs text-gray-500 mt-0.5">Saves to separate debug directories (saved_models_debug, losses_debug)</p>
             </div>
+            <button
+              type="button"
+              onClick={() => setDebug(!debug)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${debug ? 'bg-teal-600' : 'bg-gray-600'}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${debug ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
           </div>
 
-          <div className="mt-8 pt-6 border-t border-gray-600 flex flex-col gap-4">
+          <div className="mt-8 pt-6 border-t border-gray-700">
             <button
               onClick={handleStartTraining}
-              className="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded font-medium shadow-lg transition-colors"
+              className="w-full flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-500 text-white px-8 py-4 rounded-xl font-medium transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-teal-900/20 text-lg"
             >
-              <Play className="w-5 h-5" />
+              <Play className="w-5 h-5 fill-current" />
               Start Training
             </button>
             
             {error && (
-              <div className="flex items-center gap-2 p-3 bg-red-900/50 border border-red-500 rounded text-red-200 text-sm">
+              <div className="flex items-center gap-2 p-3 mt-4 bg-red-900/50 border border-red-500 rounded-lg text-red-200 text-sm">
                 <AlertCircle className="w-5 h-5 flex-shrink-0" />
                 {error}
               </div>
             )}
-
           </div>
         </div>
       )}

@@ -10,7 +10,7 @@ import {
   Legend, 
   ResponsiveContainer 
 } from 'recharts';
-import { Folder } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 
 interface LossDataResponse {
   data: {
@@ -121,13 +121,16 @@ export default function TrainingLossViewer() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-6xl mx-auto flex flex-col gap-6 pt-2">
       <div>
-        <h2 className="text-xl font-semibold mb-2">Training Loss Viewer</h2>
-        <div className="flex items-center gap-2 text-sm text-gray-400 bg-gray-900/50 p-3 rounded border border-gray-700">
-          <Folder className="w-4 h-4 text-blue-400" />
-          <span>Loss files directory: <code className="text-gray-300">{sourcePath || 'Loading...'}</code></span>
-        </div>
+        <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
+          <TrendingUp className="w-6 h-6 text-emerald-400" />
+          Training Loss Viewer
+        </h2>
+        <p className="text-gray-400">
+          Visualize epoch and batch training losses across different model runs.
+          {sourcePath && <span className="ml-2 text-xs text-gray-500">Source: <code className="text-gray-400">{sourcePath}</code></span>}
+        </p>
       </div>
 
       {error && (

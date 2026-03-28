@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart3 } from 'lucide-react';
 
 interface PerformanceRow {
   Model: string;
@@ -57,14 +58,18 @@ export default function PerformanceExplorer() {
   const bestModel = [...data].sort((a, b) => (b.F1 || 0) - (a.F1 || 0))[0];
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Model Performance Explorer</h2>
-        {sourcePath && (
-          <div className="text-xs text-gray-400 bg-gray-800 px-3 py-1 rounded border border-gray-700">
-            Data source: <span className="font-mono text-gray-300">{sourcePath}</span>
-          </div>
-        )}
+    <div className="max-w-6xl mx-auto flex flex-col gap-8 pt-2">
+      <div className="flex justify-between items-start">
+        <div>
+          <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
+            <BarChart3 className="w-6 h-6 text-indigo-400" />
+            Performance Explorer
+          </h2>
+          <p className="text-gray-400">
+            Compare COCO detection metrics across all evaluated models.
+            {sourcePath && <span className="ml-2 text-xs text-gray-500">Source: <code className="text-gray-400">{sourcePath}</code></span>}
+          </p>
+        </div>
       </div>
 
       {/* KPI Cards */}
