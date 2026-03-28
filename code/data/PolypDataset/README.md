@@ -1,1 +1,0 @@
-Add here the datastructure for the cycleGAN model

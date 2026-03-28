@@ -201,13 +201,29 @@ prep_state = {
     "message": "Idle",
 }
 
+def _generate_single_mask(args):
+    """Worker function for parallel mask generation."""
+    img_path, ann_path, mask_out_path = args
+    import cv2
+    import numpy as np
+    from clases.custom_dataset import parse_annotation
+
+    img = cv2.imread(img_path)
+    if img is None:
+        return 0
+    bboxes = parse_annotation(ann_path)
+    mask = np.zeros(img.shape[:2], dtype=np.uint8)
+    for x1, y1, x2, y2 in bboxes:
+        mask[y1:y2, x1:x2] = 255
+    cv2.imwrite(mask_out_path, mask)
+    return 1
+
+
 def run_prepare_cyclegan():
     """Generate masks from annotations, then copy into CycleGAN folder structure."""
     global prep_state
-    import cv2
-    import numpy as np
-    import glob as globmod
-    from clases.custom_dataset import parse_annotation
+    from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+    import multiprocessing
 
     prep_state["is_running"] = True
     prep_state["message"] = "Starting dataset preparation..."
@@ -217,10 +233,11 @@ def run_prepare_cyclegan():
         ("TrainValid", "train"),
         ("Test", "test"),
     ]
+    num_workers = min(multiprocessing.cpu_count(), 16)
 
     try:
-        # Step 1: Generate masks from bounding-box annotations
-        total_masks = 0
+        # Step 1: Collect all mask jobs, then run in parallel with ProcessPoolExecutor
+        mask_jobs = []
         for split_dir, _ in splits:
             root = os.path.join(data_root, split_dir)
             images_root = os.path.join(root, "Images")
@@ -242,35 +259,33 @@ def run_prepare_cyclegan():
                 for fname in os.listdir(img_dir):
                     if not fname.lower().endswith(".jpg"):
                         continue
-                    img_path = os.path.join(img_dir, fname)
                     ann_path = os.path.join(ann_dir, fname.replace(".jpg", ".txt"))
                     if not os.path.isfile(ann_path):
                         continue
-
-                    img = cv2.imread(img_path)
-                    if img is None:
-                        continue
-
-                    bboxes = parse_annotation(ann_path)
-                    mask = np.zeros(img.shape[:2], dtype=np.uint8)
-                    for x1, y1, x2, y2 in bboxes:
-                        mask[y1:y2, x1:x2] = 255
-
                     mask_name = os.path.splitext(fname)[0] + "_mask.png"
-                    cv2.imwrite(os.path.join(mask_dir, mask_name), mask)
-                    total_masks += 1
+                    mask_jobs.append((
+                        os.path.join(img_dir, fname),
+                        ann_path,
+                        os.path.join(mask_dir, mask_name),
+                    ))
 
-                    if total_masks % 500 == 0:
-                        prep_state["message"] = f"Step 1/2 — Generated {total_masks:,} masks..."
+        prep_state["message"] = f"Step 1/2 — Generating {len(mask_jobs):,} masks across {num_workers} processes..."
+
+        total_masks = 0
+        with ProcessPoolExecutor(max_workers=num_workers) as pool:
+            for i, result in enumerate(pool.map(_generate_single_mask, mask_jobs, chunksize=256), 1):
+                total_masks += result
+                if i % 2000 == 0:
+                    prep_state["message"] = f"Step 1/2 — Generated {total_masks:,}/{len(mask_jobs):,} masks..."
 
         prep_state["message"] = f"Step 1/2 done — {total_masks:,} masks generated. Copying to CycleGAN structure..."
 
-        # Step 2: Copy into PolypDataset and PolypDatasetSPADE
+        # Step 2: Parallel file copy with ThreadPoolExecutor (I/O bound)
         import shutil as sh
-        targets = ["PolypDataset", "PolypDatasetSPADE"]
-        total_copied = 0
+        target_names = ["PolypDataset", "PolypDatasetSPADE"]
+        copy_jobs = []
 
-        for target_name in targets:
+        for target_name in target_names:
             target_root = os.path.join(data_root, target_name)
             for split_dir, mode in splits:
                 root = os.path.join(data_root, split_dir)
@@ -295,25 +310,32 @@ def run_prepare_cyclegan():
                         if not mask_file.endswith(".png"):
                             continue
                         flat_name = mask_file.replace("_mask", "")
-                        sh.copy2(os.path.join(mask_dir, mask_file), os.path.join(dir_a, f"{video_id}_{flat_name}"))
-                        total_copied += 1
+                        copy_jobs.append((os.path.join(mask_dir, mask_file), os.path.join(dir_a, f"{video_id}_{flat_name}")))
 
                     if os.path.isdir(img_dir):
                         for img_file in os.listdir(img_dir):
                             if not img_file.lower().endswith(".jpg"):
                                 continue
-                            sh.copy2(os.path.join(img_dir, img_file), os.path.join(dir_b, f"{video_id}_{img_file}"))
-                            total_copied += 1
+                            copy_jobs.append((os.path.join(img_dir, img_file), os.path.join(dir_b, f"{video_id}_{img_file}")))
 
-                    if total_copied % 2000 == 0:
-                        prep_state["message"] = f"Step 2/2 — Copied {total_copied:,} files..."
+        prep_state["message"] = f"Step 2/2 — Copying {len(copy_jobs):,} files across {num_workers} threads..."
+
+        total_copied = 0
+        with ThreadPoolExecutor(max_workers=num_workers) as pool:
+            futures = [pool.submit(sh.copy2, src, dst) for src, dst in copy_jobs]
+            for i, f in enumerate(as_completed(futures), 1):
+                f.result()
+                total_copied += 1
+                if total_copied % 5000 == 0:
+                    prep_state["message"] = f"Step 2/2 — Copied {total_copied:,}/{len(copy_jobs):,} files..."
 
         prep_state["message"] = (
             f"Done! Generated {total_masks:,} masks and copied {total_copied:,} files "
             f"into PolypDataset and PolypDatasetSPADE."
         )
     except Exception as e:
-        prep_state["message"] = f"Error: {str(e)}"
+        import traceback
+        prep_state["message"] = f"Error: {str(e)}\n{traceback.format_exc()}"
     finally:
         prep_state["is_running"] = False
 
@@ -858,6 +880,34 @@ def get_performance():
     
     return {"data": df.to_dict(orient="records"), "source_path": CSV_PATH}
 
+_model_cache = {}
+
+def _get_cached_model(model_arch: str, model_file: str):
+    """Load model once and cache it on GPU for fast repeated inference."""
+    cache_key = f"{model_arch}:{model_file}"
+    if cache_key in _model_cache:
+        return _model_cache[cache_key]
+
+    num_classes = 2
+    model = get_model(model_arch, num_classes)
+    model, _, _ = load_model_with_hyperparams(model, model_file, load_dir=SAVED_MODELS_DIR)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    model.eval()
+
+    if len(_model_cache) >= 3:
+        oldest = next(iter(_model_cache))
+        del _model_cache[oldest]
+        torch.cuda.empty_cache()
+
+    _model_cache[cache_key] = (model, device)
+    return model, device
+
+_inference_transform = transforms.Compose([
+    transforms.Resize((560, 480)),
+    transforms.ToTensor()
+])
+
 @app.post("/api/predict", response_model=PredictionResponse)
 async def predict(
     file: UploadFile = File(...),
@@ -867,29 +917,18 @@ async def predict(
 ):
     contents = await file.read()
     img = Image.open(io.BytesIO(contents)).convert("RGB")
-    
-    num_classes = 2
-    model = get_model(model_arch, num_classes)
-    model_path = os.path.join(SAVED_MODELS_DIR, model_file)
-    
-    model, _, _ = load_model_with_hyperparams(model, model_path, load_dir=SAVED_MODELS_DIR)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.to(device)
-    model.eval()
 
-    transform = transforms.Compose([
-        transforms.Resize((560, 480)), 
-        transforms.ToTensor()
-    ])
-    img_tensor = transform(img).unsqueeze(0).to(device)
+    model, device = _get_cached_model(model_arch, model_file)
+    use_amp = device.type == 'cuda'
+    img_tensor = _inference_transform(img).unsqueeze(0).to(device, non_blocking=True)
 
-    with torch.no_grad():
+    with torch.no_grad(), torch.amp.autocast('cuda', enabled=use_amp):
         output = model(img_tensor)[0]
 
     keep = output["scores"] >= confidence
     boxes = output["boxes"][keep].cpu()
     scores = output["scores"][keep].cpu()
-    
+
     result_boxes = []
     if len(boxes) > 0:
         for i in range(len(boxes)):
@@ -900,20 +939,18 @@ async def predict(
                 x_max=boxes[i][2].item(),
                 y_max=boxes[i][3].item()
             ))
-            
-        img_byte = transform(img).mul(255).byte()
+
+        img_byte = _inference_transform(img).mul(255).byte()
         label_strings = [f"polyp {s:.2f}" for s in scores.tolist()]
         drawn = draw_bounding_boxes(img_byte, boxes, labels=label_strings, colors="red", width=2)
         result_img = to_pil_image(drawn)
     else:
-        # Resize original image to match tensor input format for consistency
         result_img = img.resize((480, 560))
 
-    # Convert PIL Image to Base64
     buffered = io.BytesIO()
     result_img.save(buffered, format="JPEG")
     img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
-    
+
     return PredictionResponse(boxes=result_boxes, image_base64=img_str)
 
 @app.post("/api/predict/batch")
@@ -925,7 +962,7 @@ async def predict_batch(
     test_img_dir = os.path.join(SRC_DIR, "../data/Test/Images")
     if not os.path.exists(test_img_dir):
         raise HTTPException(status_code=400, detail="Test dataset not found.")
-        
+
     all_images = []
     for subdir in os.listdir(test_img_dir):
         subdir_path = os.path.join(test_img_dir, subdir)
@@ -933,69 +970,65 @@ async def predict_batch(
             for file in os.listdir(subdir_path):
                 if file.lower().endswith(('.png', '.jpg', '.jpeg')):
                     all_images.append(os.path.join(subdir_path, file))
-                    
+
     if not all_images:
         raise HTTPException(status_code=400, detail="No images found in Test dataset.")
-        
-    # Select 9 random images
-    selected_images = random.sample(all_images, min(9, len(all_images)))
-    
-    num_classes = 2
-    model = get_model(model_arch, num_classes)
-    model_path = os.path.join(SAVED_MODELS_DIR, model_file)
-    
-    model, _, _ = load_model_with_hyperparams(model, model_path, load_dir=SAVED_MODELS_DIR)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model.to(device)
-    model.eval()
 
-    transform = transforms.Compose([
-        transforms.Resize((560, 480)), 
-        transforms.ToTensor()
-    ])
-    
+    selected_images = random.sample(all_images, min(9, len(all_images)))
+
+    model, device = _get_cached_model(model_arch, model_file)
+    use_amp = device.type == 'cuda'
+
+    pil_images = []
+    tensors = []
+    for img_path in selected_images:
+        try:
+            img = Image.open(img_path).convert("RGB")
+            pil_images.append((img_path, img))
+            tensors.append(_inference_transform(img))
+        except Exception as e:
+            print(f"Error loading {img_path}: {e}")
+
+    if not tensors:
+        return {"results": []}
+
+    batch_tensor = torch.stack(tensors).to(device, non_blocking=True)
+
     results = []
-    
-    with torch.no_grad():
-        for img_path in selected_images:
-            try:
-                img = Image.open(img_path).convert("RGB")
-                img_tensor = transform(img).unsqueeze(0).to(device)
-                
-                output = model(img_tensor)[0]
-                
-                keep = output["scores"] >= confidence
-                boxes = output["boxes"][keep].cpu()
-                scores = output["scores"][keep].cpu()
-                
-                result_boxes = []
-                if len(boxes) > 0:
-                    for i in range(len(boxes)):
-                        result_boxes.append(DetectionBox(
-                            score=scores[i].item(),
-                            x_min=boxes[i][0].item(),
-                            y_min=boxes[i][1].item(),
-                            x_max=boxes[i][2].item(),
-                            y_max=boxes[i][3].item()
-                        ))
-                        
-                    img_byte = transform(img).mul(255).byte()
-                    label_strings = [f"polyp {s:.2f}" for s in scores.tolist()]
-                    drawn = draw_bounding_boxes(img_byte, boxes, labels=label_strings, colors="red", width=2)
-                    result_img = to_pil_image(drawn)
-                else:
-                    result_img = img.resize((480, 560))
-                    
-                buffered = io.BytesIO()
-                result_img.save(buffered, format="JPEG")
-                img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
-                
-                results.append({
-                    "filename": os.path.basename(img_path),
-                    "boxes": result_boxes,
-                    "image_base64": img_str
-                })
-            except Exception as e:
-                print(f"Error processing {img_path}: {e}")
-                
+    with torch.no_grad(), torch.amp.autocast('cuda', enabled=use_amp):
+        outputs = model(list(batch_tensor))
+
+    for (img_path, img), output in zip(pil_images, outputs):
+        keep = output["scores"] >= confidence
+        boxes = output["boxes"][keep].cpu()
+        scores = output["scores"][keep].cpu()
+
+        result_boxes = []
+        if len(boxes) > 0:
+            for i in range(len(boxes)):
+                result_boxes.append(DetectionBox(
+                    score=scores[i].item(),
+                    x_min=boxes[i][0].item(),
+                    y_min=boxes[i][1].item(),
+                    x_max=boxes[i][2].item(),
+                    y_max=boxes[i][3].item()
+                ))
+
+            img_byte = _inference_transform(img).mul(255).byte()
+            label_strings = [f"polyp {s:.2f}" for s in scores.tolist()]
+            drawn = draw_bounding_boxes(img_byte, boxes, labels=label_strings, colors="red", width=2)
+            result_img = to_pil_image(drawn)
+        else:
+            result_img = img.resize((480, 560))
+
+        buffered = io.BytesIO()
+        result_img.save(buffered, format="JPEG")
+        img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+        results.append({
+            "filename": os.path.basename(img_path),
+            "boxes": result_boxes,
+            "image_base64": img_str
+        })
+
     return {"results": results}

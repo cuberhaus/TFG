@@ -82,12 +82,8 @@ def dataset_paths():
 
 def collate_fn(batch):
     images, targets = zip(*batch)
-
-    images = list(image for image in images)
-    targets = list(target for target in targets)
-
-    images = torch.stack(images, dim=0)
-
+    images = list(images)
+    targets = list(targets)
     return images, targets
 
 
@@ -112,13 +108,15 @@ def get_model(model_name, num_classes):
 def validate(model, val_loader, device):
     model.eval()
     val_loss = 0
+    use_amp = device.type == 'cuda'
     with torch.no_grad():
         for images, targets in val_loader:
-            images = list(img.to(device) for img in images)
-            targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
+            images = list(img.to(device, non_blocking=True) for img in images)
+            targets = [{k: v.to(device, non_blocking=True) for k, v in t.items()} for t in targets]
 
-            loss_dict = model(images, targets)
-            losses = sum(loss for loss in loss_dict.values())
+            with torch.amp.autocast('cuda', enabled=use_amp):
+                loss_dict = model(images, targets)
+                losses = sum(loss for loss in loss_dict.values())
             val_loss += losses.item()
 
     return val_loss / len(val_loader)
@@ -129,8 +127,17 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
     val_size = len(train_dataset) - train_size
     train_dataset, val_dataset = torch.utils.data.random_split(train_dataset, [train_size, val_size])
 
-    train_loader = DataLoader(train_dataset, batch_size=param["BATCH_SIZE"], shuffle=True, collate_fn=collate_fn)
-    val_loader = DataLoader(val_dataset, batch_size=param["BATCH_SIZE"], collate_fn=collate_fn)
+    use_cuda = device.type == 'cuda'
+    loader_kwargs = dict(
+        batch_size=param["BATCH_SIZE"],
+        collate_fn=collate_fn,
+        num_workers=min(8, os.cpu_count() or 1),
+        pin_memory=use_cuda,
+        persistent_workers=True,
+        prefetch_factor=4,
+    )
+    train_loader = DataLoader(train_dataset, shuffle=True, **loader_kwargs)
+    val_loader = DataLoader(val_dataset, shuffle=False, **loader_kwargs)
 
     num_classes = 2  # 1 class (polyp) + 1 background
     model = get_model(model_s, num_classes)
@@ -138,11 +145,16 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
     model_parameters = [p for p in model.parameters() if p.requires_grad]
     optimizer = optim.SGD(model_parameters, lr=param["LR"], momentum=0.9, weight_decay=param["WEIGHT_DECAY"])
     lr_scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=3, gamma=0.1)
-    # Loss function is handled by the model
 
     model = model.to(device)
 
-    best_val_loss = float('inf')
+    if use_cuda:
+        torch.backends.cudnn.benchmark = True
+
+    use_amp = use_cuda
+    scaler = torch.amp.GradScaler('cuda', enabled=use_amp)
+
+    best_val_loss = -1.0
     epoch_losses = []
     batch_losses = []
 
@@ -166,19 +178,21 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
         print("len(train_loader):", len(train_loader))
         for images, targets in train_loader:
             print("batch:", len(batch_losses) + 1)
-            images = list(image.to(device) for image in images)
-            targets = [{k: v.to(device) for k, v in target.items()} for target in targets]
+            images = list(image.to(device, non_blocking=True) for image in images)
+            targets = [{k: v.to(device, non_blocking=True) for k, v in target.items()} for target in targets]
 
-            loss_dict = model(images, targets)
-            losses = sum(loss.to(device) for loss in loss_dict.values())
+            optimizer.zero_grad(set_to_none=True)
+
+            with torch.amp.autocast('cuda', enabled=use_amp):
+                loss_dict = model(images, targets)
+                losses = sum(loss for loss in loss_dict.values())
+
+            scaler.scale(losses).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
             epoch_loss += losses.item()
-            batch_loss = losses.item()
-            batch_losses.append(batch_loss)
-
-            optimizer.zero_grad()
-            losses.backward()
-            optimizer.step()
+            batch_losses.append(losses.item())
 
         metrics = coco_evaluate(model, val_loader, device)
         AP_score = metrics[0]
@@ -253,65 +267,67 @@ def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
     predictions_dir = os.path.join(OUT_DIR, 'predictions.json')
     ground_truth_dir = os.path.join(OUT_DIR, 'ground_truth.json')
     model.eval()
-    # Initialize dataset for COCO ground truth object
+    use_amp = device.type == 'cuda'
+
     coco_gt_dataset = {
         'images': [],
         'annotations': [],
         'categories': []
     }
-    coco_gt = COCO()  # Initialize COCO ground truth object
-    coco_gt.dataset = coco_gt_dataset  # Load dataset into COCO ground truth object
+    coco_gt = COCO()
+    coco_gt.dataset = coco_gt_dataset
 
-    coco_dt = []  # List to store predictions in COCO format
+    coco_dt = []
 
-    categories = [{'id': 1, 'name': 'polyp'}]  # Define categories
-    coco_gt.dataset['categories'] = categories  # Load categories into COCO ground truth object
+    categories = [{'id': 1, 'name': 'polyp'}]
+    coco_gt.dataset['categories'] = categories
 
     ann_id = 0
-    for images, targets in val_loader:
-        images = list(img.to(device) for img in images)
-        outputs = model(images)
+    with torch.no_grad():
+        for images, targets in val_loader:
+            images = list(img.to(device, non_blocking=True) for img in images)
 
-        for target, output, image in zip(targets, outputs, images):
-            image_id = target['image_id'].item()
+            with torch.amp.autocast('cuda', enabled=use_amp):
+                outputs = model(images)
 
-            width, height = image.size()[2], image.size()[1]
-            file_name = f"image_{image_id}.jpg"
+            for target, output, image in zip(targets, outputs, images):
+                image_id = target['image_id'].item()
 
-            image_info = {
-                "id": image_id,
-                "file_name": file_name,
-                "width": width,
-                "height": height
-            }
-            coco_gt.dataset['images'].append(image_info)
+                width, height = image.size()[2], image.size()[1]
+                file_name = f"image_{image_id}.jpg"
 
-            # Convert ground truth to COCO format
-            for box, label in zip(target['boxes'], target['labels']):
-                box = convert_to_coco_format(box.tolist())
-                coco_gt_annotation = {
-                    'id': ann_id,
-                    'image_id': image_id,
-                    'category_id': label.item(),
-                    'area': (box[2] * box[3]),
-                    'bbox': box,
-                    'iscrowd': 0
+                image_info = {
+                    "id": image_id,
+                    "file_name": file_name,
+                    "width": width,
+                    "height": height
                 }
-                coco_gt.dataset['annotations'].append(coco_gt_annotation)
+                coco_gt.dataset['images'].append(image_info)
 
-            # Convert predictions to COCO format
-            for box, label, score in zip(output['boxes'], output['labels'], output['scores']):
-                box = box.detach().cpu().numpy().tolist()
-                box = convert_to_coco_format(box)
-                coco_dt_annotation = {
-                    'id': ann_id,
-                    'image_id': image_id,
-                    'category_id': label.item(),
-                    'bbox': box,
-                    'score': score.item()
-                }
-                coco_dt.append(coco_dt_annotation)
-                ann_id += 1
+                for box, label in zip(target['boxes'], target['labels']):
+                    box = convert_to_coco_format(box.tolist())
+                    coco_gt_annotation = {
+                        'id': ann_id,
+                        'image_id': image_id,
+                        'category_id': label.item(),
+                        'area': (box[2] * box[3]),
+                        'bbox': box,
+                        'iscrowd': 0
+                    }
+                    coco_gt.dataset['annotations'].append(coco_gt_annotation)
+
+                for box, label, score in zip(output['boxes'], output['labels'], output['scores']):
+                    box = box.detach().cpu().numpy().tolist()
+                    box = convert_to_coco_format(box)
+                    coco_dt_annotation = {
+                        'id': ann_id,
+                        'image_id': image_id,
+                        'category_id': label.item(),
+                        'bbox': box,
+                        'score': score.item()
+                    }
+                    coco_dt.append(coco_dt_annotation)
+                    ann_id += 1
 
     # # Save predictions to a JSON file
     with open(predictions_dir, 'w') as f:
@@ -441,10 +457,8 @@ def load_model_with_hyperparams(model, base_filename, load_dir='./saved_models/'
     epoch_losses_path = os.path.join(losses_dir, f"{base_filename}_epoch_losses.txt")
     batch_losses_path = os.path.join(losses_dir, f"{base_filename}_batch_losses.txt")
 
-    if torch.cuda.is_available():
-        model.load_state_dict(torch.load(model_file_path))
-    else:
-        model.load_state_dict(torch.load(model_file_path, map_location=torch.device('cpu')))
+    map_location = None if torch.cuda.is_available() else torch.device('cpu')
+    model.load_state_dict(torch.load(model_file_path, map_location=map_location, weights_only=True))
     print(f"Model loaded from: {model_file_path}")
 
     epoch_losses = []

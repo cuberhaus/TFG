@@ -9,3 +9,4 @@ pycocotools
 optuna
 dominate
 wandb
+opencv-python-headless
