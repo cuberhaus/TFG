@@ -133,3 +133,6 @@ checkpoints/
 *.pkl
 opt.txt
 
+# HPO output (legacy CWD location)
+backend/best_hyperparameters.csv
+

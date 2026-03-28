@@ -742,6 +742,16 @@ def cancel_hpo():
             pass
     return {"message": "HPO cancellation requested."}
 
+@app.get("/api/hpo/results")
+def get_hpo_results():
+    results_path = os.path.join(PROJ_DIR, "code", "out", "hpo_results.json")
+    if not os.path.exists(results_path):
+        return {"found": False}
+    with open(results_path, "r") as f:
+        data = json.load(f)
+    data["found"] = True
+    return data
+
 # --- Dataset Explorer Endpoint ---
 @app.get("/api/dataset/{split}")
 def get_dataset_images(split: str, page: int = 1, limit: int = 12):

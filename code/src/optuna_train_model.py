@@ -76,13 +76,37 @@ study.optimize(
 
 best_params = study.best_params
 print("Best hyperparameters: ", best_params)
+print(f"Best value (F1): {study.best_value}")
 
-with open('best_hyperparameters.csv', 'w', newline='') as csvfile:
+import json
+
+results_dir = os.path.join(os.path.dirname(__file__), '..', 'out')
+os.makedirs(results_dir, exist_ok=True)
+
+with open(os.path.join(results_dir, 'best_hyperparameters.csv'), 'w', newline='') as csvfile:
     fieldnames = ['parameter', 'value']
     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
     writer.writeheader()
     for param, value in best_params.items():
         writer.writerow({'parameter': param, 'value': value})
 
-# On a search with 5 trials, I got:
-# Best hyperparameters:  {'lr': 0.030835981129087326, 'batch_size': 2, 'weight_decay': 0.0001317937713104395, 'num_epochs': 2}
+trials_data = {
+    "model_name": args.model_name,
+    "n_trials": args.n_trials,
+    "best_params": best_params,
+    "best_value": study.best_value,
+    "trials": [
+        {
+            "number": t.number,
+            "value": t.value if t.value is not None else None,
+            "params": t.params,
+            "state": t.state.name,
+        }
+        for t in study.trials
+    ],
+}
+
+with open(os.path.join(results_dir, 'hpo_results.json'), 'w') as f:
+    json.dump(trials_data, f, indent=2)
+
+print(f"Results saved to {results_dir}/hpo_results.json")

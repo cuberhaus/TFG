@@ -1,11 +1,27 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Sliders, Settings, Play, Square, X, AlertCircle, CheckCircle, Terminal } from 'lucide-react';
+import { Sliders, Settings, Play, Square, X, AlertCircle, CheckCircle, Terminal, Lock, Trophy, BarChart3 } from 'lucide-react';
 
 interface HPOStatus {
   is_tuning: boolean;
   current_model: string | null;
   message: string;
+}
+
+interface Trial {
+  number: number;
+  value: number | null;
+  params: Record<string, number | string>;
+  state: string;
+}
+
+interface HPOResults {
+  found: boolean;
+  model_name?: string;
+  n_trials?: number;
+  best_params?: Record<string, number | string>;
+  best_value?: number;
+  trials?: Trial[];
 }
 
 export default function HyperparameterTuning() {
@@ -22,7 +38,15 @@ export default function HyperparameterTuning() {
   });
   const [error, setError] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<{ type: 'success' | 'error' | 'cancelled'; message: string } | null>(null);
+  const [hpoResults, setHpoResults] = useState<HPOResults | null>(null);
   const wasTuning = useRef(false);
+
+  const fetchResults = async () => {
+    try {
+      const res = await axios.get('http://localhost:8082/api/hpo/results');
+      if (res.data.found) setHpoResults(res.data);
+    } catch { /* ignore */ }
+  };
   
   const fetchStatus = async () => {
     try {
@@ -37,6 +61,7 @@ export default function HyperparameterTuning() {
           setLastResult({ type: 'error', message: msg });
         } else {
           setLastResult({ type: 'success', message: msg });
+          fetchResults();
         }
       }
       wasTuning.current = newStatus.is_tuning;
@@ -48,6 +73,7 @@ export default function HyperparameterTuning() {
 
   useEffect(() => {
     fetchStatus();
+    fetchResults();
     const interval = setInterval(fetchStatus, status.is_tuning ? 1000 : 3000);
     return () => clearInterval(interval);
   }, [status.is_tuning]);
@@ -189,39 +215,10 @@ export default function HyperparameterTuning() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">Max Epochs per Trial</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="100"
-                      value={maxEpochs}
-                      onChange={(e) => setMaxEpochs(parseInt(e.target.value))}
-                      className="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white outline-none focus:border-emerald-500 transition-colors"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Optuna picks 1–{maxEpochs} per trial</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-1">
-                      Max Samples <span className="text-gray-500">(optional)</span>
-                    </label>
-                    <input
-                      type="number"
-                      min="1"
-                      placeholder="All"
-                      value={maxSamples}
-                      onChange={(e) => setMaxSamples(e.target.value ? parseInt(e.target.value) : '')}
-                      className="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white outline-none focus:border-emerald-500 transition-colors placeholder-gray-500"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Limit images per trial for quick testing</p>
-                  </div>
-                </div>
-
                 <div className="flex items-center justify-between bg-gray-900/50 rounded-lg p-3 border border-gray-700">
                   <div>
                     <span className="text-sm font-medium text-gray-300">Debug Mode</span>
-                    <p className="text-xs text-gray-500 mt-0.5">Use only 20 train + 10 test samples</p>
+                    <p className="text-xs text-gray-500 mt-0.5">8 train + 4 test samples, 1 epoch, batch [2,4]</p>
                   </div>
                   <button
                     type="button"
@@ -230,6 +227,55 @@ export default function HyperparameterTuning() {
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${debug ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className={`relative ${debug ? 'opacity-50' : ''}`}>
+                    <label className="block text-sm font-medium text-gray-300 mb-1 flex items-center gap-1.5">
+                      Max Epochs per Trial
+                      {debug && <Lock className="w-3 h-3 text-yellow-500" />}
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={debug ? 1 : maxEpochs}
+                      onChange={(e) => setMaxEpochs(parseInt(e.target.value))}
+                      disabled={debug}
+                      className={`w-full bg-gray-900 border rounded-lg px-4 py-3 text-white outline-none transition-colors ${
+                        debug ? 'border-yellow-700/50 cursor-not-allowed' : 'border-gray-600 focus:border-emerald-500'
+                      }`}
+                    />
+                    <p className="text-xs mt-1">
+                      {debug
+                        ? <span className="text-yellow-500 flex items-center gap-1"><Lock className="w-3 h-3" /> Fixed to 1 in debug</span>
+                        : <span className="text-gray-500">Optuna picks 1–{maxEpochs} per trial</span>
+                      }
+                    </p>
+                  </div>
+                  <div className={`relative ${debug ? 'opacity-50' : ''}`}>
+                    <label className="block text-sm font-medium text-gray-300 mb-1 flex items-center gap-1.5">
+                      Max Samples
+                      {debug ? <Lock className="w-3 h-3 text-yellow-500" /> : <span className="text-gray-500">(optional)</span>}
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="All"
+                      value={debug ? 8 : maxSamples}
+                      onChange={(e) => setMaxSamples(e.target.value ? parseInt(e.target.value) : '')}
+                      disabled={debug}
+                      className={`w-full bg-gray-900 border rounded-lg px-4 py-3 text-white outline-none transition-colors placeholder-gray-500 ${
+                        debug ? 'border-yellow-700/50 cursor-not-allowed' : 'border-gray-600 focus:border-emerald-500'
+                      }`}
+                    />
+                    <p className="text-xs mt-1">
+                      {debug
+                        ? <span className="text-yellow-500 flex items-center gap-1"><Lock className="w-3 h-3" /> Fixed to 8 in debug</span>
+                        : <span className="text-gray-500">Limit images per trial for quick testing</span>
+                      }
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -279,9 +325,89 @@ export default function HyperparameterTuning() {
                    <Sliders className="w-4 h-4" /> How it Works
                  </h4>
                  <p>
-                   We use Optuna to search the hyperparameter space. It trains a small version of the model on a subset of data over multiple "trials", iteratively narrowing down the best parameters. Results are saved to <code className="bg-emerald-900/50 px-1 py-0.5 rounded text-emerald-300">best_hyperparameters.csv</code>.
+                   We use Optuna to search the hyperparameter space. It trains a small version of the model on a subset of data over multiple "trials", iteratively narrowing down the best parameters.
                  </p>
              </div>
+          </div>
+        </div>
+      )}
+
+      {hpoResults && !status.is_tuning && (
+        <div className="bg-gray-800 border border-gray-700 rounded-xl shadow-lg overflow-hidden">
+          <div className="p-5 border-b border-gray-700 bg-gradient-to-r from-emerald-900/20 to-gray-800 flex items-center justify-between">
+            <h3 className="text-lg font-medium text-emerald-400 flex items-center gap-2">
+              <Trophy className="w-5 h-5 text-yellow-400" />
+              Best Hyperparameters
+              <span className="text-sm font-normal text-gray-400">— {hpoResults.model_name}, {hpoResults.n_trials} trials</span>
+            </h3>
+            <span className="text-sm font-mono bg-emerald-900/40 text-emerald-300 px-3 py-1 rounded-full border border-emerald-700/50">
+              F1 = {hpoResults.best_value?.toFixed(4)}
+            </span>
+          </div>
+
+          <div className="p-5">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+              {hpoResults.best_params && Object.entries(hpoResults.best_params).map(([key, value]) => (
+                <div key={key} className="bg-gray-900 border border-gray-700 rounded-lg p-3 text-center">
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">{key.replace('_', ' ')}</p>
+                  <p className="text-lg font-mono font-semibold text-white">
+                    {typeof value === 'number' ? (value < 0.01 ? value.toExponential(2) : Number(value.toFixed(6))) : value}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {hpoResults.trials && hpoResults.trials.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-400 mb-3 flex items-center gap-1.5">
+                  <BarChart3 className="w-4 h-4" /> Trial History
+                </h4>
+                <div className="overflow-x-auto log-scroll">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-gray-700 text-gray-400">
+                        <th className="text-left py-2 px-3 font-medium">#</th>
+                        <th className="text-left py-2 px-3 font-medium">F1 Score</th>
+                        {hpoResults.trials[0]?.params && Object.keys(hpoResults.trials[0].params).map(k => (
+                          <th key={k} className="text-left py-2 px-3 font-medium">{k.replace('_', ' ')}</th>
+                        ))}
+                        <th className="text-left py-2 px-3 font-medium">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {hpoResults.trials.map((trial) => {
+                        const isBest = trial.value === hpoResults.best_value && trial.state === 'COMPLETE';
+                        return (
+                          <tr key={trial.number} className={`border-b border-gray-700/50 ${isBest ? 'bg-emerald-900/20' : 'hover:bg-gray-700/30'}`}>
+                            <td className="py-2 px-3 font-mono text-gray-300">
+                              {trial.number + 1}
+                              {isBest && <Trophy className="w-3 h-3 text-yellow-400 inline ml-1.5" />}
+                            </td>
+                            <td className={`py-2 px-3 font-mono ${isBest ? 'text-emerald-400 font-semibold' : 'text-gray-300'}`}>
+                              {trial.value !== null ? trial.value.toFixed(4) : '—'}
+                            </td>
+                            {Object.values(trial.params).map((v, i) => (
+                              <td key={i} className="py-2 px-3 font-mono text-gray-400">
+                                {typeof v === 'number' ? (v < 0.01 ? v.toExponential(2) : Number(v.toFixed(6))) : v}
+                              </td>
+                            ))}
+                            <td className="py-2 px-3">
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                trial.state === 'COMPLETE' ? 'bg-emerald-900/40 text-emerald-400' :
+                                trial.state === 'PRUNED' ? 'bg-yellow-900/40 text-yellow-400' :
+                                'bg-red-900/40 text-red-400'
+                              }`}>
+                                {trial.state}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

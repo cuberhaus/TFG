@@ -1,5 +1,4 @@
 parameter,value
-lr,0.009066109089830403
-batch_size,8
-weight_decay,0.00013514636623268602
-num_epochs,1
+lr,0.002811841094257925
+batch_size,2
+weight_decay,0.0511136086334828
