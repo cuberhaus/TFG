@@ -119,19 +119,22 @@ def run_training_script(req: TrainingRequest):
         "CONFIDENCE_THRESHOLD": 0.5
     }
     
-    cmd = [PYTHON, script_path, req.model_name, json.dumps(params)]
+    cmd = [PYTHON, "-u", script_path, req.model_name, json.dumps(params)]
     if req.max_samples:
         cmd.extend(["--max-samples", str(req.max_samples)])
     if req.debug:
         cmd.append("--debug")
 
     try:
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             start_new_session=True,
+            env=env,
         )
         training_state["pid"] = process.pid
         
@@ -187,12 +190,15 @@ def run_evaluation_script():
     script_path = os.path.join(SRC_DIR, "evaluate_models.py")
     
     try:
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
         process = subprocess.Popen(
-            [PYTHON, script_path],
+            [PYTHON, "-u", script_path],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             start_new_session=True,
+            env=env,
         )
         evaluation_state["pid"] = process.pid
         
@@ -483,12 +489,15 @@ def run_generative_script(req: GenRequest):
         print(f"Error checking directories: {e}")
 
     try:
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
         process = subprocess.Popen(
-            [PYTHON, script_path] + cmd_args,
+            [PYTHON, "-u", script_path] + cmd_args,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
             start_new_session=True,
+            env=env,
         )
         gen_state["pid"] = process.pid
         
@@ -663,8 +672,10 @@ def run_hpo_script(req: HPOResquest):
     script_path = os.path.join(SRC_DIR, "optuna_train_model.py")
     
     try:
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
         process = subprocess.Popen(
-            [PYTHON, script_path, req.model_name,
+            [PYTHON, "-u", script_path, req.model_name,
              "--n-trials", str(req.num_trials),
              "--max-epochs", str(req.max_epochs),
              *(["--max-samples", str(req.max_samples)] if req.max_samples else []),
@@ -674,6 +685,7 @@ def run_hpo_script(req: HPOResquest):
             stderr=subprocess.STDOUT,
             text=True,
             start_new_session=True,
+            env=env,
         )
         hpo_state["pid"] = process.pid
         
