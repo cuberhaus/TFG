@@ -385,6 +385,13 @@ class GenRequest(BaseModel):
     task_type: str
     experiment_name: Optional[str] = "mask2polyp"
     epoch: Optional[str] = "latest"
+    batch_size: Optional[int] = 4
+    n_epochs: Optional[int] = 5
+    lr: Optional[float] = 0.0002
+    netG: Optional[str] = "resnet_9blocks"
+    load_size: Optional[int] = 286
+    crop_size: Optional[int] = 256
+    max_dataset_size: Optional[int] = None
 
 def run_generative_script(req: GenRequest):
     global gen_state
@@ -396,6 +403,16 @@ def run_generative_script(req: GenRequest):
     cmd_args = []
     if req.task_type == "train_cyclegan":
         script_name = "cyclegan_train.py"
+        cmd_args.extend([
+            "--batch-size", str(req.batch_size),
+            "--n-epochs", str(req.n_epochs),
+            "--lr", str(req.lr),
+            "--netG", req.netG,
+            "--load-size", str(req.load_size),
+            "--crop-size", str(req.crop_size),
+        ])
+        if req.max_dataset_size is not None:
+            cmd_args.extend(["--max-dataset-size", str(req.max_dataset_size)])
     elif req.task_type == "test_cyclegan":
         script_name = "cyclegan_test.py"
         if req.experiment_name:

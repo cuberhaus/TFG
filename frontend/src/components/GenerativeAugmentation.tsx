@@ -24,6 +24,14 @@ export default function GenerativeAugmentation() {
   const [experimentName, setExperimentName] = useState('');
   const [availableExperiments, setAvailableExperiments] = useState<Record<string, string[]>>({});
   const [epoch, setEpoch] = useState('latest');
+
+  const [cganBatchSize, setCganBatchSize] = useState(4);
+  const [cganEpochs, setCganEpochs] = useState(5);
+  const [cganLr, setCganLr] = useState(0.0002);
+  const [cganNetG, setCganNetG] = useState('resnet_9blocks');
+  const [cganLoadSize, setCganLoadSize] = useState(286);
+  const [cganCropSize, setCganCropSize] = useState(256);
+  const [cganMaxDataset, setCganMaxDataset] = useState<number | ''>('');
   
   const [status, setStatus] = useState<GenStatus>({
     is_running: false,
@@ -153,7 +161,16 @@ export default function GenerativeAugmentation() {
       await axios.post('http://localhost:8082/api/generate', {
         task_type: taskType,
         experiment_name: taskType === 'test_cyclegan' ? experimentName : undefined,
-        epoch: taskType === 'test_cyclegan' ? epoch : undefined
+        epoch: taskType === 'test_cyclegan' ? epoch : undefined,
+        ...(taskType === 'train_cyclegan' ? {
+          batch_size: cganBatchSize,
+          n_epochs: cganEpochs,
+          lr: cganLr,
+          netG: cganNetG,
+          load_size: cganLoadSize,
+          crop_size: cganCropSize,
+          ...(cganMaxDataset ? { max_dataset_size: cganMaxDataset } : {}),
+        } : {}),
       });
       fetchStatus();
     } catch (err: any) {
@@ -384,12 +401,60 @@ export default function GenerativeAugmentation() {
                 <label className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${taskType === 'train_cyclegan' ? 'border-purple-500 bg-purple-900/10' : 'border-gray-700 bg-gray-800 hover:bg-gray-750'}`}>
                   <input type="radio" name="task" value="train_cyclegan" className="sr-only" checked={taskType === 'train_cyclegan'} onChange={(e) => setTaskType(e.target.value)} />
                   <span className="flex flex-1">
-                    <span className="flex flex-col">
+                    <span className="flex flex-col w-full">
                       <span className="block text-sm font-medium text-gray-100">Train CycleGAN</span>
                       <span className="mt-1 flex items-center text-sm text-gray-400">Train an image-to-image translation model to generate realistic polyp images from masks.</span>
+
+                      {taskType === 'train_cyclegan' && (
+                        <div className="mt-4 border-t border-gray-700 pt-4 grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Batch Size</label>
+                            <input type="number" min="1" value={cganBatchSize} onChange={(e) => setCganBatchSize(parseInt(e.target.value))}
+                              className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Epochs</label>
+                            <input type="number" min="1" value={cganEpochs} onChange={(e) => setCganEpochs(parseInt(e.target.value))}
+                              className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Learning Rate</label>
+                            <input type="number" step="0.0001" min="0.00001" value={cganLr} onChange={(e) => setCganLr(parseFloat(e.target.value))}
+                              className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Generator</label>
+                            <select value={cganNetG} onChange={(e) => setCganNetG(e.target.value)}
+                              className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500">
+                              <option value="resnet_9blocks">ResNet 9 blocks</option>
+                              <option value="resnet_6blocks">ResNet 6 blocks</option>
+                              <option value="unet_256">U-Net 256</option>
+                              <option value="unet_128">U-Net 128</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Load Size</label>
+                            <input type="number" min="64" value={cganLoadSize} onChange={(e) => setCganLoadSize(parseInt(e.target.value))}
+                              className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Crop Size</label>
+                            <input type="number" min="64" value={cganCropSize} onChange={(e) => setCganCropSize(parseInt(e.target.value))}
+                              className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500" />
+                          </div>
+                          <div className="col-span-2">
+                            <label className="block text-xs font-medium text-gray-400 mb-1">
+                              Max Dataset Size <span className="text-gray-500 font-normal">(optional — for quick testing)</span>
+                            </label>
+                            <input type="number" min="1" placeholder="All" value={cganMaxDataset}
+                              onChange={(e) => setCganMaxDataset(e.target.value ? parseInt(e.target.value) : '')}
+                              className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500 placeholder-gray-500" />
+                          </div>
+                        </div>
+                      )}
                     </span>
                   </span>
-                  {taskType === 'train_cyclegan' && <CheckCircle className="h-5 w-5 text-purple-500" />}
+                  {taskType === 'train_cyclegan' && <CheckCircle className="h-5 w-5 text-purple-500 absolute right-4 top-4" />}
                 </label>
 
                 <label className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${taskType === 'test_cyclegan' ? 'border-purple-500 bg-purple-900/10' : 'border-gray-700 bg-gray-800 hover:bg-gray-750'}`}>
