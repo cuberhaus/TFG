@@ -1,46 +1,41 @@
+import argparse
 import os
-import platform
+import sys
 
-import matplotlib.pyplot as plt
 import pandas as pd
 import torch
 from torch.utils.data import DataLoader
-from torchvision.models.detection import fasterrcnn_resnet50_fpn
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, SCRIPT_DIR)
 
 from clases.model_utils import load_model_with_hyperparams, collate_fn, prepare_dataset, parse_model_filename, \
-    coco_evaluate
+    coco_evaluate, get_model
 
-os_name = platform.system()
+OUT_DIR = os.path.join(SCRIPT_DIR, '..', 'out')
+MODEL_DIR = os.path.join(OUT_DIR, 'saved_models')
+CSV_FILE_PATH = os.path.join(OUT_DIR, "model_performances.csv")
 
-# Get the absolute path of the current script
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_DIR = None
-TEST_DATA_PATH = None
-if os_name == 'Linux':
-    TEST_DATA_PATH = os.path.join(SCRIPT_DIR, '../data/dataset1/Test/Test/')
-    MODEL_DIR = os.path.join(SCRIPT_DIR, '../../old/saved_models/')  # Remote
-elif os_name == 'Darwin':
-    MODEL_DIR = os.path.join(SCRIPT_DIR, '../tmp/saved_models/')  # Mac
-    TEST_DATA_PATH = os.path.join(SCRIPT_DIR, '/Volumes/SSD_6Gbps/dataset1/Test/Test/')  # Mac
-elif os_name == 'Windows':
-    MODEL_DIR = os.path.join(SCRIPT_DIR, '../tmp/saved_models/')  # Remote
-    TEST_DATA_PATH = os.path.join(SCRIPT_DIR, '../data/Test/Test/')
+parser = argparse.ArgumentParser(description="Evaluate all saved models")
+parser.add_argument('--debug', action='store_true', help='Use only 5 samples for quick testing')
+parser.add_argument('--models-dir', type=str, default=None,
+                    help='Override saved models directory')
+args = parser.parse_args()
+
+if args.models_dir:
+    MODEL_DIR = args.models_dir
 
 if not os.path.exists(MODEL_DIR):
     os.makedirs(MODEL_DIR)
 
-CSV_FILE_PATH = os.path.join(SCRIPT_DIR, "../out/model_performances.csv")
-MODEL_PERFORMANCE_PLOT_PATH = os.path.join(SCRIPT_DIR, "../out/model_performance_comparison.png")
-DEBUG = True
+model_filenames = [f for f in os.listdir(MODEL_DIR) if not f.startswith('.')]
 
+if not model_filenames:
+    print(f"No models found in {MODEL_DIR}")
+    sys.exit(0)
 
-model_filenames = [f for f in os.listdir(MODEL_DIR)]
-
-if DEBUG:
-    max_samples = {
-        'test': 5,
-        'train': 5
-    }
+if args.debug:
+    max_samples = {'test': 5, 'train': 5}
 else:
     max_samples = None
 
@@ -58,12 +53,11 @@ csv_exists = os.path.exists(CSV_FILE_PATH)
 
 for model_filename in model_filenames:
     print(f"Evaluating {model_filename}")
-    # Parse model characteristics
     characteristics = parse_model_filename(model_filename)
     print(characteristics)
 
-    # Load model
-    model = fasterrcnn_resnet50_fpn(pretrained=False, num_classes=2)  # Update num_classes as per your requirement
+    model_name = model_filename.split('_')[0]
+    model = get_model(model_name, num_classes=2)
     full_model_path = os.path.join(MODEL_DIR, model_filename)
     model, _, _ = load_model_with_hyperparams(model, full_model_path, load_dir=MODEL_DIR)
 
