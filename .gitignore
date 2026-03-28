@@ -123,10 +123,8 @@ pnpm-debug.log*
 .cursor/
 .vscode/
 
-# Output directories
-out/*
-!out/losses/
-!out/saved_models/
+# Output directories (models, losses, predictions, CSVs — all generated)
+out/
 
 # Generated logs & checkpoints
 checkpoints/
