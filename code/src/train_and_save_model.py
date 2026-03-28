@@ -33,7 +33,7 @@ def train_and_save_model():
         max_samples = {'train': n, 'test': max(n // 4, 2)}
         train_dataset, test_dataset = prepare_dataset(max_samples)
     elif debug:
-        max_samples = {'train': 20, 'test': 10}
+        max_samples = {'train': 8, 'test': 4}
         train_dataset, test_dataset = prepare_dataset(max_samples)
     else:
         train_dataset, test_dataset = prepare_dataset()

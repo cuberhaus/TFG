@@ -24,9 +24,20 @@ from clases.model_utils import train_model, prepare_dataset
 def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN',
               debug=False, max_epochs=5, max_samples=None):
     lr = trial.suggest_float("lr", 1e-5, 1e-1, log=True)
-    batch_size = trial.suggest_categorical("batch_size", [2, 4, 8])
+    batch_size = trial.suggest_categorical("batch_size", [2, 4])
     weight_decay = trial.suggest_float("weight_decay", 1e-5, 1e-1, log=True)
-    num_epochs = trial.suggest_int("num_epochs", 1, max_epochs)
+
+    if debug:
+        num_epochs = 1
+        ms = {'train': 8, 'test': 4}
+        train_dataset, _ = prepare_dataset(ms)
+    elif max_samples:
+        num_epochs = trial.suggest_int("num_epochs", 1, max_epochs)
+        ms = {'train': max_samples, 'test': max(max_samples // 4, 2)}
+        train_dataset, _ = prepare_dataset(ms)
+    else:
+        num_epochs = trial.suggest_int("num_epochs", 1, max_epochs)
+        train_dataset, _ = prepare_dataset()
 
     params = {
         "BATCH_SIZE": batch_size,
@@ -34,15 +45,6 @@ def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN',
         "WEIGHT_DECAY": weight_decay,
         "NUM_EPOCHS": num_epochs
     }
-
-    if max_samples:
-        ms = {'train': max_samples, 'test': max(max_samples // 4, 2)}
-        train_dataset, _ = prepare_dataset(ms)
-    elif debug:
-        ms = {'train': 20, 'test': 10}
-        train_dataset, _ = prepare_dataset(ms)
-    else:
-        train_dataset, _ = prepare_dataset()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Validation split is done inside the train_model function already
