@@ -32,6 +32,9 @@ def main():
     A_dir = os.path.join(POLYP_DATASET_DIR, "testA")
     B_dir = os.path.join(POLYP_DATASET_DIR, "testB")
 
+    checkpoints_dir = os.path.join(spade_dir, "checkpoints")
+    results_dir = os.path.join(spade_dir, "results")
+
     command = [
         python_installed, test_path,
         "--name", args.name,
@@ -40,6 +43,8 @@ def main():
         "--image_dir", B_dir,
         "--label_nc", "1",
         "--no_instance",
+        "--checkpoints_dir", checkpoints_dir,
+        "--results_dir", results_dir,
         "--which_epoch", args.which_epoch,
     ]
 

@@ -36,12 +36,15 @@ def main():
 
     model_name = f'mask2polyp_bs-{args.batch_size}_epochs-{args.n_epochs}'
 
+    checkpoints_dir = os.path.join(cycleGan_dir, "checkpoints")
+
     command = [
         python_installed,
         train_path,
         '--dataroot', POLYP_DATASET_DIR,
         '--name', model_name,
         '--model', 'cycle_gan',
+        '--checkpoints_dir', checkpoints_dir,
         '--batch_size', str(args.batch_size),
         '--epoch_count', '1',
         '--n_epochs', str(args.n_epochs),

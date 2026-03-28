@@ -36,6 +36,8 @@ def main():
     train_path = os.path.join(spade_dir, "train.py")
     python_installed = _find_python()
 
+    checkpoints_dir = os.path.join(spade_dir, "checkpoints")
+
     command = [
         python_installed, train_path,
         "--name", "spade_train",
@@ -44,6 +46,7 @@ def main():
         "--image_dir", B_dir,
         "--label_nc", "1",
         "--no_instance",
+        "--checkpoints_dir", checkpoints_dir,
         "--batchSize", str(args.batch_size),
         "--niter", str(args.niter),
         "--niter_decay", str(args.niter_decay),

@@ -14,6 +14,8 @@ POLYP_DATASET_DIR, _, cycleGan_dir = prepareCycleGAN()
 
 python_installed = sys.executable
 test_path = os.path.join(cycleGan_dir, 'test.py')
+checkpoints_dir = os.path.join(cycleGan_dir, 'checkpoints')
+results_dir = os.path.join(cycleGan_dir, 'results')
 
 command = [
     python_installed,
@@ -25,7 +27,11 @@ command = [
     '--model',
     'cycle_gan',
     '--no_dropout',
+    '--checkpoints_dir',
+    checkpoints_dir,
+    '--results_dir',
+    results_dir,
     '--epoch',
-    args.epoch
+    args.epoch,
 ]
 subprocess.run(command)
