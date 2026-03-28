@@ -239,7 +239,7 @@ export default function GenerativeAugmentation() {
           ) : (
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-400" />
           )}
-          <pre className="text-sm font-mono whitespace-pre-wrap flex-1 overflow-x-auto max-h-40 overflow-y-auto">{lastResult.message}</pre>
+          <pre className="text-sm font-mono whitespace-pre-wrap flex-1 overflow-x-auto max-h-40 overflow-y-auto log-scroll">{lastResult.message}</pre>
           <button onClick={() => setLastResult(null)} className="text-gray-400 hover:text-white flex-shrink-0">
             <X className="w-4 h-4" />
           </button>
@@ -388,7 +388,7 @@ export default function GenerativeAugmentation() {
             Running Task: <span className="font-bold text-white uppercase tracking-wider">{status.current_task?.replace('_', ' ')}</span>
           </h3>
           
-          <div className="bg-gray-900/80 border border-gray-700 p-4 rounded-lg w-full max-w-2xl mt-2 text-left">
+          <div className="bg-gray-900/80 border border-gray-700 p-4 rounded-lg w-full max-w-2xl mt-2 text-left max-h-80 overflow-y-auto log-scroll">
             <p className="text-sm font-mono text-gray-300 overflow-x-auto whitespace-pre-wrap">
               {status.message}
             </p>

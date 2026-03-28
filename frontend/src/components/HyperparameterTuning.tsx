@@ -106,7 +106,7 @@ export default function HyperparameterTuning() {
           ) : (
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-400" />
           )}
-          <pre className="text-sm font-mono whitespace-pre-wrap flex-1 overflow-x-auto max-h-40 overflow-y-auto">{lastResult.message}</pre>
+          <pre className="text-sm font-mono whitespace-pre-wrap flex-1 overflow-x-auto max-h-40 overflow-y-auto log-scroll">{lastResult.message}</pre>
           <button onClick={() => setLastResult(null)} className="text-gray-400 hover:text-white flex-shrink-0">
             <X className="w-4 h-4" />
           </button>
@@ -127,7 +127,7 @@ export default function HyperparameterTuning() {
              </span>
           </div>
           
-          <div className="p-4 bg-[#0d1117] flex-1 overflow-y-auto font-mono text-sm text-gray-300 leading-relaxed">
+          <div className="p-4 bg-[#0d1117] flex-1 overflow-y-auto font-mono text-sm text-gray-300 leading-relaxed log-scroll">
             <div className="whitespace-pre-wrap">
               {status.message}
             </div>

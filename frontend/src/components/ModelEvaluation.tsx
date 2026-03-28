@@ -13,6 +13,7 @@ export default function ModelEvaluation() {
     message: 'Idle',
   });
   const [error, setError] = useState('');
+  const [debug, setDebug] = useState(false);
   const [lastResult, setLastResult] = useState<{ type: 'success' | 'error' | 'cancelled'; message: string } | null>(null);
   const wasEvaluating = useRef(false);
   const logRef = useRef<HTMLDivElement>(null);
@@ -55,7 +56,7 @@ export default function ModelEvaluation() {
     setError('');
     setLastResult(null);
     try {
-      await axios.post('http://localhost:8082/api/evaluate');
+      await axios.post('http://localhost:8082/api/evaluate', { debug });
       fetchStatus();
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to start evaluation.');
@@ -97,7 +98,7 @@ export default function ModelEvaluation() {
           ) : (
             <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-400" />
           )}
-          <pre className="text-sm font-mono whitespace-pre-wrap flex-1 overflow-x-auto max-h-40 overflow-y-auto">{lastResult.message}</pre>
+          <pre className="text-sm font-mono whitespace-pre-wrap flex-1 overflow-x-auto max-h-40 overflow-y-auto log-scroll">{lastResult.message}</pre>
           <button onClick={() => setLastResult(null)} className="text-gray-400 hover:text-white flex-shrink-0">
             <X className="w-4 h-4" />
           </button>
@@ -122,7 +123,7 @@ export default function ModelEvaluation() {
             </span>
           </div>
 
-          <div ref={logRef} className="p-4 bg-[#0d1117] flex-1 overflow-y-auto font-mono text-sm text-gray-300 leading-relaxed">
+          <div ref={logRef} className="p-4 bg-[#0d1117] flex-1 overflow-y-auto font-mono text-sm text-gray-300 leading-relaxed log-scroll">
             <div className="whitespace-pre-wrap">{status.message}</div>
             <span className="animate-pulse inline-block w-2 h-4 bg-blue-500 ml-1 align-middle"></span>
           </div>
@@ -151,10 +152,24 @@ export default function ModelEvaluation() {
             </div>
           </div>
 
-          <div className="flex justify-center">
+          <div className="bg-gray-800 border border-gray-700 rounded-xl p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-sm font-medium text-gray-300">Debug Mode</span>
+                <p className="text-xs text-gray-500 mt-0.5">Use only 5 test samples for a quick check</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDebug(!debug)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${debug ? 'bg-blue-600' : 'bg-gray-600'}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${debug ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
             <button
               onClick={handleStartEvaluation}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-medium transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-blue-900/20 text-lg"
+              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl font-medium transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-blue-900/20 text-lg"
             >
               <Play className="w-5 h-5 fill-current" />
               Start Evaluation Job

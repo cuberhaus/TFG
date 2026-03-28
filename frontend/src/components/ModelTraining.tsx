@@ -110,7 +110,7 @@ export default function ModelTraining() {
           ) : (
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-400" />
           )}
-          <pre className="text-sm font-mono whitespace-pre-wrap flex-1 overflow-x-auto max-h-40 overflow-y-auto">{lastResult.message}</pre>
+          <pre className="text-sm font-mono whitespace-pre-wrap flex-1 overflow-x-auto max-h-40 overflow-y-auto log-scroll">{lastResult.message}</pre>
           <button onClick={() => setLastResult(null)} className="text-gray-400 hover:text-white flex-shrink-0">
             <X className="w-4 h-4" />
           </button>
@@ -135,7 +135,7 @@ export default function ModelTraining() {
             </div>
             <pre
               ref={logRef}
-              className="p-4 text-xs font-mono text-gray-300 bg-gray-900 overflow-auto max-h-80 leading-relaxed whitespace-pre-wrap"
+              className="p-4 text-xs font-mono text-gray-300 bg-gray-900 overflow-auto max-h-80 leading-relaxed whitespace-pre-wrap log-scroll"
             >{status.message || 'Waiting for output...'}</pre>
           </div>
           <div className="px-4 py-3 border-t border-gray-700 bg-gray-800 flex items-center justify-between">

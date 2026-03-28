@@ -168,10 +168,12 @@ evaluation_state = {
     "pid": None,
 }
 
-def run_evaluation_script():
+class EvalRequest(BaseModel):
+    debug: bool = False
+
+def run_evaluation_script(debug: bool = False):
     global evaluation_state
     
-    # Pre-check for evaluation datasets (train and test are both used in prepare_dataset)
     import glob
     train_ann_dir = os.path.join(SRC_DIR, "../data/TrainValid/Annotations")
     test_ann_dir = os.path.join(SRC_DIR, "../data/Test/Annotations")
@@ -188,12 +190,15 @@ def run_evaluation_script():
     evaluation_state["message"] = "Evaluating all models in the saved models directory..."
     
     script_path = os.path.join(SRC_DIR, "evaluate_models.py")
+    cmd = [PYTHON, "-u", script_path]
+    if debug:
+        cmd.append("--debug")
     
     try:
         env = os.environ.copy()
         env["PYTHONUNBUFFERED"] = "1"
         process = subprocess.Popen(
-            [PYTHON, "-u", script_path],
+            cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
@@ -949,10 +954,10 @@ def get_evaluation_status():
     return evaluation_state
 
 @app.post("/api/evaluate")
-def start_evaluation(background_tasks: BackgroundTasks):
+def start_evaluation(req: EvalRequest, background_tasks: BackgroundTasks):
     if evaluation_state["is_evaluating"]:
         raise HTTPException(status_code=400, detail="Model evaluation is already in progress.")
-    background_tasks.add_task(run_evaluation_script)
+    background_tasks.add_task(run_evaluation_script, req.debug)
     return {"message": "Evaluation started."}
 
 @app.post("/api/evaluate/cancel")
