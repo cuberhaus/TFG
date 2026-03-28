@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Play, Square, Sparkles, CheckCircle, AlertCircle, RefreshCw, Image as ImageIcon, Wand2 } from 'lucide-react';
+import { Play, Square, X, Sparkles, CheckCircle, AlertCircle, RefreshCw, Image as ImageIcon, Wand2 } from 'lucide-react';
 
 interface GenStatus {
   is_running: boolean;
@@ -31,6 +31,8 @@ export default function GenerativeAugmentation() {
     message: 'Idle'
   });
   const [error, setError] = useState<string | null>(null);
+  const [lastResult, setLastResult] = useState<{ type: 'success' | 'error' | 'cancelled'; message: string } | null>(null);
+  const wasRunning = useRef(false);
 
   const [prepStatus, setPrepStatus] = useState<PrepStatus>({ is_running: false, message: 'Idle' });
   const [prepError, setPrepError] = useState<string | null>(null);
@@ -45,7 +47,21 @@ export default function GenerativeAugmentation() {
   const fetchStatus = async () => {
     try {
       const response = await axios.get('http://localhost:8082/api/generate/status');
-      setStatus(response.data);
+      const newStatus = response.data;
+
+      if (wasRunning.current && !newStatus.is_running) {
+        const msg = newStatus.message;
+        if (msg.toLowerCase().includes('cancelled')) {
+          setLastResult({ type: 'cancelled', message: msg });
+        } else if (msg.toLowerCase().includes('failed') || msg.toLowerCase().includes('error')) {
+          setLastResult({ type: 'error', message: msg });
+        } else {
+          setLastResult({ type: 'success', message: msg });
+        }
+        fetchExperiments();
+      }
+      wasRunning.current = newStatus.is_running;
+      setStatus(newStatus);
     } catch (err) {
       console.error("Failed to fetch generation status:", err);
     }
@@ -107,12 +123,13 @@ export default function GenerativeAugmentation() {
     fetchStatus();
     fetchPrepStatus();
     fetchExperiments();
+    const rate = status.is_running || prepStatus.is_running ? 1000 : 3000;
     const interval = setInterval(() => {
       fetchStatus();
       fetchPrepStatus();
-    }, 1500);
+    }, rate);
     return () => clearInterval(interval);
-  }, []);
+  }, [status.is_running, prepStatus.is_running]);
 
   // When experiment name changes, reset the epoch to the first available one for that new experiment
   useEffect(() => {
@@ -170,6 +187,28 @@ export default function GenerativeAugmentation() {
            </button>
         )}
       </div>
+
+      {lastResult && (
+        <div className={`flex items-start gap-3 p-4 rounded-lg border ${
+          lastResult.type === 'success'
+            ? 'bg-green-900/30 border-green-700 text-green-200'
+            : lastResult.type === 'cancelled'
+            ? 'bg-yellow-900/30 border-yellow-700 text-yellow-200'
+            : 'bg-red-900/30 border-red-700 text-red-200'
+        }`}>
+          {lastResult.type === 'success' ? (
+            <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-green-400" />
+          ) : lastResult.type === 'cancelled' ? (
+            <Square className="w-5 h-5 flex-shrink-0 mt-0.5 text-yellow-400" />
+          ) : (
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-400" />
+          )}
+          <pre className="text-sm font-mono whitespace-pre-wrap flex-1 overflow-x-auto max-h-40 overflow-y-auto">{lastResult.message}</pre>
+          <button onClick={() => setLastResult(null)} className="text-gray-400 hover:text-white flex-shrink-0">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Dataset Preparation Section */}
       {(prepStatus.is_running || prepStatus.message !== 'Idle') && (

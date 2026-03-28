@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Play, Square, Settings, AlertCircle, CheckCircle, Terminal } from 'lucide-react';
+import { Play, Square, X, Settings, AlertCircle, CheckCircle, Terminal } from 'lucide-react';
 
 export default function ModelTraining() {
   const [modelArch, setModelArch] = useState('FasterRCNN');
@@ -17,6 +17,8 @@ export default function ModelTraining() {
     message: 'Idle'
   });
   const [error, setError] = useState<string | null>(null);
+  const [lastResult, setLastResult] = useState<{ type: 'success' | 'error' | 'cancelled'; message: string } | null>(null);
+  const wasTraining = useRef(false);
   
   const logRef = useRef<HTMLPreElement>(null);
 
@@ -24,7 +26,20 @@ export default function ModelTraining() {
     const fetchStatus = async () => {
       try {
         const response = await axios.get('http://localhost:8082/api/train/status');
-        setStatus(response.data);
+        const newStatus = response.data;
+
+        if (wasTraining.current && !newStatus.is_training) {
+          const msg = newStatus.message;
+          if (msg.toLowerCase().includes('cancelled')) {
+            setLastResult({ type: 'cancelled', message: msg });
+          } else if (msg.toLowerCase().includes('failed') || msg.toLowerCase().includes('error')) {
+            setLastResult({ type: 'error', message: msg });
+          } else if (msg.toLowerCase().includes('success') || msg.toLowerCase().includes('completed')) {
+            setLastResult({ type: 'success', message: msg });
+          }
+        }
+        wasTraining.current = newStatus.is_training;
+        setStatus(newStatus);
       } catch (err) {
         console.error("Failed to fetch training status:", err);
       }
@@ -79,6 +94,28 @@ export default function ModelTraining() {
           The training runs asynchronously in the backend. Check the backend terminal for epoch/batch loss logs.
         </p>
       </div>
+
+      {lastResult && (
+        <div className={`flex items-start gap-3 p-4 rounded-lg border animate-in ${
+          lastResult.type === 'success'
+            ? 'bg-green-900/30 border-green-700 text-green-200'
+            : lastResult.type === 'cancelled'
+            ? 'bg-yellow-900/30 border-yellow-700 text-yellow-200'
+            : 'bg-red-900/30 border-red-700 text-red-200'
+        }`}>
+          {lastResult.type === 'success' ? (
+            <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-green-400" />
+          ) : lastResult.type === 'cancelled' ? (
+            <Square className="w-5 h-5 flex-shrink-0 mt-0.5 text-yellow-400" />
+          ) : (
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-400" />
+          )}
+          <pre className="text-sm font-mono whitespace-pre-wrap flex-1 overflow-x-auto max-h-40 overflow-y-auto">{lastResult.message}</pre>
+          <button onClick={() => setLastResult(null)} className="text-gray-400 hover:text-white flex-shrink-0">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {status.is_training ? (
         <div className="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden">
@@ -229,20 +266,6 @@ export default function ModelTraining() {
               </div>
             )}
 
-            {!error && status.message !== 'Idle' && (
-              <div className={`flex items-start gap-2 p-3 border rounded text-sm whitespace-pre-wrap ${
-                status.message.toLowerCase().includes('failed') || status.message.toLowerCase().includes('error')
-                  ? 'bg-red-900/30 border-red-800 text-red-300'
-                  : 'bg-green-900/30 border-green-800 text-green-300'
-              }`}>
-                {status.message.toLowerCase().includes('failed') || status.message.toLowerCase().includes('error') ? (
-                  <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-500 mt-0.5" />
-                ) : (
-                  <CheckCircle className="w-5 h-5 flex-shrink-0 text-green-500 mt-0.5" />
-                )}
-                <div className="font-mono overflow-x-auto">{status.message}</div>
-              </div>
-            )}
           </div>
         </div>
       )}
