@@ -47,6 +47,7 @@ def main():
         "--label_nc", "1",
         "--no_instance",
         "--checkpoints_dir", checkpoints_dir,
+        "--save_epoch_freq", "5",
         "--batchSize", str(args.batch_size),
         "--niter", str(args.niter),
         "--niter_decay", str(args.niter_decay),
