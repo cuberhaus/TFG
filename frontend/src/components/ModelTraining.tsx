@@ -20,7 +20,7 @@ export default function ModelTraining() {
   const [lastResult, setLastResult] = useState<{ type: 'success' | 'error' | 'cancelled'; message: string } | null>(null);
   const wasTraining = useRef(false);
   
-  const logRef = useRef<HTMLPreElement>(null);
+  const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchStatus = async () => {

@@ -178,7 +178,7 @@ export default function InferenceUI() {
         {mode === 'single' ? (
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Upload Image</label>
-            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-500 border-dashed rounded-lg cursor-pointer bg-gray-800 hover:bg-gray-700 transition-colors">
+            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-600 border-dashed rounded-xl cursor-pointer bg-gray-900 hover:bg-gray-800 transition-colors">
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
                 <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
                 <p className="text-sm text-gray-400">Click to upload image</p>
@@ -196,10 +196,10 @@ export default function InferenceUI() {
         <button
           onClick={handlePredict}
           disabled={(mode === 'single' && !file) || loading || models.length === 0}
-          className={`w-full py-3 rounded font-medium mt-4 transition-colors ${
+          className={`w-full py-3 rounded-xl font-medium mt-4 transition-all text-lg ${
             (mode === 'single' && !file) || loading || models.length === 0
               ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-              : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg'
+              : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-900/20 hover:scale-[1.02] active:scale-[0.98]'
           }`}
         >
           {loading ? 'Running Model...' : mode === 'batch' ? 'Run Batch Inference' : 'Run Detection'}
@@ -213,7 +213,7 @@ export default function InferenceUI() {
       </div>
 
       {/* Image Preview / Result Column */}
-      <div className="md:col-span-2 bg-gray-900 rounded-lg border border-gray-700 p-4 flex flex-col items-center justify-center min-h-[400px]">
+      <div className="md:col-span-2 bg-gray-900 rounded-xl border border-gray-700 p-4 flex flex-col items-center justify-center min-h-[400px]">
         {loading ? (
           <div className="animate-pulse flex flex-col items-center">
             <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
@@ -309,6 +309,7 @@ export default function InferenceUI() {
             </div>
           )
         )}
+      </div>
       </div>
     </div>
   );

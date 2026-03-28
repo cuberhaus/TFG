@@ -140,14 +140,14 @@ export default function TrainingLossViewer() {
       )}
 
       {allFiles.length === 0 && !error ? (
-        <div className="text-center py-10 bg-gray-800 rounded border border-gray-700">
+        <div className="text-center py-10 bg-gray-800 rounded-xl border border-gray-700">
           <p className="text-gray-400">No loss files found in the directory.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Controls Panel */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="bg-gray-900 p-4 rounded-lg border border-gray-700">
+            <div className="bg-gray-800 p-4 rounded-xl border border-gray-700">
               <h3 className="font-medium mb-3 text-sm text-gray-300 uppercase tracking-wider">Granularity</h3>
               <div className="flex gap-2">
                 <button
@@ -173,7 +173,7 @@ export default function TrainingLossViewer() {
               </div>
             </div>
 
-            <div className="bg-gray-900 p-4 rounded-lg border border-gray-700 max-h-[400px] overflow-y-auto">
+            <div className="bg-gray-800 p-4 rounded-xl border border-gray-700 max-h-[400px] overflow-y-auto">
               <h3 className="font-medium mb-3 text-sm text-gray-300 uppercase tracking-wider">
                 Select Runs ({filteredFiles.length})
               </h3>
@@ -212,7 +212,7 @@ export default function TrainingLossViewer() {
           </div>
 
           {/* Chart Panel */}
-          <div className="lg:col-span-3 bg-gray-900 p-6 rounded-lg border border-gray-700 flex flex-col min-h-[500px]">
+          <div className="lg:col-span-3 bg-gray-800 p-6 rounded-xl border border-gray-700 flex flex-col min-h-[500px]">
             <h3 className="font-medium mb-6 text-center text-lg">
               {lossType === 'epoch' ? 'Epoch' : 'Batch'} Losses Over Training
             </h3>
