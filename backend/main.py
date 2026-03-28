@@ -68,12 +68,16 @@ def _run_subprocess(cmd: list, state: dict, task_label: str,
         process.wait()
 
         last_lines = '\n'.join(output_lines)
-        if process.returncode == 0:
-            state["message"] = f"{task_label} completed successfully.\n\n{last_lines}"
-        elif process.returncode < 0:
+        _error_keywords = ("error", "exception", "traceback", "failed", "assert", "segfault", "fatal")
+        has_error_output = any(kw in last_lines.lower() for kw in _error_keywords)
+
+        if process.returncode < 0:
             state["message"] = f"{task_label} cancelled."
+        elif process.returncode != 0 or has_error_output:
+            label = "completed with errors" if process.returncode == 0 else f"failed (code {process.returncode})"
+            state["message"] = f"{task_label} {label}:\n{last_lines}"
         else:
-            state["message"] = f"{task_label} failed (code {process.returncode}):\n{last_lines}"
+            state["message"] = f"{task_label} completed successfully.\n\n{last_lines}"
     except Exception as e:
         state["message"] = f"Error during {task_label}: {traceback.format_exc()}"
     finally:
