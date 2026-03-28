@@ -21,11 +21,12 @@ fix_path()
 from clases.model_utils import train_model, prepare_dataset
 
 
-def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN', debug=False):
+def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN',
+              debug=False, max_epochs=5, max_samples=None):
     lr = trial.suggest_float("lr", 1e-5, 1e-1, log=True)
-    batch_size = trial.suggest_categorical("batch_size", [2, 4, 8])  # TODO: BATCH SIZE OF 16 BREAKS THINGS
+    batch_size = trial.suggest_categorical("batch_size", [2, 4, 8])
     weight_decay = trial.suggest_float("weight_decay", 1e-5, 1e-1, log=True)
-    num_epochs = trial.suggest_int("num_epochs", 1, 5)  # TODO: more epochs when we have more time
+    num_epochs = trial.suggest_int("num_epochs", 1, max_epochs)
 
     params = {
         "BATCH_SIZE": batch_size,
@@ -34,13 +35,14 @@ def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN', debug=Fal
         "NUM_EPOCHS": num_epochs
     }
 
-    train_dataset, _ = prepare_dataset()
-    if debug:
-        n_samples = 20
-        subset_indices = torch.randperm(len(train_dataset))[:n_samples]
-        train_dataset = Subset(train_dataset, subset_indices)
+    if max_samples:
+        ms = {'train': max_samples, 'test': max(max_samples // 4, 2)}
+        train_dataset, _ = prepare_dataset(ms)
+    elif debug:
+        ms = {'train': 20, 'test': 10}
+        train_dataset, _ = prepare_dataset(ms)
     else:
-        train_dataset = train_dataset
+        train_dataset, _ = prepare_dataset()
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Validation split is done inside the train_model function already
@@ -59,12 +61,15 @@ parser.add_argument('model_name', type=str, help='Name of the model to train.')
 parser.add_argument('--metric', type=str, default='f1', choices=['f1', 'mean_iou'], help='Metric to optimize.')
 parser.add_argument('--debug', action='store_true', help='Run in debug mode with a smaller subset of data.')
 parser.add_argument('--n-trials', type=int, default=5, help='Number of trials for Optuna optimization.')
+parser.add_argument('--max-epochs', type=int, default=5, help='Maximum number of epochs per trial.')
+parser.add_argument('--max-samples', type=int, default=None, help='Limit total training samples per trial.')
 
 args = parser.parse_args()
 
 study = optuna.create_study(direction='maximize')
 study.optimize(
-    lambda trial: objective(trial, metric_to_optimize=args.metric, model_name=args.model_name, debug=args.debug),
+    lambda trial: objective(trial, metric_to_optimize=args.metric, model_name=args.model_name,
+                            debug=args.debug, max_epochs=args.max_epochs, max_samples=args.max_samples),
     n_trials=args.n_trials)
 
 best_params = study.best_params

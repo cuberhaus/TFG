@@ -11,6 +11,9 @@ interface HPOStatus {
 export default function HyperparameterTuning() {
   const [modelArch, setModelArch] = useState('FasterRCNN');
   const [numTrials, setNumTrials] = useState(10);
+  const [maxEpochs, setMaxEpochs] = useState(5);
+  const [maxSamples, setMaxSamples] = useState<number | ''>('');
+  const [debug, setDebug] = useState(false);
   
   const [status, setStatus] = useState<HPOStatus>({
     is_tuning: false,
@@ -54,7 +57,10 @@ export default function HyperparameterTuning() {
     try {
       await axios.post('http://localhost:8082/api/hpo/start', {
         model_name: modelArch,
-        num_trials: numTrials
+        num_trials: numTrials,
+        max_epochs: maxEpochs,
+        ...(maxSamples ? { max_samples: maxSamples } : {}),
+        debug,
       });
       fetchStatus();
     } catch (err: any) {
@@ -181,6 +187,49 @@ export default function HyperparameterTuning() {
                     <span>Quick Test (1)</span>
                     <span>Deep Search (50)</span>
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">Max Epochs per Trial</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={maxEpochs}
+                      onChange={(e) => setMaxEpochs(parseInt(e.target.value))}
+                      className="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white outline-none focus:border-emerald-500 transition-colors"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Optuna picks 1–{maxEpochs} per trial</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-1">
+                      Max Samples <span className="text-gray-500">(optional)</span>
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="All"
+                      value={maxSamples}
+                      onChange={(e) => setMaxSamples(e.target.value ? parseInt(e.target.value) : '')}
+                      className="w-full bg-gray-900 border border-gray-600 rounded-lg px-4 py-3 text-white outline-none focus:border-emerald-500 transition-colors placeholder-gray-500"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Limit images per trial for quick testing</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between bg-gray-900/50 rounded-lg p-3 border border-gray-700">
+                  <div>
+                    <span className="text-sm font-medium text-gray-300">Debug Mode</span>
+                    <p className="text-xs text-gray-500 mt-0.5">Use only 20 train + 10 test samples</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setDebug(!debug)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${debug ? 'bg-emerald-600' : 'bg-gray-600'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${debug ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
                 </div>
               </div>
 

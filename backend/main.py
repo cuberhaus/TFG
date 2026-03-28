@@ -640,6 +640,9 @@ hpo_state = {
 class HPOResquest(BaseModel):
     model_name: str
     num_trials: int
+    max_epochs: Optional[int] = 5
+    max_samples: Optional[int] = None
+    debug: bool = False
 
 def run_hpo_script(req: HPOResquest):
     global hpo_state
@@ -661,7 +664,12 @@ def run_hpo_script(req: HPOResquest):
     
     try:
         process = subprocess.Popen(
-            [PYTHON, script_path, req.model_name, "--n-trials", str(req.num_trials)],
+            [PYTHON, script_path, req.model_name,
+             "--n-trials", str(req.num_trials),
+             "--max-epochs", str(req.max_epochs),
+             *(["--max-samples", str(req.max_samples)] if req.max_samples else []),
+             *(["--debug"] if req.debug else []),
+            ],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
