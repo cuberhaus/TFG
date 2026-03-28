@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import { api } from '../api';
 import { Play, Square, X, Settings, AlertCircle, CheckCircle, Terminal } from 'lucide-react';
 
 export default function ModelTraining() {
@@ -25,7 +25,7 @@ export default function ModelTraining() {
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const response = await axios.get('http://localhost:8082/api/train/status');
+        const response = await api.get('/api/train/status');
         const newStatus = response.data;
 
         if (wasTraining.current && !newStatus.is_training) {
@@ -59,7 +59,7 @@ export default function ModelTraining() {
   const handleStartTraining = async () => {
     setError(null);
     try {
-      await axios.post('http://localhost:8082/api/train', {
+      await api.post('/api/train', {
         model_name: modelArch,
         batch_size: batchSize,
         lr: learningRate,
@@ -68,7 +68,7 @@ export default function ModelTraining() {
         ...(maxSamples ? { max_samples: maxSamples } : {}),
         debug
       });
-      const response = await axios.get('http://localhost:8082/api/train/status');
+      const response = await api.get('/api/train/status');
       setStatus(response.data);
     } catch (err: any) {
       console.error(err);
@@ -78,7 +78,7 @@ export default function ModelTraining() {
 
   const handleCancelTraining = async () => {
     try {
-      await axios.post('http://localhost:8082/api/train/cancel');
+      await api.post('/api/train/cancel');
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.detail || "Failed to cancel training.");

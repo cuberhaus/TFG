@@ -90,7 +90,7 @@ function App() {
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-all ${
                           isActive 
                             ? 'bg-gray-700 text-white shadow-sm border border-gray-600' 
-                            : 'text-gray-400 hover:text-gray-200 hover:bg-gray-750 border border-transparent'
+                            : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700 border border-transparent'
                         }`}
                       >
                         <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? item.color : 'text-gray-500'}`} />

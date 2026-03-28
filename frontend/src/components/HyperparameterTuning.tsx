@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import { api } from '../api';
 import { Sliders, Settings, Play, Square, X, AlertCircle, CheckCircle, Terminal, Lock, Trophy, BarChart3 } from 'lucide-react';
 
 interface HPOStatus {
@@ -43,14 +43,14 @@ export default function HyperparameterTuning() {
 
   const fetchResults = async () => {
     try {
-      const res = await axios.get('http://localhost:8082/api/hpo/results');
+      const res = await api.get('/api/hpo/results');
       if (res.data.found) setHpoResults(res.data);
     } catch { /* ignore */ }
   };
   
   const fetchStatus = async () => {
     try {
-      const response = await axios.get('http://localhost:8082/api/hpo/status');
+      const response = await api.get('/api/hpo/status');
       const newStatus = response.data;
 
       if (wasTuning.current && !newStatus.is_tuning) {
@@ -81,7 +81,7 @@ export default function HyperparameterTuning() {
   const handleStartTuning = async () => {
     setError(null);
     try {
-      await axios.post('http://localhost:8082/api/hpo/start', {
+      await api.post('/api/hpo/start', {
         model_name: modelArch,
         num_trials: numTrials,
         max_epochs: maxEpochs,
@@ -97,7 +97,7 @@ export default function HyperparameterTuning() {
 
   const handleCancelTuning = async () => {
     try {
-      await axios.post('http://localhost:8082/api/hpo/cancel');
+      await api.post('/api/hpo/cancel');
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.detail || "Failed to cancel tuning.");

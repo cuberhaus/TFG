@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import axios from 'axios';
+import { api } from '../api';
 import { ChevronLeft, ChevronRight, RefreshCw, FolderSearch, Upload, CheckCircle, XCircle } from 'lucide-react';
 
 interface DatasetImage {
@@ -93,7 +93,7 @@ export default function DatasetExplorer() {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`http://localhost:8082/api/dataset/${currentSplit}?page=${currentPage}&limit=${limit}`);
+      const response = await api.get(`/api/dataset/${currentSplit}?page=${currentPage}&limit=${limit}`);
       setData(response.data);
     } catch (err: any) {
       console.error(err);
@@ -130,7 +130,7 @@ export default function DatasetExplorer() {
       formData.append('relative_paths', JSON.stringify(paths));
 
       try {
-        await axios.post('http://localhost:8082/api/dataset/upload', formData);
+        await api.post('/api/dataset/upload', formData);
       } catch (err: any) {
         setUploadProgress(prev => prev ? {
           ...prev,

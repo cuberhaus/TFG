@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import sys
 
@@ -6,7 +7,8 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 sys.path.append(SCRIPT_DIR)
 
-from clases.model_utils import *
+import torch
+from clases.model_utils import prepare_dataset, train_model
 
 
 def train_and_save_model():

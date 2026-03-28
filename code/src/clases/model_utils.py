@@ -1,5 +1,6 @@
 import json
 import os
+import tempfile
 from datetime import datetime
 import re
 
@@ -15,7 +16,6 @@ from torchvision.models.detection.faster_rcnn import FastRCNNPredictor, fasterrc
 from torchvision.models.detection.retinanet import RetinaNet_ResNet50_FPN_V2_Weights, \
     retinanet_resnet50_fpn_v2, RetinaNetHead
 from torchvision.models.detection.ssdlite import ssdlite320_mobilenet_v3_large, SSDLite320_MobileNet_V3_Large_Weights
-from torchvision.ops import box_iou
 
 from .custom_dataset import CustomDataset
 from .utils import *
@@ -105,22 +105,6 @@ def get_model(model_name, num_classes):
     return model
 
 
-def validate(model, val_loader, device):
-    model.eval()
-    val_loss = 0
-    use_amp = device.type == 'cuda'
-    with torch.no_grad():
-        for images, targets in val_loader:
-            images = list(img.to(device, non_blocking=True) for img in images)
-            targets = [{k: v.to(device, non_blocking=True) for k, v in t.items()} for t in targets]
-
-            with torch.amp.autocast('cuda', enabled=use_amp):
-                loss_dict = model(images, targets)
-                losses = sum(loss for loss in loss_dict.values())
-            val_loss += losses.item()
-
-    return val_loss / len(val_loader)
-
 
 def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', metric_choice='f1', debug=False):
     train_size = int(0.8 * len(train_dataset))
@@ -154,7 +138,7 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
     use_amp = use_cuda
     scaler = torch.amp.GradScaler('cuda', enabled=use_amp)
 
-    best_val_loss = -1.0
+    best_metric = -1.0
     epoch_losses = []
     batch_losses = []
 
@@ -203,9 +187,9 @@ def train_model(train_dataset, param, num_epochs, device, model_s='FasterRCNN', 
             f1_score = 0.0
         metric_value = f1_score
 
-        if metric_value > best_val_loss:
+        if metric_value > best_metric:
             print(str(metric_choice) + " : " + str(metric_value))
-            best_val_loss = metric_value
+            best_metric = metric_value
             if saved_model_path and os.path.exists(saved_model_path):
                 os.remove(saved_model_path)
                 print(f"Deleted older model file: {saved_model_path}")
@@ -266,9 +250,7 @@ def create_default_predictions(image_ids):
     return default_predictions
 
 
-def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
-    predictions_dir = os.path.join(OUT_DIR, 'predictions.json')
-    ground_truth_dir = os.path.join(OUT_DIR, 'ground_truth.json')
+def coco_evaluate(model, val_loader, device):
     model.eval()
     use_amp = device.type == 'cuda'
 
@@ -318,6 +300,7 @@ def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
                         'iscrowd': 0
                     }
                     coco_gt.dataset['annotations'].append(coco_gt_annotation)
+                    ann_id += 1
 
                 for box, label, score in zip(output['boxes'], output['labels'], output['scores']):
                     box = box.detach().cpu().numpy().tolist()
@@ -332,91 +315,33 @@ def coco_evaluate(model, val_loader, device, iou_threshold=0.5):
                     coco_dt.append(coco_dt_annotation)
                     ann_id += 1
 
-    # # Save predictions to a JSON file
-    with open(predictions_dir, 'w') as f:
-        json.dump(coco_dt, f)
+    gt_tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.json', dir=OUT_DIR, delete=False)
+    pred_tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.json', dir=OUT_DIR, delete=False)
+    try:
+        json.dump(coco_gt.dataset, gt_tmp)
+        gt_tmp.close()
+        json.dump(coco_dt, pred_tmp)
+        pred_tmp.close()
 
-    with open(ground_truth_dir, 'w') as f:
-        json.dump(coco_gt.dataset, f)
+        cocoGt = COCO(gt_tmp.name)
 
-    # Load the ground truth
-    cocoGt = COCO(ground_truth_dir)
+        if len(coco_dt) == 0:
+            image_ids = [img['id'] for img in cocoGt.imgs.values()]
+            coco_dt = create_default_predictions(image_ids)
+            cocoDt = cocoGt.loadRes(coco_dt)
+        else:
+            cocoDt = cocoGt.loadRes(pred_tmp.name)
 
-    # Assuming predictions is a list of your model's predictions
-    if len(coco_dt) == 0:
-        image_ids = [img['id'] for img in cocoGt.imgs.values()]
-        predictions = create_default_predictions(image_ids)
-        coco_dt = predictions
-        cocoDt = cocoGt.loadRes(coco_dt)
-    else:
-        # Load the predictions
-        cocoDt = cocoGt.loadRes(predictions_dir)
+        cocoEval = COCOeval(cocoGt, cocoDt, 'bbox')
+        cocoEval.evaluate()
+        cocoEval.accumulate()
+        cocoEval.summarize()
 
-    # Initialize COCOeval object
-    cocoEval = COCOeval(cocoGt, cocoDt, 'bbox')
+        return cocoEval.stats
+    finally:
+        os.unlink(gt_tmp.name)
+        os.unlink(pred_tmp.name)
 
-    # Evaluate on the data
-    cocoEval.evaluate()
-    cocoEval.accumulate()
-    cocoEval.summarize()
-
-    return cocoEval.stats
-
-
-# FIXME: evaluate
-# def evaluate(model, val_loader, device, iou_threshold=0.5):
-#     model.eval()
-#     ious = []
-#     image_counter = 0
-#     last_printed = 0
-#     multiple = 100
-#
-#     with torch.no_grad():
-#         for images, targets in val_loader:
-#             image_counter += len(images)  # Update the counter with the batch size
-#             # Check if the counter has passed a multiple of 100 since the last print
-#             if image_counter // multiple > last_printed:
-#                 print(f"Processed {image_counter} images...")
-#                 last_printed = image_counter // multiple  # Update the last printed multiple
-#
-#             images = list(img.to(device) for img in images)
-#             outputs = model(images)
-#
-#             for target, output in zip(targets, outputs):
-#                 gt_boxes = target['boxes'].to(device)
-#                 pred_boxes = output['boxes'].to(device)
-#                 scores = output['scores'].to(device)
-#
-#                 # Compute IoU for the predicted and ground truth boxes
-#                 iou_matrix = box_iou(pred_boxes, gt_boxes)
-#
-#                 # Here, we're considering a prediction to be correct if the IoU is greater than the threshold
-#                 # This part assumes a one-to-one matching which can be improved by using a matching strategy
-#                 correct_preds = iou_matrix > iou_threshold
-#
-#                 # Now extract the IoUs for the correct predictions
-#                 # This will give us the IoUs where the prediction was correct
-#                 matched_ious = iou_matrix[correct_preds]
-#
-#                 ious.extend(matched_ious.cpu().tolist())
-#
-#     true_positives = len(ious)
-#     false_positives = len(outputs) - true_positives
-#     false_negatives = len(targets) - true_positives
-#
-#     precision = true_positives / (true_positives + false_positives) if true_positives + false_positives > 0 else 0
-#     recall = true_positives / (true_positives + false_negatives) if true_positives + false_negatives > 0 else 0
-#     f1 = 2 * (precision * recall) / (precision + recall) if precision + recall > 0 else 0
-#
-#     mean_iou = sum(ious) / len(ious) if ious else 0
-#
-#     return {
-#         'precision': precision,
-#         'recall': recall,
-#         'f1': f1,
-#         'ious': ious,
-#         'mean_iou': mean_iou
-#     }
 
 
 def save_model_with_hyperparams(model, model_name, hyperparams,

@@ -5,17 +5,19 @@ import sys
 os.environ["MKL_THREADING_LAYER"] = "GNU"
 os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
 
+import collections
 import io
 import base64
 import subprocess
 import shutil
 import json
 import random
+import traceback
 from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import pandas as pd
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 # Add the 'code/src' directory to the path so we can import the original classes
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -38,6 +40,62 @@ def _find_python() -> str:
 
 PYTHON = _find_python()
 import signal
+
+
+def _run_subprocess(cmd: list, state: dict, task_label: str,
+                    running_key: str = "is_running",
+                    model_key: str | None = None,
+                    max_lines: int = 30):
+    """Run a subprocess, stream output into state, handle return code."""
+    try:
+        env = os.environ.copy()
+        env["PYTHONUNBUFFERED"] = "1"
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            start_new_session=True,
+            env=env,
+        )
+        state["pid"] = process.pid
+
+        output_lines = collections.deque(maxlen=max_lines)
+        for line in process.stdout:
+            output_lines.append(line.strip())
+            state["message"] = '\n'.join(output_lines)
+
+        process.wait()
+
+        last_lines = '\n'.join(output_lines)
+        if process.returncode == 0:
+            state["message"] = f"{task_label} completed successfully.\n\n{last_lines}"
+        elif process.returncode < 0:
+            state["message"] = f"{task_label} cancelled."
+        else:
+            state["message"] = f"{task_label} failed (code {process.returncode}):\n{last_lines}"
+    except Exception as e:
+        state["message"] = f"Error during {task_label}: {traceback.format_exc()}"
+    finally:
+        state[running_key] = False
+        if model_key:
+            state[model_key] = None
+        state["pid"] = None
+
+
+def _cancel_process(state: dict, label: str):
+    """Kill a subprocess tracked in state['pid']."""
+    pid = state.get("pid")
+    if not pid:
+        raise HTTPException(status_code=400, detail=f"No {label} process is running.")
+    try:
+        os.killpg(os.getpgid(pid), signal.SIGTERM)
+    except (ProcessLookupError, PermissionError):
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+    return {"message": f"{label} cancellation requested."}
 import torch
 from torchvision import transforms
 from torchvision.utils import draw_bounding_boxes
@@ -86,11 +144,11 @@ training_state = {
 
 class TrainingRequest(BaseModel):
     model_name: str
-    batch_size: int
-    lr: float
-    weight_decay: float
-    num_epochs: int
-    max_samples: Optional[int] = None
+    batch_size: int = Field(gt=0)
+    lr: float = Field(gt=0)
+    weight_decay: float = Field(ge=0)
+    num_epochs: int = Field(gt=0)
+    max_samples: Optional[int] = Field(default=None, gt=0)
     debug: bool = False
 
 def run_training_script(req: TrainingRequest):
@@ -125,41 +183,8 @@ def run_training_script(req: TrainingRequest):
     if req.debug:
         cmd.append("--debug")
 
-    try:
-        env = os.environ.copy()
-        env["PYTHONUNBUFFERED"] = "1"
-        process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            start_new_session=True,
-            env=env,
-        )
-        training_state["pid"] = process.pid
-        
-        import collections
-        output_lines = collections.deque(maxlen=30)
-        for line in process.stdout:
-            output_lines.append(line.strip())
-            training_state["message"] = '\n'.join(output_lines)
-            
-        process.wait()
-        
-        last_lines = '\n'.join(output_lines)
-        if process.returncode == 0:
-            training_state["message"] = f"Training completed successfully for {req.model_name}.\n\n{last_lines}"
-        elif process.returncode < 0:
-            training_state["message"] = f"Training cancelled for {req.model_name}."
-        else:
-            training_state["message"] = f"Training failed (code {process.returncode}):\n{last_lines}"
-            
-    except Exception as e:
-        training_state["message"] = f"Error during training: {str(e)}"
-    finally:
-        training_state["is_training"] = False
-        training_state["current_model"] = None
-        training_state["pid"] = None
+    _run_subprocess(cmd, training_state, f"Training {req.model_name}",
+                    running_key="is_training", model_key="current_model")
 
 # --- Evaluation State ---
 evaluation_state = {
@@ -194,40 +219,8 @@ def run_evaluation_script(debug: bool = False):
     if debug:
         cmd.append("--debug")
     
-    try:
-        env = os.environ.copy()
-        env["PYTHONUNBUFFERED"] = "1"
-        process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            start_new_session=True,
-            env=env,
-        )
-        evaluation_state["pid"] = process.pid
-        
-        import collections
-        output_lines = collections.deque(maxlen=30)
-        for line in process.stdout:
-            output_lines.append(line.strip())
-            evaluation_state["message"] = '\n'.join(output_lines)
-            
-        process.wait()
-        
-        last_lines = '\n'.join(output_lines)
-        if process.returncode == 0:
-            evaluation_state["message"] = f"Evaluation completed successfully.\n\n{last_lines}"
-        elif process.returncode < 0:
-            evaluation_state["message"] = "Evaluation cancelled."
-        else:
-            evaluation_state["message"] = f"Evaluation failed (code {process.returncode}):\n{last_lines}"
-            
-    except Exception as e:
-        evaluation_state["message"] = f"Error during evaluation: {str(e)}"
-    finally:
-        evaluation_state["is_evaluating"] = False
-        evaluation_state["pid"] = None
+    _run_subprocess(cmd, evaluation_state, "Evaluation",
+                    running_key="is_evaluating")
 
 # --- Dataset Preparation State ---
 prep_state = {
@@ -393,26 +386,24 @@ gen_state = {
 }
 
 class GenRequest(BaseModel):
-    task_type: str
+    task_type: Literal["train_cyclegan", "test_cyclegan", "train_spade"]
     experiment_name: Optional[str] = "mask2polyp"
     epoch: Optional[str] = "latest"
-    # CycleGAN params
-    batch_size: Optional[int] = 4
-    n_epochs: Optional[int] = 5
-    lr: Optional[float] = 0.0002
+    batch_size: Optional[int] = Field(default=4, gt=0)
+    n_epochs: Optional[int] = Field(default=5, gt=0)
+    lr: Optional[float] = Field(default=0.0002, gt=0)
     netG: Optional[str] = "resnet_9blocks"
-    load_size: Optional[int] = 286
-    crop_size: Optional[int] = 256
-    max_dataset_size: Optional[int] = None
-    # SPADE params
-    spade_batch_size: Optional[int] = 1
-    spade_niter: Optional[int] = 50
-    spade_niter_decay: Optional[int] = 0
-    spade_lr: Optional[float] = 0.0002
+    load_size: Optional[int] = Field(default=286, gt=0)
+    crop_size: Optional[int] = Field(default=256, gt=0)
+    max_dataset_size: Optional[int] = Field(default=None, gt=0)
+    spade_batch_size: Optional[int] = Field(default=1, gt=0)
+    spade_niter: Optional[int] = Field(default=50, gt=0)
+    spade_niter_decay: Optional[int] = Field(default=0, ge=0)
+    spade_lr: Optional[float] = Field(default=0.0002, gt=0)
     spade_netG: Optional[str] = "spade"
-    spade_load_size: Optional[int] = 1024
-    spade_crop_size: Optional[int] = 512
-    spade_max_dataset_size: Optional[int] = None
+    spade_load_size: Optional[int] = Field(default=1024, gt=0)
+    spade_crop_size: Optional[int] = Field(default=512, gt=0)
+    spade_max_dataset_size: Optional[int] = Field(default=None, gt=0)
 
 def run_generative_script(req: GenRequest):
     global gen_state
@@ -493,41 +484,8 @@ def run_generative_script(req: GenRequest):
     except Exception as e:
         print(f"Error checking directories: {e}")
 
-    try:
-        env = os.environ.copy()
-        env["PYTHONUNBUFFERED"] = "1"
-        process = subprocess.Popen(
-            [PYTHON, "-u", script_path] + cmd_args,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            start_new_session=True,
-            env=env,
-        )
-        gen_state["pid"] = process.pid
-        
-        import collections
-        output_lines = collections.deque(maxlen=20)
-        for line in process.stdout:
-            output_lines.append(line.strip())
-            gen_state["message"] = '\n'.join(output_lines)
-            
-        process.wait()
-        
-        last_lines = '\n'.join(output_lines)
-        if process.returncode == 0:
-            gen_state["message"] = f"{req.task_type} completed successfully.\n\nFinal Output:\n{last_lines}"
-        elif process.returncode < 0:
-            gen_state["message"] = f"{req.task_type} cancelled."
-        else:
-            gen_state["message"] = f"{req.task_type} failed (code {process.returncode}):\n{last_lines}"
-            
-    except Exception as e:
-        gen_state["message"] = f"Error during {req.task_type}: {str(e)}"
-    finally:
-        gen_state["is_running"] = False
-        gen_state["current_task"] = None
-        gen_state["pid"] = None
+    _run_subprocess([PYTHON, "-u", script_path] + cmd_args, gen_state, req.task_type,
+                    running_key="is_running", model_key="current_task", max_lines=20)
 
 @app.get("/api/generate/cyclegan-experiments")
 def get_cyclegan_experiments():
@@ -631,17 +589,7 @@ def start_generation(req: GenRequest, background_tasks: BackgroundTasks):
 
 @app.post("/api/generate/cancel")
 def cancel_generation():
-    pid = gen_state.get("pid")
-    if not pid:
-        raise HTTPException(status_code=400, detail="No generative task is running.")
-    try:
-        os.killpg(os.getpgid(pid), signal.SIGTERM)
-    except (ProcessLookupError, PermissionError):
-        try:
-            os.kill(pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-    return {"message": "Generation cancellation requested."}
+    return _cancel_process(gen_state, "Generation")
 
 # --- Hyperparameter Tuning State ---
 hpo_state = {
@@ -651,14 +599,14 @@ hpo_state = {
     "pid": None,
 }
 
-class HPOResquest(BaseModel):
+class HPORequest(BaseModel):
     model_name: str
-    num_trials: int
-    max_epochs: Optional[int] = 5
-    max_samples: Optional[int] = None
+    num_trials: int = Field(gt=0, le=200)
+    max_epochs: Optional[int] = Field(default=5, gt=0)
+    max_samples: Optional[int] = Field(default=None, gt=0)
     debug: bool = False
 
-def run_hpo_script(req: HPOResquest):
+def run_hpo_script(req: HPORequest):
     global hpo_state
     
     # Pre-check for HPO dataset
@@ -676,53 +624,22 @@ def run_hpo_script(req: HPOResquest):
     
     script_path = os.path.join(SRC_DIR, "optuna_train_model.py")
     
-    try:
-        env = os.environ.copy()
-        env["PYTHONUNBUFFERED"] = "1"
-        process = subprocess.Popen(
-            [PYTHON, "-u", script_path, req.model_name,
-             "--n-trials", str(req.num_trials),
-             "--max-epochs", str(req.max_epochs),
-             *(["--max-samples", str(req.max_samples)] if req.max_samples else []),
-             *(["--debug"] if req.debug else []),
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            start_new_session=True,
-            env=env,
-        )
-        hpo_state["pid"] = process.pid
-        
-        import collections
-        output_lines = collections.deque(maxlen=20)
-        for line in process.stdout:
-            output_lines.append(line.strip())
-            hpo_state["message"] = '\n'.join(output_lines)
-            
-        process.wait()
-        
-        last_lines = '\n'.join(output_lines)
-        if process.returncode == 0:
-            hpo_state["message"] = f"Tuning completed successfully for {req.model_name}.\nCheck best_hyperparameters.csv in the codebase.\n\nFinal Output:\n{last_lines}"
-        elif process.returncode < 0:
-            hpo_state["message"] = f"Tuning cancelled for {req.model_name}."
-        else:
-            hpo_state["message"] = f"Tuning failed (code {process.returncode}):\n{last_lines}"
-            
-    except Exception as e:
-        hpo_state["message"] = f"Error during tuning: {str(e)}"
-    finally:
-        hpo_state["is_tuning"] = False
-        hpo_state["current_model"] = None
-        hpo_state["pid"] = None
+    cmd = [
+        PYTHON, "-u", script_path, req.model_name,
+        "--n-trials", str(req.num_trials),
+        "--max-epochs", str(req.max_epochs),
+        *(["--max-samples", str(req.max_samples)] if req.max_samples else []),
+        *(["--debug"] if req.debug else []),
+    ]
+    _run_subprocess(cmd, hpo_state, f"Tuning {req.model_name}",
+                    running_key="is_tuning", model_key="current_model", max_lines=20)
 
 @app.get("/api/hpo/status")
 def get_hpo_status():
     return hpo_state
 
 @app.post("/api/hpo/start")
-def start_hpo(req: HPOResquest, background_tasks: BackgroundTasks):
+def start_hpo(req: HPORequest, background_tasks: BackgroundTasks):
     if hpo_state["is_tuning"]:
         raise HTTPException(status_code=400, detail=f"A tuning job is already running for {hpo_state['current_model']}.")
     background_tasks.add_task(run_hpo_script, req)
@@ -730,17 +647,7 @@ def start_hpo(req: HPOResquest, background_tasks: BackgroundTasks):
 
 @app.post("/api/hpo/cancel")
 def cancel_hpo():
-    pid = hpo_state.get("pid")
-    if not pid:
-        raise HTTPException(status_code=400, detail="No HPO process is running.")
-    try:
-        os.killpg(os.getpgid(pid), signal.SIGTERM)
-    except (ProcessLookupError, PermissionError):
-        try:
-            os.kill(pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-    return {"message": "HPO cancellation requested."}
+    return _cancel_process(hpo_state, "HPO")
 
 @app.get("/api/hpo/results")
 def get_hpo_results():
@@ -878,7 +785,10 @@ async def upload_dataset_files(
     files: List[UploadFile] = File(...),
     relative_paths: str = Form(...)
 ):
-    paths = json.loads(relative_paths)
+    try:
+        paths = json.loads(relative_paths)
+    except (json.JSONDecodeError, TypeError):
+        raise HTTPException(status_code=400, detail="Invalid JSON in relative_paths")
     if len(files) != len(paths):
         raise HTTPException(status_code=400, detail="File count doesn't match path count")
 
@@ -925,10 +835,20 @@ def get_loss_data(req: LossDataRequest):
     MAX_POINTS = 500  # Downsample to a maximum number of points to prevent frontend lag
     
     for filename in req.files:
-        filepath = os.path.join(LOSSES_DIR, filename)
+        filepath = os.path.realpath(os.path.join(LOSSES_DIR, filename))
+        if not filepath.startswith(os.path.realpath(LOSSES_DIR) + os.sep):
+            continue
         if os.path.exists(filepath):
             with open(filepath, "r") as f:
-                values = [float(line.strip()) for line in f if line.strip()]
+                values = []
+                for line in f:
+                    stripped = line.strip()
+                    if not stripped:
+                        continue
+                    try:
+                        values.append(float(stripped))
+                    except ValueError:
+                        continue
             
             # Downsample if there are too many points (crucial for batch_losses.txt)
             if len(values) > MAX_POINTS:
@@ -972,17 +892,7 @@ def start_evaluation(req: EvalRequest, background_tasks: BackgroundTasks):
 
 @app.post("/api/evaluate/cancel")
 def cancel_evaluation():
-    pid = evaluation_state.get("pid")
-    if not pid:
-        raise HTTPException(status_code=400, detail="No evaluation process is running.")
-    try:
-        os.killpg(os.getpgid(pid), signal.SIGTERM)
-    except (ProcessLookupError, PermissionError):
-        try:
-            os.kill(pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-    return {"message": "Evaluation cancellation requested."}
+    return _cancel_process(evaluation_state, "Evaluation")
 
 @app.get("/api/models", response_model=ModelsResponse)
 def get_models():
@@ -1004,17 +914,7 @@ def start_training(req: TrainingRequest, background_tasks: BackgroundTasks):
 
 @app.post("/api/train/cancel")
 def cancel_training():
-    pid = training_state.get("pid")
-    if not pid:
-        raise HTTPException(status_code=400, detail="No training process is running.")
-    try:
-        os.killpg(os.getpgid(pid), signal.SIGTERM)
-    except (ProcessLookupError, PermissionError):
-        try:
-            os.kill(pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-    return {"message": "Training cancellation requested."}
+    return _cancel_process(training_state, "Training")
 
 @app.get("/api/performance")
 def get_performance():
@@ -1045,6 +945,10 @@ _model_cache = {}
 
 def _get_cached_model(model_arch: str, model_file: str):
     """Load model once and cache it on GPU for fast repeated inference."""
+    resolved = os.path.realpath(os.path.join(SAVED_MODELS_DIR, model_file))
+    if not resolved.startswith(os.path.realpath(SAVED_MODELS_DIR) + os.sep):
+        raise HTTPException(status_code=400, detail="Invalid model file path.")
+
     cache_key = f"{model_arch}:{model_file}"
     if cache_key in _model_cache:
         return _model_cache[cache_key]
@@ -1070,13 +974,13 @@ _inference_transform = transforms.Compose([
 ])
 
 @app.post("/api/predict", response_model=PredictionResponse)
-async def predict(
+def predict(
     file: UploadFile = File(...),
     model_arch: str = Form("FasterRCNN"),
     model_file: str = Form(...),
     confidence: float = Form(0.5)
 ):
-    contents = await file.read()
+    contents = file.file.read()
     img = Image.open(io.BytesIO(contents)).convert("RGB")
 
     model, device = _get_cached_model(model_arch, model_file)
@@ -1115,7 +1019,7 @@ async def predict(
     return PredictionResponse(boxes=result_boxes, image_base64=img_str)
 
 @app.post("/api/predict/batch")
-async def predict_batch(
+def predict_batch(
     model_arch: str = Form("FasterRCNN"),
     model_file: str = Form(...),
     confidence: float = Form(0.5)

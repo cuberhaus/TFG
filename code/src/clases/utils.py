@@ -7,14 +7,14 @@ import platform
 class PYTHON_INSTALLED(Enum):
     PYTHON = 1
     PYTHON_3 = 2
-    NOT_INSTALLED = 2
+    NOT_INSTALLED = 3
 
 
 def python_version():
-    python_installed = is_python_installed()
-    if python_installed.PYTHON_3:
+    result = is_python_installed()
+    if result is PYTHON_INSTALLED.PYTHON_3:
         return "python3"
-    elif python_installed.PYTHON:
+    elif result is PYTHON_INSTALLED.PYTHON:
         return "python"
     else:
         return ""

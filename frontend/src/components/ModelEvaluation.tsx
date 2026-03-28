@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import { api } from '../api';
 import { Play, AlertTriangle, CheckCircle2, Square, X, Terminal } from 'lucide-react';
 
 interface EvaluationStatus {
@@ -20,7 +20,7 @@ export default function ModelEvaluation() {
 
   const fetchStatus = async () => {
     try {
-      const response = await axios.get('http://localhost:8082/api/evaluate/status');
+      const response = await api.get('/api/evaluate/status');
       const newStatus = response.data;
 
       if (wasEvaluating.current && !newStatus.is_evaluating) {
@@ -56,7 +56,7 @@ export default function ModelEvaluation() {
     setError('');
     setLastResult(null);
     try {
-      await axios.post('http://localhost:8082/api/evaluate', { debug });
+      await api.post('/api/evaluate', { debug });
       fetchStatus();
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to start evaluation.');
@@ -65,7 +65,7 @@ export default function ModelEvaluation() {
 
   const handleCancel = async () => {
     try {
-      await axios.post('http://localhost:8082/api/evaluate/cancel');
+      await api.post('/api/evaluate/cancel');
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to cancel evaluation.');
     }

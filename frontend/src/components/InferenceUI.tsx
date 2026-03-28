@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '../api';
 import { UploadCloud, Image as ImageIcon, AlertCircle, Layers } from 'lucide-react';
 
 export default function InferenceUI() {
@@ -22,7 +22,7 @@ export default function InferenceUI() {
   useEffect(() => {
     const fetchModels = async () => {
       try {
-        const response = await axios.get('http://localhost:8082/api/models');
+        const response = await api.get('/api/models');
         const modelNames = response.data.models.map((m: any) => m.filename);
         setModels(modelNames);
         setSourcePath(response.data.source_path);
@@ -40,6 +40,7 @@ export default function InferenceUI() {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
       setFile(selectedFile);
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
       setPreviewUrl(URL.createObjectURL(selectedFile));
       setResultImg(null);
       setBoxes([]);
@@ -67,13 +68,13 @@ export default function InferenceUI() {
     try {
       if (mode === 'single' && file) {
         formData.append('file', file);
-        const response = await axios.post('http://localhost:8082/api/predict', formData, {
+        const response = await api.post('/api/predict', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         setResultImg(`data:image/jpeg;base64,${response.data.image_base64}`);
         setBoxes(response.data.boxes);
       } else if (mode === 'batch') {
-        const response = await axios.post('http://localhost:8082/api/predict/batch', formData, {
+        const response = await api.post('/api/predict/batch', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         setBatchResults(response.data.results);
@@ -160,7 +161,7 @@ export default function InferenceUI() {
         {mode === 'single' ? (
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Upload Image</label>
-            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-500 border-dashed rounded-lg cursor-pointer bg-gray-800 hover:bg-gray-750 transition-colors">
+            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-500 border-dashed rounded-lg cursor-pointer bg-gray-800 hover:bg-gray-700 transition-colors">
               <div className="flex flex-col items-center justify-center pt-5 pb-6">
                 <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
                 <p className="text-sm text-gray-400">Click to upload image</p>

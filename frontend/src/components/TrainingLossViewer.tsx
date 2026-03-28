@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '../api';
 import { 
   LineChart, 
   Line, 
@@ -43,7 +43,7 @@ export default function TrainingLossViewer() {
   useEffect(() => {
     const fetchFiles = async () => {
       try {
-        const response = await axios.get('http://localhost:8082/api/losses/files');
+        const response = await api.get('/api/losses/files');
         setAllFiles(response.data.files);
         setSourcePath(response.data.source_path);
       } catch (err) {
@@ -78,13 +78,14 @@ export default function TrainingLossViewer() {
 
       setLoading(true);
       try {
-        const response = await axios.post<LossDataResponse>('http://localhost:8082/api/losses/data', {
+        const response = await api.post<LossDataResponse>('/api/losses/data', {
           files: selectedFiles
         });
 
         // Transform data for Recharts
         // Find the maximum length of values to know how many iterations we have
-        const maxLength = Math.max(...response.data.data.map(d => d.values.length));
+        const lengths = response.data.data.map((d: any) => d.values.length);
+        const maxLength = lengths.length > 0 ? Math.max(...lengths) : 0;
         
         const transformedData = [];
         for (let i = 0; i < maxLength; i++) {

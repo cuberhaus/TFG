@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '../api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface PerformanceRow {
@@ -25,7 +25,7 @@ export default function PerformanceExplorer() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('http://localhost:8082/api/performance');
+        const response = await api.get('/api/performance');
         if (response.data && response.data.data) {
           setData(response.data.data);
           if (response.data.source_path) {
@@ -125,7 +125,7 @@ export default function PerformanceExplorer() {
           </thead>
           <tbody>
             {[...data].sort((a, b) => (b.F1 || 0) - (a.F1 || 0)).map((row, idx) => (
-              <tr key={idx} className="border-b border-gray-700 hover:bg-gray-750 transition-colors">
+              <tr key={idx} className="border-b border-gray-700 hover:bg-gray-700 transition-colors">
                 <td className="p-3 text-sm">{row.Model}</td>
                 <td className="p-3 text-sm">{row.BATCH_SIZE}</td>
                 <td className="p-3 text-sm">{row.LR_fmt}</td>

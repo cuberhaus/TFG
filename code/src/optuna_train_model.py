@@ -48,13 +48,12 @@ def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN',
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Validation split is done inside the train_model function already
-    trained_model, _, _, _, _, metric_to_optimize = train_model(train_dataset, params, num_epochs, device, model_name,
-                                                                debug=debug, metric_choice=metric_to_optimize)
-    # Free memory
+    trained_model, _, _, _, _, metric_value = train_model(train_dataset, params, num_epochs, device, model_name,
+                                                          debug=debug, metric_choice=metric_to_optimize)
     if device.type == 'cuda':
         torch.cuda.empty_cache()
 
-    return metric_to_optimize
+    return metric_value
 
 
 parser = argparse.ArgumentParser(description='Run Optuna optimization.',

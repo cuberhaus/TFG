@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import { api } from '../api';
 import { Play, Square, X, Sparkles, CheckCircle, AlertCircle, RefreshCw, Image as ImageIcon, Wand2 } from 'lucide-react';
 
 interface GenStatus {
@@ -63,7 +63,7 @@ export default function GenerativeAugmentation() {
 
   const fetchStatus = async () => {
     try {
-      const response = await axios.get('http://localhost:8082/api/generate/status');
+      const response = await api.get('/api/generate/status');
       const newStatus = response.data;
 
       if (wasRunning.current && !newStatus.is_running) {
@@ -86,7 +86,7 @@ export default function GenerativeAugmentation() {
 
   const fetchPrepStatus = async () => {
     try {
-      const response = await axios.get('http://localhost:8082/api/prepare/status');
+      const response = await api.get('/api/prepare/status');
       setPrepStatus(response.data);
     } catch (err) {
       console.error("Failed to fetch preparation status:", err);
@@ -96,7 +96,7 @@ export default function GenerativeAugmentation() {
   const handleStartPreparation = async () => {
     setPrepError(null);
     try {
-      await axios.post('http://localhost:8082/api/prepare');
+      await api.post('/api/prepare');
       fetchPrepStatus();
     } catch (err: any) {
       setPrepError(err.response?.data?.detail || "Failed to start dataset preparation.");
@@ -105,7 +105,7 @@ export default function GenerativeAugmentation() {
 
   const fetchExperiments = async () => {
     try {
-      const response = await axios.get('http://localhost:8082/api/generate/cyclegan-experiments');
+      const response = await api.get('/api/generate/cyclegan-experiments');
       const exps = response.data.experiments;
       setAvailableExperiments(exps);
       const expKeys = Object.keys(exps);
@@ -124,7 +124,7 @@ export default function GenerativeAugmentation() {
     setGalleryLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`http://localhost:8082/api/generate/results?experiment=${exp}&epoch=${ep}`);
+      const response = await api.get(`/api/generate/results?experiment=${exp}&epoch=${ep}`);
       setGalleryImages(response.data.images);
       setGalleryExp(response.data.experiment || exp);
       setGalleryEpoch(response.data.test_dir || ep);
@@ -157,7 +157,7 @@ export default function GenerativeAugmentation() {
 
   const handleCancelGeneration = async () => {
     try {
-      await axios.post('http://localhost:8082/api/generate/cancel');
+      await api.post('/api/generate/cancel');
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.detail || "Failed to cancel generation.");
@@ -167,7 +167,7 @@ export default function GenerativeAugmentation() {
   const handleStartGeneration = async () => {
     setError(null);
     try {
-      await axios.post('http://localhost:8082/api/generate', {
+      await api.post('/api/generate', {
         task_type: taskType,
         experiment_name: taskType === 'test_cyclegan' ? experimentName : undefined,
         epoch: taskType === 'test_cyclegan' ? epoch : undefined,
@@ -417,7 +417,7 @@ export default function GenerativeAugmentation() {
               </div>
               
               <div className="p-6 space-y-4">
-                <label className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${taskType === 'train_cyclegan' ? 'border-purple-500 bg-purple-900/10' : 'border-gray-700 bg-gray-800 hover:bg-gray-750'}`}>
+                <label className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${taskType === 'train_cyclegan' ? 'border-purple-500 bg-purple-900/10' : 'border-gray-700 bg-gray-800 hover:bg-gray-700'}`}>
                   <input type="radio" name="task" value="train_cyclegan" className="sr-only" checked={taskType === 'train_cyclegan'} onChange={(e) => setTaskType(e.target.value)} />
                   <span className="flex flex-1">
                     <span className="flex flex-col w-full">
@@ -476,7 +476,7 @@ export default function GenerativeAugmentation() {
                   {taskType === 'train_cyclegan' && <CheckCircle className="h-5 w-5 text-purple-500 absolute right-4 top-4" />}
                 </label>
 
-                <label className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${taskType === 'test_cyclegan' ? 'border-purple-500 bg-purple-900/10' : 'border-gray-700 bg-gray-800 hover:bg-gray-750'}`}>
+                <label className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${taskType === 'test_cyclegan' ? 'border-purple-500 bg-purple-900/10' : 'border-gray-700 bg-gray-800 hover:bg-gray-700'}`}>
                   <input type="radio" name="task" value="test_cyclegan" className="sr-only" checked={taskType === 'test_cyclegan'} onChange={(e) => setTaskType(e.target.value)} />
                   <span className="flex flex-1">
                     <span className="flex flex-col w-full">
@@ -536,7 +536,7 @@ export default function GenerativeAugmentation() {
                   {taskType === 'test_cyclegan' && <CheckCircle className="h-5 w-5 text-purple-500 absolute right-4 top-4" />}
                 </label>
 
-                <label className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${taskType === 'train_spade' ? 'border-purple-500 bg-purple-900/10' : 'border-gray-700 bg-gray-800 hover:bg-gray-750'}`}>
+                <label className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${taskType === 'train_spade' ? 'border-purple-500 bg-purple-900/10' : 'border-gray-700 bg-gray-800 hover:bg-gray-700'}`}>
                   <input type="radio" name="task" value="train_spade" className="sr-only" checked={taskType === 'train_spade'} onChange={(e) => setTaskType(e.target.value)} />
                   <span className="flex flex-1">
                     <span className="flex flex-col w-full">

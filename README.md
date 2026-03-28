@@ -22,16 +22,14 @@ A CUDA-capable GPU is strongly recommended for training. CPU-only inference is s
 
 ```bash
 git clone https://github.com/cuberhaus/TFG.git
-cd TFG/code
+cd TFG
 
-# Option A: pip + venv
-python -m venv .venv
-source .venv/bin/activate   # Linux/macOS
-pip install -r requirements.txt
+# Install everything (backend pip + frontend npm)
+make install
 
-# Option B: conda
-conda env create -f environment.yml
-conda activate tfg
+# Or manually:
+cd backend && pip install -r requirements.txt
+cd ../frontend && npm install
 ```
 
 ## Dataset Setup
@@ -53,9 +51,35 @@ code/data/
 
 Each annotation file lists the number of polyps on line 1, followed by one bounding box per line (`x_min y_min x_max y_max`).
 
-## Quick Start
+## Web Dashboard (recommended)
 
-All commands are run from `code/`.
+The project ships a full-stack web dashboard — a React frontend talking to a FastAPI backend — that wraps every feature below in a visual UI.
+
+```bash
+# Start both backend and frontend with one command:
+make run
+
+# Or start them separately:
+make backend   # FastAPI on http://localhost:8082
+make frontend  # Vite dev server on http://localhost:5173
+```
+
+The dashboard provides:
+
+| Tab | Description |
+|---|---|
+| **Dataset Explorer** | Browse & upload datasets with drag-and-drop |
+| **Model Training** | Train detection models with configurable parameters |
+| **Model Evaluation** | Evaluate saved models (COCO metrics) |
+| **Performance Explorer** | Compare AP, AR, F1 across all configurations |
+| **Inference** | Single & batch image inference with bounding-box visualization |
+| **Training Losses** | Plot epoch/batch losses for any training run |
+| **Generative Augmentation** | Train/test CycleGAN and SPADE, browse generated images |
+| **Hyperparameter Tuning** | Optuna HPO with live logs and result visualization |
+
+## CLI Quick Start
+
+All CLI commands are run from `code/`.
 
 ### Train a single model
 
@@ -115,58 +139,50 @@ python src/python_scripts/create_masks.py                       # Bounding boxes
 python src/python_scripts/copy_files_to_cyclegan_structure.py   # Reorganize for CycleGAN
 ```
 
-## Streamlit Dashboard
+## Streamlit Dashboard (legacy)
 
-An interactive Streamlit app lets you explore model results, run inference, and visualize training losses without writing code.
+A legacy Streamlit app is also available for quick exploration:
 
 ```bash
 cd code
 streamlit run src/app.py
 ```
 
-The dashboard has three tabs:
-
-| Tab | Description |
-|---|---|
-| **Performance Explorer** | Interactive charts comparing AP, AR, and F1 across all trained model configurations. Filter by batch size, learning rate, and epochs. |
-| **Inference** | Upload a colonoscopy image, pick a saved model, adjust the confidence threshold, and see bounding-box detections. |
-| **Training Losses** | Plot epoch and batch losses from `out/losses/` for any saved training run. |
-
 ## Project Structure
 
 ```
 TFG/
-├── code/
+├── Makefile                              # run/install/clean targets for full stack
+├── frontend/                             # React 19 + Vite + Tailwind UI
 │   ├── src/
-│   │   ├── app.py                        # Streamlit dashboard
-│   │   ├── train_and_save_model.py       # Train a single model with CLI args
-│   │   ├── train_models.py               # Batch training from JSON config
-│   │   ├── optuna_train_model.py         # Optuna hyperparameter search
-│   │   ├── raytune_train_model.py        # Ray Tune hyperparameter search
-│   │   ├── evaluate_models.py            # Evaluate all saved models (COCO metrics)
-│   │   ├── test_model.py                 # Run inference and save detection images
-│   │   ├── plot_losses.py                # Plot training losses
-│   │   ├── plot_evaluated_models.py      # Plot model comparison charts
-│   │   ├── cyclegan_train.py             # Train CycleGAN for mask→polyp translation
-│   │   ├── cyclegan_test.py              # Test CycleGAN outputs
-│   │   ├── spade_train.py                # Train SPADE for mask→polyp translation
-│   │   ├── clases/
-│   │   │   ├── cyclegan.py               # CycleGAN/SPADE setup & preparation
-│   │   │   ├── model_utils.py            # Model loading, training loop, COCO eval
-│   │   │   ├── data_utils.py             # Data loading utilities
-│   │   │   ├── custom_dataset.py         # PyTorch Dataset for LDPolypVideo
-│   │   │   └── utils.py                  # Platform detection & helpers
-│   │   ├── csv/                          # Result tables & formatting scripts
-│   │   ├── j_notebooks/                  # Interactive Jupyter analysis notebooks
-│   │   ├── python_scripts/               # One-off data preparation scripts
-│   │   └── shell_scripts/                # Automation & remote sync scripts
-│   ├── data/                             # Dataset root (not tracked in git)
-│   ├── out/                              # Outputs: saved models, losses, predictions
-│   ├── tmp/                              # Temp files & tutorial notebooks
-│   ├── requirements.txt                  # Python dependencies
-│   ├── Pipfile                           # Alternative Pipenv config
-│   └── Makefile                          # Zip packaging
-└── README.md                             # This file
+│   │   ├── api.ts                       # Shared axios instance (VITE_API_URL)
+│   │   ├── App.tsx                      # Tab-based dashboard layout
+│   │   └── components/                  # One component per dashboard tab
+│   └── package.json
+├── backend/                              # FastAPI REST API
+│   ├── main.py                          # All endpoints, subprocess management
+│   ├── run.sh                           # Uvicorn start script
+│   └── requirements.txt
+├── code/                                 # ML logic & standalone scripts
+│   ├── src/
+│   │   ├── app.py                       # Legacy Streamlit dashboard
+│   │   ├── train_and_save_model.py      # Train a single model with CLI args
+│   │   ├── train_models.py              # Batch training from JSON config
+│   │   ├── optuna_train_model.py        # Optuna hyperparameter search
+│   │   ├── raytune_train_model.py       # Ray Tune hyperparameter search
+│   │   ├── evaluate_models.py           # Evaluate all saved models (COCO metrics)
+│   │   ├── test_model.py               # Run inference and save detection images
+│   │   ├── cyclegan_train.py            # Train CycleGAN for mask→polyp translation
+│   │   ├── spade_train.py              # Train SPADE for mask→polyp translation
+│   │   └── clases/
+│   │       ├── model_utils.py           # Model loading, training loop, COCO eval
+│   │       ├── custom_dataset.py        # PyTorch Dataset for LDPolypVideo
+│   │       ├── cyclegan.py              # CycleGAN/SPADE setup & preparation
+│   │       └── utils.py                 # Platform detection & helpers
+│   ├── data/                            # Dataset root (not tracked in git)
+│   ├── out/                             # Outputs: saved models, losses, predictions
+│   └── requirements.txt                 # Python dependencies (ML-specific)
+└── README.md
 ```
 
 ## Key Scripts Reference
@@ -201,13 +217,13 @@ TFG/
 
 ## Tech Stack
 
-- **PyTorch** 2.1.2 + **torchvision** 0.16.2
-- **Optuna** and **Ray Tune** for hyperparameter optimization
-- **OpenCV** for image processing
-- **pycocotools** for COCO-format evaluation (AP, AR metrics)
-- **Streamlit** for the interactive dashboard
-- **Plotly** for interactive charts
-- **Pillow** for image I/O
+| Layer | Technologies |
+|---|---|
+| **Frontend** | React 19, TypeScript, Vite, Tailwind CSS, Recharts, Lucide React |
+| **Backend** | FastAPI, Uvicorn, Pydantic |
+| **ML** | PyTorch + torchvision, pycocotools (COCO metrics), OpenCV, Pillow |
+| **HPO** | Optuna, Ray Tune |
+| **Generative** | CycleGAN, SPADE (via bundled repos in `code/tmp/`) |
 
 ## License
 
