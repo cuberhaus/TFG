@@ -109,7 +109,7 @@ export default function GenerativeAugmentation() {
       const exps = response.data.experiments;
       setAvailableExperiments(exps);
       const expKeys = Object.keys(exps);
-      if (expKeys.length > 0 && !experimentName) {
+      if (expKeys.length > 0 && (!experimentName || !exps[experimentName])) {
         setExperimentName(expKeys[0]);
         if (exps[expKeys[0]] && exps[expKeys[0]].length > 0) {
             setEpoch(exps[expKeys[0]][0]);
@@ -304,20 +304,53 @@ export default function GenerativeAugmentation() {
 
       {showGallery ? (
         <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-           <div className="flex items-center justify-between bg-gray-800 border border-gray-700 p-4 rounded-xl">
-             <div className="flex items-center gap-4">
-               <div>
-                 <span className="text-xs text-gray-400 block uppercase tracking-wider">Experiment</span>
-                 <span className="font-mono text-purple-300 font-semibold">{galleryExp || 'None'}</span>
+           <div className="flex items-center justify-between bg-gray-800 border border-gray-700 p-4 rounded-xl gap-4">
+             <div className="flex items-center gap-4 flex-1 min-w-0">
+               <div className="min-w-0 flex-1">
+                 <label className="text-xs text-gray-400 block uppercase tracking-wider mb-1">Experiment</label>
+                 {Object.keys(availableExperiments).length > 0 ? (
+                   <select
+                     value={experimentName}
+                     onChange={(e) => {
+                       setExperimentName(e.target.value);
+                       const epochs = availableExperiments[e.target.value];
+                       const ep = epochs?.[0] || 'latest';
+                       setEpoch(ep);
+                       fetchGallery(e.target.value, ep);
+                     }}
+                     className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-purple-300 font-mono font-semibold outline-none focus:border-purple-500"
+                   >
+                     {Object.keys(availableExperiments).map(exp => (
+                       <option key={exp} value={exp}>{exp}</option>
+                     ))}
+                   </select>
+                 ) : (
+                   <span className="font-mono text-purple-300 font-semibold text-sm">{galleryExp || 'None'}</span>
+                 )}
                </div>
-               <div className="w-px h-8 bg-gray-700"></div>
-               <div>
-                 <span className="text-xs text-gray-400 block uppercase tracking-wider">Epoch / Test</span>
-                 <span className="font-mono text-purple-300">{galleryEpoch || 'None'}</span>
+               <div className="w-px h-10 bg-gray-700 flex-shrink-0"></div>
+               <div className="min-w-0">
+                 <label className="text-xs text-gray-400 block uppercase tracking-wider mb-1">Epoch / Test</label>
+                 {experimentName && availableExperiments[experimentName]?.length > 0 ? (
+                   <select
+                     value={epoch}
+                     onChange={(e) => {
+                       setEpoch(e.target.value);
+                       fetchGallery(experimentName, e.target.value);
+                     }}
+                     className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-purple-300 font-mono outline-none focus:border-purple-500"
+                   >
+                     {availableExperiments[experimentName].map(ep => (
+                       <option key={ep} value={ep}>{ep}</option>
+                     ))}
+                   </select>
+                 ) : (
+                   <span className="font-mono text-purple-300 text-sm">{galleryEpoch || 'None'}</span>
+                 )}
                </div>
              </div>
              
-             <div className="flex gap-2">
+             <div className="flex gap-2 flex-shrink-0">
                <button 
                  onClick={() => fetchGallery(experimentName, epoch)}
                  className="p-2 bg-gray-700 hover:bg-gray-600 rounded border border-gray-600 text-gray-300"
@@ -483,17 +516,21 @@ export default function GenerativeAugmentation() {
                       <span className="block text-sm font-medium text-gray-100">Test CycleGAN (Generate Images)</span>
                       <span className="mt-1 flex items-center text-sm text-gray-400">Run inference using a trained CycleGAN model to generate the augmented dataset.</span>
                       
-                      {taskType === 'test_cyclegan' && (
+                      {taskType === 'test_cyclegan' && (() => {
+                        const expKeys = Object.keys(availableExperiments);
+                        const resolvedExp = availableExperiments[experimentName] ? experimentName : expKeys[0] || '';
+                        const epochList = availableExperiments[resolvedExp] || [];
+                        return (
                         <div className="mt-4 grid grid-cols-2 gap-4 border-t border-gray-700 pt-4">
                           <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">Experiment Name</label>
-                            {Object.keys(availableExperiments).length > 0 ? (
+                            {expKeys.length > 0 ? (
                               <select 
-                                value={experimentName}
+                                value={resolvedExp}
                                 onChange={(e) => setExperimentName(e.target.value)}
                                 className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500"
                               >
-                                {Object.keys(availableExperiments).map(exp => (
+                                {expKeys.map(exp => (
                                   <option key={exp} value={exp}>{exp}</option>
                                 ))}
                               </select>
@@ -509,13 +546,13 @@ export default function GenerativeAugmentation() {
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-gray-400 mb-1">Epoch Checkpoint</label>
-                            {experimentName && availableExperiments[experimentName] && availableExperiments[experimentName].length > 0 ? (
+                            {epochList.length > 0 ? (
                               <select 
-                                value={epoch}
+                                value={epochList.includes(epoch) ? epoch : epochList[0]}
                                 onChange={(e) => setEpoch(e.target.value)}
                                 className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500"
                               >
-                                {availableExperiments[experimentName].map(ep => (
+                                {epochList.map(ep => (
                                   <option key={ep} value={ep}>{ep}</option>
                                 ))}
                               </select>
@@ -530,7 +567,8 @@ export default function GenerativeAugmentation() {
                             )}
                           </div>
                         </div>
-                      )}
+                        );
+                      })()}
                     </span>
                   </span>
                   {taskType === 'test_cyclegan' && <CheckCircle className="h-5 w-5 text-purple-500 absolute right-4 top-4" />}

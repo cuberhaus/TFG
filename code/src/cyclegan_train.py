@@ -49,7 +49,6 @@ def main():
         '--netG', args.netG,
         '--load_size', str(args.load_size),
         '--crop_size', str(args.crop_size),
-        '--display_id', '-1',
     ]
 
     if args.max_dataset_size is not None:

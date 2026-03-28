@@ -510,10 +510,8 @@ def get_cyclegan_experiments():
             epochs_list = list(epochs)
             epochs_list.sort(key=lambda x: -1 if x == 'latest' else (int(x) if x.isdigit() else 9999))
             
-            # If a folder has no valid .pth files, we can still list it, but give it an empty list
-            if not epochs_list:
-                 epochs_list = ["latest"] # Fallback
-            experiments[exp_folder] = epochs_list
+            if epochs_list:
+                experiments[exp_folder] = epochs_list
             
     return {"experiments": experiments}
 
