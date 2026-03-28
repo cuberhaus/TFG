@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
-import { Database, ChevronLeft, ChevronRight, RefreshCw, FolderSearch } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RefreshCw, FolderSearch, Upload, CheckCircle, XCircle } from 'lucide-react';
 
 interface DatasetImage {
   id: string;
@@ -23,6 +23,57 @@ interface DatasetResponse {
   total_pages: number;
 }
 
+interface UploadProgress {
+  phase: 'scanning' | 'uploading' | 'done' | 'error';
+  scanned: number;
+  total: number;
+  completed: number;
+  message: string;
+}
+
+const ALLOWED_ROOTS = ['TrainValid', 'Test', 'PolypDataset', 'PolypDatasetSPADE'];
+const BATCH_SIZE = 100;
+
+async function readAllEntries(reader: FileSystemDirectoryReader): Promise<FileSystemEntry[]> {
+  const all: FileSystemEntry[] = [];
+  let batch: FileSystemEntry[];
+  do {
+    batch = await new Promise<FileSystemEntry[]>((resolve, reject) =>
+      reader.readEntries(resolve, reject)
+    );
+    all.push(...batch);
+  } while (batch.length > 0);
+  return all;
+}
+
+async function traverseEntry(
+  entry: FileSystemEntry,
+  basePath: string,
+  onFile: () => void
+): Promise<{ file: File; path: string }[]> {
+  if (entry.isFile) {
+    const fileEntry = entry as FileSystemFileEntry;
+    const file = await new Promise<File>((resolve, reject) =>
+      fileEntry.file(resolve, reject)
+    );
+    onFile();
+    return [{ file, path: basePath + entry.name }];
+  }
+
+  if (entry.isDirectory) {
+    const dirEntry = entry as FileSystemDirectoryEntry;
+    const children = await readAllEntries(dirEntry.createReader());
+    const results: { file: File; path: string }[] = [];
+    for (const child of children) {
+      const childFiles = await traverseEntry(child, basePath + entry.name + '/', onFile);
+      results.push(...childFiles);
+    }
+    return results;
+  }
+
+  return [];
+}
+
 export default function DatasetExplorer() {
   const [split, setSplit] = useState<'train' | 'test'>('train');
   const [page, setPage] = useState(1);
@@ -31,9 +82,14 @@ export default function DatasetExplorer() {
   const [error, setError] = useState<string | null>(null);
   const [showBoxes, setShowBoxes] = useState(true);
 
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const dragCounter = useRef(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const limit = 12;
 
-  const fetchDataset = async (currentSplit: string, currentPage: number) => {
+  const fetchDataset = useCallback(async (currentSplit: string, currentPage: number) => {
     setLoading(true);
     setError(null);
     try {
@@ -45,19 +101,211 @@ export default function DatasetExplorer() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchDataset(split, page);
-  }, [split, page]);
+  }, [split, page, fetchDataset]);
 
   const handleSplitChange = (newSplit: 'train' | 'test') => {
     setSplit(newSplit);
     setPage(1);
   };
 
+  // --- Upload logic ---
+
+  async function uploadBatched(files: { file: File; path: string }[]) {
+    setUploadProgress({ phase: 'uploading', scanned: files.length, total: files.length, completed: 0, message: `Uploading ${files.length.toLocaleString()} files...` });
+
+    let completed = 0;
+    for (let i = 0; i < files.length; i += BATCH_SIZE) {
+      const batch = files.slice(i, i + BATCH_SIZE);
+      const formData = new FormData();
+      const paths: string[] = [];
+
+      for (const { file, path } of batch) {
+        formData.append('files', file);
+        paths.push(path);
+      }
+      formData.append('relative_paths', JSON.stringify(paths));
+
+      try {
+        await axios.post('http://localhost:8082/api/dataset/upload', formData);
+      } catch (err: any) {
+        setUploadProgress(prev => prev ? {
+          ...prev,
+          phase: 'error',
+          message: `Upload failed at file ${completed}: ${err.response?.data?.detail || err.message}`
+        } : null);
+        return;
+      }
+
+      completed += batch.length;
+      setUploadProgress(prev => prev ? {
+        ...prev,
+        completed,
+        message: `Uploading... ${completed.toLocaleString()} / ${files.length.toLocaleString()} files`
+      } : null);
+    }
+
+    setUploadProgress({
+      phase: 'done',
+      scanned: files.length,
+      total: files.length,
+      completed: files.length,
+      message: `Successfully uploaded ${files.length.toLocaleString()} files`
+    });
+
+    setPage(1);
+    fetchDataset(split, 1);
+  }
+
+  async function processDroppedItems(items: DataTransferItemList) {
+    setUploadProgress({ phase: 'scanning', scanned: 0, total: 0, completed: 0, message: 'Scanning folders...' });
+
+    const allFiles: { file: File; path: string }[] = [];
+    let scanned = 0;
+
+    const entries: FileSystemEntry[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const entry = items[i].webkitGetAsEntry?.();
+      if (entry) entries.push(entry);
+    }
+
+    if (entries.length === 0) {
+      setUploadProgress({ phase: 'error', scanned: 0, total: 0, completed: 0, message: 'Could not read dropped items. Try using the "Browse Folders" button instead.' });
+      return;
+    }
+
+    const hasValidRoot = entries.some(e => e.isDirectory && ALLOWED_ROOTS.includes(e.name));
+    if (!hasValidRoot) {
+      const names = entries.map(e => e.name).join(', ');
+      setUploadProgress({
+        phase: 'error', scanned: 0, total: 0, completed: 0,
+        message: `Dropped "${names}" — expected a folder named ${ALLOWED_ROOTS.join(', ')}. If your folder contains these subfolders, drop them individually.`
+      });
+      return;
+    }
+
+    for (const entry of entries) {
+      if (!entry.isDirectory || !ALLOWED_ROOTS.includes(entry.name)) continue;
+
+      const files = await traverseEntry(entry, '', () => {
+        scanned++;
+        if (scanned % 200 === 0) {
+          setUploadProgress(prev => prev ? { ...prev, scanned, message: `Scanning... ${scanned.toLocaleString()} files found` } : null);
+        }
+      });
+      allFiles.push(...files);
+    }
+
+    if (allFiles.length === 0) {
+      setUploadProgress({ phase: 'error', scanned: 0, total: 0, completed: 0, message: 'No files found inside the dropped folders.' });
+      return;
+    }
+
+    setUploadProgress(prev => prev ? { ...prev, scanned: allFiles.length, message: `Found ${allFiles.length.toLocaleString()} files. Starting upload...` } : null);
+
+    await uploadBatched(allFiles);
+  }
+
+  async function processFileInput(fileList: FileList) {
+    setUploadProgress({ phase: 'scanning', scanned: 0, total: 0, completed: 0, message: 'Reading selected files...' });
+
+    const allFiles: { file: File; path: string }[] = [];
+
+    for (let i = 0; i < fileList.length; i++) {
+      const file = fileList[i];
+      const relativePath = (file as any).webkitRelativePath as string;
+      if (!relativePath) continue;
+
+      const topFolder = relativePath.split('/')[0];
+      if (!ALLOWED_ROOTS.includes(topFolder)) continue;
+
+      allFiles.push({ file, path: relativePath });
+    }
+
+    if (allFiles.length === 0) {
+      setUploadProgress({
+        phase: 'error', scanned: 0, total: 0, completed: 0,
+        message: `No valid files found. The selected folder should be named ${ALLOWED_ROOTS.join(', ')}.`
+      });
+      return;
+    }
+
+    await uploadBatched(allFiles);
+  }
+
+  // --- Drag event handlers ---
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (dragCounter.current === 1) setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current = 0;
+    setIsDragging(false);
+
+    if (uploadProgress?.phase === 'uploading') return;
+    processDroppedItems(e.dataTransfer.items);
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      processFileInput(e.target.files);
+    }
+    e.target.value = '';
+  };
+
+  const isUploading = uploadProgress?.phase === 'uploading' || uploadProgress?.phase === 'scanning';
+
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-6 pt-2">
+    <div
+      className="max-w-6xl mx-auto flex flex-col gap-6 pt-2 relative"
+      onDragEnter={handleDragEnter}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* Drag overlay */}
+      {isDragging && (
+        <div className="absolute inset-0 bg-blue-900/50 border-2 border-dashed border-blue-400 rounded-xl flex items-center justify-center z-50 backdrop-blur-sm pointer-events-none">
+          <div className="text-center">
+            <Upload className="w-16 h-16 text-blue-400 mx-auto mb-4" />
+            <p className="text-xl font-medium text-blue-200">Drop dataset folders here</p>
+            <p className="text-sm text-blue-300/70 mt-2">TrainValid, Test, PolypDataset, or PolypDatasetSPADE</p>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden file input for folder browsing */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleFileInputChange}
+        multiple
+        {...{ webkitdirectory: '', directory: '' } as any}
+      />
+
+      {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
@@ -104,8 +352,65 @@ export default function DatasetExplorer() {
             />
             Show Bounding Boxes
           </label>
+
+          <div className="w-px h-6 bg-gray-700"></div>
+
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Upload className="w-4 h-4" />
+            Upload
+          </button>
         </div>
       </div>
+
+      {/* Upload progress bar */}
+      {uploadProgress && (
+        <div className={`rounded-xl p-4 border ${
+          uploadProgress.phase === 'error'
+            ? 'bg-red-900/20 border-red-800'
+            : uploadProgress.phase === 'done'
+            ? 'bg-green-900/20 border-green-800'
+            : 'bg-blue-900/20 border-blue-800'
+        }`}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              {uploadProgress.phase === 'error' ? (
+                <XCircle className="w-5 h-5 text-red-400" />
+              ) : uploadProgress.phase === 'done' ? (
+                <CheckCircle className="w-5 h-5 text-green-400" />
+              ) : (
+                <RefreshCw className="w-5 h-5 text-blue-400 animate-spin" />
+              )}
+              <span className={`text-sm font-medium ${
+                uploadProgress.phase === 'error' ? 'text-red-300'
+                  : uploadProgress.phase === 'done' ? 'text-green-300'
+                  : 'text-blue-300'
+              }`}>
+                {uploadProgress.message}
+              </span>
+            </div>
+            {(uploadProgress.phase === 'done' || uploadProgress.phase === 'error') && (
+              <button
+                onClick={() => setUploadProgress(null)}
+                className="text-xs text-gray-400 hover:text-white transition-colors"
+              >
+                Dismiss
+              </button>
+            )}
+          </div>
+          {uploadProgress.phase === 'uploading' && uploadProgress.total > 0 && (
+            <div className="w-full bg-gray-700 rounded-full h-2">
+              <div
+                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${(uploadProgress.completed / uploadProgress.total) * 100}%` }}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {error ? (
         <div className="bg-red-900/30 border border-red-800 text-red-300 p-6 rounded-xl text-center">
@@ -123,14 +428,16 @@ export default function DatasetExplorer() {
           <p className="text-lg">Loading dataset {split}...</p>
         </div>
       ) : data?.images.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-gray-400 bg-gray-800/50 border border-gray-700 rounded-xl border-dashed">
-          <Database className="w-16 h-16 mb-4 text-gray-600" />
-          <p className="text-xl font-medium text-gray-300">No images found in {split} split.</p>
-          <p className="text-sm mt-2">Ensure that you have uploaded the dataset to the correct folders:</p>
-          <code className="text-xs mt-4 p-2 bg-gray-900 rounded text-gray-500">
-            data/{split === 'train' ? 'TrainValid' : 'Test'}/Images<br/>
-            data/{split === 'train' ? 'TrainValid' : 'Test'}/Annotations
-          </code>
+        <div
+          className="flex flex-col items-center justify-center py-16 text-gray-400 bg-gray-800/50 border-2 border-gray-700 rounded-xl border-dashed cursor-pointer hover:border-blue-600 hover:bg-blue-900/10 transition-colors"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <Upload className="w-16 h-16 mb-4 text-gray-500" />
+          <p className="text-xl font-medium text-gray-300">No images found in {split} split</p>
+          <p className="text-sm mt-2">Drag & drop a <strong className="text-gray-200">{split === 'train' ? 'TrainValid' : 'Test'}</strong> folder here, or click to browse</p>
+          <p className="text-xs mt-4 text-gray-500">
+            Expected structure: {split === 'train' ? 'TrainValid' : 'Test'}/Images/&lt;sequence&gt;/*.jpg &amp; Annotations/&lt;sequence&gt;/*.txt
+          </p>
         </div>
       ) : (
         <div className="space-y-6">

@@ -568,6 +568,40 @@ def get_dataset_images(split: str, page: int = 1, limit: int = 12):
         "total_pages": (total_items + limit - 1) // limit
     }
 
+ALLOWED_DATA_PREFIXES = ['TrainValid', 'Test', 'PolypDataset', 'PolypDatasetSPADE']
+DATA_DIR = os.path.normpath(os.path.join(PROJ_DIR, "code", "data"))
+
+@app.post("/api/dataset/upload")
+async def upload_dataset_files(
+    files: List[UploadFile] = File(...),
+    relative_paths: str = Form(...)
+):
+    paths = json.loads(relative_paths)
+    if len(files) != len(paths):
+        raise HTTPException(status_code=400, detail="File count doesn't match path count")
+
+    saved = 0
+    skipped = 0
+
+    for upload_file, rel_path in zip(files, paths):
+        top_folder = rel_path.split('/')[0]
+        if top_folder not in ALLOWED_DATA_PREFIXES:
+            skipped += 1
+            continue
+
+        target = os.path.normpath(os.path.join(DATA_DIR, rel_path))
+        if not target.startswith(DATA_DIR + os.sep):
+            skipped += 1
+            continue
+
+        os.makedirs(os.path.dirname(target), exist_ok=True)
+        content = await upload_file.read()
+        with open(target, 'wb') as f:
+            f.write(content)
+        saved += 1
+
+    return {"saved": saved, "skipped": skipped, "total": len(files)}
+
 @app.get("/api/health")
 def health_check():
     return {"status": "ok"}
