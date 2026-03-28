@@ -386,7 +386,7 @@ gen_state = {
 }
 
 class GenRequest(BaseModel):
-    task_type: Literal["train_cyclegan", "test_cyclegan", "train_spade"]
+    task_type: Literal["train_cyclegan", "test_cyclegan", "train_spade", "test_spade"]
     experiment_name: Optional[str] = "mask2polyp"
     epoch: Optional[str] = "latest"
     batch_size: Optional[int] = Field(default=4, gt=0)
@@ -444,6 +444,12 @@ def run_generative_script(req: GenRequest):
         ])
         if req.spade_max_dataset_size is not None:
             cmd_args.extend(["--max-dataset-size", str(req.spade_max_dataset_size)])
+    elif req.task_type == "test_spade":
+        script_name = "spade_test.py"
+        if req.experiment_name:
+            cmd_args.extend(["--name", req.experiment_name])
+        if req.epoch:
+            cmd_args.extend(["--which-epoch", req.epoch])
     else:
         gen_state["message"] = f"Unknown task type: {req.task_type}"
         gen_state["is_running"] = False
@@ -481,6 +487,14 @@ def run_generative_script(req: GenRequest):
                 gen_state["is_running"] = False
                 gen_state["current_task"] = None
                 return
+        elif req.task_type == "test_spade":
+            data_dir = os.path.join(SRC_DIR, "../data/PolypDatasetSPADE")
+            testA_files = glob.glob(os.path.join(data_dir, "testA", "*.*"))
+            if not testA_files:
+                gen_state["message"] = "Error: Test dataset is empty. Please upload images to PolypDatasetSPADE/testA directory."
+                gen_state["is_running"] = False
+                gen_state["current_task"] = None
+                return
     except Exception as e:
         gen_state["message"] = f"Error checking directories: {e}"
         gen_state["is_running"] = False
@@ -514,6 +528,86 @@ def get_cyclegan_experiments():
                 experiments[exp_folder] = epochs_list
             
     return {"experiments": experiments}
+
+@app.get("/api/generate/spade-experiments")
+def get_spade_experiments():
+    spade_dir = os.path.join(PROJ_DIR, "code", "tmp", "SPADE", "checkpoints")
+    if not os.path.isdir(spade_dir):
+        return {"experiments": {}}
+
+    experiments = {}
+    for exp_folder in os.listdir(spade_dir):
+        exp_path = os.path.join(spade_dir, exp_folder)
+        if os.path.isdir(exp_path):
+            epochs = set()
+            for file in os.listdir(exp_path):
+                if file.endswith("_net_G.pth"):
+                    epoch_str = file.split("_net_")[0]
+                    epochs.add(epoch_str)
+            epochs_list = list(epochs)
+            epochs_list.sort(key=lambda x: -1 if x == 'latest' else (int(x) if x.isdigit() else 9999))
+
+            if epochs_list:
+                experiments[exp_folder] = epochs_list
+
+    return {"experiments": experiments}
+
+@app.get("/api/generate/spade-results")
+def get_spade_results(experiment: str = None, epoch: str = "latest"):
+    results_dir = os.path.join(PROJ_DIR, "code", "tmp", "SPADE", "results")
+    if not os.path.isdir(results_dir):
+        return {"images": []}
+
+    if not experiment:
+        experiments = [f for f in os.listdir(results_dir) if os.path.isdir(os.path.join(results_dir, f))]
+        if not experiments:
+            return {"images": []}
+        experiment = experiments[0]
+
+    exp_dir = os.path.realpath(os.path.join(results_dir, experiment))
+    if not exp_dir.startswith(os.path.realpath(results_dir) + os.sep):
+        return {"images": []}
+    if not os.path.isdir(exp_dir):
+        return {"images": []}
+
+    test_dir = os.path.realpath(os.path.join(exp_dir, f"test_{epoch}"))
+    if not test_dir.startswith(os.path.realpath(results_dir) + os.sep):
+        return {"images": []}
+    if not os.path.isdir(test_dir):
+        test_folders = [f for f in os.listdir(exp_dir) if f.startswith("test_") and os.path.isdir(os.path.join(exp_dir, f))]
+        if not test_folders:
+            return {"images": []}
+        test_dir = os.path.join(exp_dir, test_folders[-1])
+
+    images_folder = os.path.join(test_dir, "images")
+    if not os.path.isdir(images_folder):
+        return {"images": []}
+
+    # SPADE saves to subdirectories: input_label/<name>.png, synthesized_image/<name>.png
+    label_dir = os.path.join(images_folder, "input_label")
+    synth_dir = os.path.join(images_folder, "synthesized_image")
+
+    image_groups = {}
+    for subdir, group_key in [(label_dir, "real"), (synth_dir, "fake")]:
+        if os.path.isdir(subdir):
+            for img_name in os.listdir(subdir):
+                if img_name.endswith(".png") or img_name.endswith(".jpg"):
+                    if img_name not in image_groups:
+                        image_groups[img_name] = {}
+                    img_path = os.path.join(subdir, img_name)
+                    with open(img_path, "rb") as image_file:
+                        encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
+                        image_groups[img_name][group_key] = f"data:image/png;base64,{encoded_string}"
+
+    images_data = []
+    for base_name, group in sorted(image_groups.items()):
+        images_data.append({
+            "base_name": base_name,
+            "real": group.get("real"),
+            "fake": group.get("fake")
+        })
+
+    return {"images": images_data, "experiment": experiment, "test_dir": os.path.basename(test_dir)}
 
 @app.get("/api/generate/results")
 def get_generation_results(experiment: str = None, epoch: str = "latest"):

@@ -25,6 +25,10 @@ export default function GenerativeAugmentation() {
   const [availableExperiments, setAvailableExperiments] = useState<Record<string, string[]>>({});
   const [epoch, setEpoch] = useState('latest');
 
+  const [spadeExperimentName, setSpadeExperimentName] = useState('');
+  const [availableSpadeExperiments, setAvailableSpadeExperiments] = useState<Record<string, string[]>>({});
+  const [spadeEpoch, setSpadeEpoch] = useState('latest');
+
   const [cganBatchSize, setCganBatchSize] = useState(4);
   const [cganEpochs, setCganEpochs] = useState(5);
   const [cganLr, setCganLr] = useState(0.0002);
@@ -76,6 +80,7 @@ export default function GenerativeAugmentation() {
           setLastResult({ type: 'success', message: msg });
         }
         fetchExperiments();
+        fetchSpadeExperiments();
       }
       wasRunning.current = newStatus.is_running;
       setStatus(newStatus);
@@ -120,14 +125,35 @@ export default function GenerativeAugmentation() {
     }
   };
 
-  const fetchGallery = async (exp: string, ep: string) => {
+  const fetchSpadeExperiments = async () => {
+    try {
+      const response = await api.get('/api/generate/spade-experiments');
+      const exps = response.data.experiments;
+      setAvailableSpadeExperiments(exps);
+      const expKeys = Object.keys(exps);
+      if (expKeys.length > 0 && (!spadeExperimentName || !exps[spadeExperimentName])) {
+        setSpadeExperimentName(expKeys[0]);
+        if (exps[expKeys[0]] && exps[expKeys[0]].length > 0) {
+            setSpadeEpoch(exps[expKeys[0]][0]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch SPADE experiments:", err);
+    }
+  };
+
+  const [galleryType, setGalleryType] = useState<'cyclegan' | 'spade'>('cyclegan');
+
+  const fetchGallery = async (exp: string, ep: string, type: 'cyclegan' | 'spade' = galleryType) => {
     setGalleryLoading(true);
     setError(null);
+    const endpoint = type === 'spade' ? '/api/generate/spade-results' : '/api/generate/results';
     try {
-      const response = await api.get(`/api/generate/results?experiment=${exp}&epoch=${ep}`);
+      const response = await api.get(`${endpoint}?experiment=${exp}&epoch=${ep}`);
       setGalleryImages(response.data.images);
       setGalleryExp(response.data.experiment || exp);
       setGalleryEpoch(response.data.test_dir || ep);
+      setGalleryType(type);
     } catch (err) {
       console.error("Failed to fetch gallery:", err);
       setError("Failed to load results gallery.");
@@ -140,6 +166,7 @@ export default function GenerativeAugmentation() {
     fetchStatus();
     fetchPrepStatus();
     fetchExperiments();
+    fetchSpadeExperiments();
     const rate = status.is_running || prepStatus.is_running ? 1000 : 3000;
     const interval = setInterval(() => {
       fetchStatus();
@@ -148,12 +175,17 @@ export default function GenerativeAugmentation() {
     return () => clearInterval(interval);
   }, [status.is_running, prepStatus.is_running]);
 
-  // When experiment name changes, reset the epoch to the first available one for that new experiment
   useEffect(() => {
      if (experimentName && availableExperiments[experimentName] && availableExperiments[experimentName].length > 0) {
          setEpoch(availableExperiments[experimentName][0]);
      }
   }, [experimentName, availableExperiments]);
+
+  useEffect(() => {
+     if (spadeExperimentName && availableSpadeExperiments[spadeExperimentName] && availableSpadeExperiments[spadeExperimentName].length > 0) {
+         setSpadeEpoch(availableSpadeExperiments[spadeExperimentName][0]);
+     }
+  }, [spadeExperimentName, availableSpadeExperiments]);
 
   const handleCancelGeneration = async () => {
     try {
@@ -169,8 +201,8 @@ export default function GenerativeAugmentation() {
     try {
       await api.post('/api/generate', {
         task_type: taskType,
-        experiment_name: taskType === 'test_cyclegan' ? experimentName : undefined,
-        epoch: taskType === 'test_cyclegan' ? epoch : undefined,
+        experiment_name: taskType === 'test_cyclegan' ? experimentName : taskType === 'test_spade' ? spadeExperimentName : undefined,
+        epoch: taskType === 'test_cyclegan' ? epoch : taskType === 'test_spade' ? spadeEpoch : undefined,
         ...(taskType === 'train_cyclegan' ? {
           batch_size: cganBatchSize,
           n_epochs: cganEpochs,
@@ -211,16 +243,28 @@ export default function GenerativeAugmentation() {
           </p>
         </div>
         {!showGallery && (
-           <button 
-             onClick={() => {
-               setShowGallery(true);
-               fetchGallery(experimentName, epoch);
-             }}
-             className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-600 px-4 py-2 rounded-lg text-sm transition-colors"
-           >
-             <ImageIcon className="w-4 h-4" />
-             View Results Gallery
-           </button>
+           <div className="flex gap-2">
+             <button 
+               onClick={() => {
+                 setShowGallery(true);
+                 fetchGallery(experimentName, epoch, 'cyclegan');
+               }}
+               className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-600 px-4 py-2 rounded-lg text-sm transition-colors"
+             >
+               <ImageIcon className="w-4 h-4" />
+               CycleGAN Results
+             </button>
+             <button 
+               onClick={() => {
+                 setShowGallery(true);
+                 fetchGallery(spadeExperimentName, spadeEpoch, 'spade');
+               }}
+               className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-600 px-4 py-2 rounded-lg text-sm transition-colors"
+             >
+               <ImageIcon className="w-4 h-4" />
+               SPADE Results
+             </button>
+           </div>
         )}
       </div>
 
@@ -302,25 +346,49 @@ export default function GenerativeAugmentation() {
         </div>
       )}
 
-      {showGallery ? (
+      {showGallery ? (() => {
+        const exps = galleryType === 'spade' ? availableSpadeExperiments : availableExperiments;
+        const curExp = galleryType === 'spade' ? spadeExperimentName : experimentName;
+        const setCurExp = galleryType === 'spade' ? setSpadeExperimentName : setExperimentName;
+        const curEpoch = galleryType === 'spade' ? spadeEpoch : epoch;
+        const setCurEpoch = galleryType === 'spade' ? setSpadeEpoch : setEpoch;
+        const expKeys = Object.keys(exps);
+        const resolvedExp = exps[curExp] ? curExp : expKeys[0] || '';
+        const epochList = exps[resolvedExp] || [];
+
+        return (
         <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
            <div className="flex items-center justify-between bg-gray-800 border border-gray-700 p-4 rounded-xl gap-4">
              <div className="flex items-center gap-4 flex-1 min-w-0">
+               <div className="min-w-0">
+                 <label className="text-xs text-gray-400 block uppercase tracking-wider mb-1">Model</label>
+                 <div className="flex gap-1">
+                   <button onClick={() => { setGalleryType('cyclegan'); fetchGallery(experimentName, epoch, 'cyclegan'); }}
+                     className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${galleryType === 'cyclegan' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-400 hover:text-white'}`}>
+                     CycleGAN
+                   </button>
+                   <button onClick={() => { setGalleryType('spade'); fetchGallery(spadeExperimentName, spadeEpoch, 'spade'); }}
+                     className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${galleryType === 'spade' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-400 hover:text-white'}`}>
+                     SPADE
+                   </button>
+                 </div>
+               </div>
+               <div className="w-px h-10 bg-gray-700 flex-shrink-0"></div>
                <div className="min-w-0 flex-1">
                  <label className="text-xs text-gray-400 block uppercase tracking-wider mb-1">Experiment</label>
-                 {Object.keys(availableExperiments).length > 0 ? (
+                 {expKeys.length > 0 ? (
                    <select
-                     value={experimentName}
+                     value={resolvedExp}
                      onChange={(e) => {
-                       setExperimentName(e.target.value);
-                       const epochs = availableExperiments[e.target.value];
+                       setCurExp(e.target.value);
+                       const epochs = exps[e.target.value];
                        const ep = epochs?.[0] || 'latest';
-                       setEpoch(ep);
-                       fetchGallery(e.target.value, ep);
+                       setCurEpoch(ep);
+                       fetchGallery(e.target.value, ep, galleryType);
                      }}
                      className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-purple-300 font-mono font-semibold outline-none focus:border-purple-500"
                    >
-                     {Object.keys(availableExperiments).map(exp => (
+                     {expKeys.map(exp => (
                        <option key={exp} value={exp}>{exp}</option>
                      ))}
                    </select>
@@ -331,16 +399,16 @@ export default function GenerativeAugmentation() {
                <div className="w-px h-10 bg-gray-700 flex-shrink-0"></div>
                <div className="min-w-0">
                  <label className="text-xs text-gray-400 block uppercase tracking-wider mb-1">Epoch / Test</label>
-                 {experimentName && availableExperiments[experimentName]?.length > 0 ? (
+                 {epochList.length > 0 ? (
                    <select
-                     value={epoch}
+                     value={epochList.includes(curEpoch) ? curEpoch : epochList[0]}
                      onChange={(e) => {
-                       setEpoch(e.target.value);
-                       fetchGallery(experimentName, e.target.value);
+                       setCurEpoch(e.target.value);
+                       fetchGallery(resolvedExp, e.target.value, galleryType);
                      }}
                      className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-purple-300 font-mono outline-none focus:border-purple-500"
                    >
-                     {availableExperiments[experimentName].map(ep => (
+                     {epochList.map(ep => (
                        <option key={ep} value={ep}>{ep}</option>
                      ))}
                    </select>
@@ -352,7 +420,7 @@ export default function GenerativeAugmentation() {
              
              <div className="flex gap-2 flex-shrink-0">
                <button 
-                 onClick={() => fetchGallery(experimentName, epoch)}
+                 onClick={() => fetchGallery(resolvedExp, epochList.includes(curEpoch) ? curEpoch : epochList[0] || 'latest', galleryType)}
                  className="p-2 bg-gray-700 hover:bg-gray-600 rounded border border-gray-600 text-gray-300"
                  title="Refresh"
                >
@@ -376,7 +444,7 @@ export default function GenerativeAugmentation() {
              <div className="flex flex-col items-center justify-center py-20 text-gray-400 bg-gray-800/50 border border-gray-700 rounded-xl border-dashed">
                <ImageIcon className="w-12 h-12 mb-4 text-gray-600" />
                <p className="text-lg">No results found.</p>
-               <p className="text-sm mt-2">Run the "Test CycleGAN" job to generate some synthetic images first!</p>
+               <p className="text-sm mt-2">Run a "Test" job to generate some synthetic images first!</p>
              </div>
            ) : (
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -408,7 +476,8 @@ export default function GenerativeAugmentation() {
              </div>
            )}
         </div>
-      ) : status.is_running ? (
+        );
+      })() : status.is_running ? (
         <div className="bg-purple-900/20 border border-purple-800 rounded-xl p-10 flex flex-col items-center justify-center text-center mt-4">
           <div className="relative mb-6">
             <div className="w-20 h-20 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin"></div>
@@ -638,6 +707,71 @@ export default function GenerativeAugmentation() {
                     </span>
                   </span>
                   {taskType === 'train_spade' && <CheckCircle className="h-5 w-5 text-purple-500 absolute right-4 top-4" />}
+                </label>
+
+                <label className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${taskType === 'test_spade' ? 'border-purple-500 bg-purple-900/10' : 'border-gray-700 bg-gray-800 hover:bg-gray-700'}`}>
+                  <input type="radio" name="task" value="test_spade" className="sr-only" checked={taskType === 'test_spade'} onChange={(e) => setTaskType(e.target.value)} />
+                  <span className="flex flex-1">
+                    <span className="flex flex-col w-full">
+                      <span className="block text-sm font-medium text-gray-100">Test SPADE (Generate Images)</span>
+                      <span className="mt-1 flex items-center text-sm text-gray-400">Run inference using a trained SPADE model to generate high-fidelity images from semantic layouts.</span>
+
+                      {taskType === 'test_spade' && (() => {
+                        const spadeExpKeys = Object.keys(availableSpadeExperiments);
+                        const resolvedSpadeExp = availableSpadeExperiments[spadeExperimentName] ? spadeExperimentName : spadeExpKeys[0] || '';
+                        const spadeEpochList = availableSpadeExperiments[resolvedSpadeExp] || [];
+                        return (
+                        <div className="mt-4 grid grid-cols-2 gap-4 border-t border-gray-700 pt-4">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Experiment Name</label>
+                            {spadeExpKeys.length > 0 ? (
+                              <select
+                                value={resolvedSpadeExp}
+                                onChange={(e) => setSpadeExperimentName(e.target.value)}
+                                className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500"
+                              >
+                                {spadeExpKeys.map(exp => (
+                                  <option key={exp} value={exp}>{exp}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                type="text"
+                                value={spadeExperimentName}
+                                onChange={(e) => setSpadeExperimentName(e.target.value)}
+                                className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500"
+                                placeholder="No experiments found..."
+                              />
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-400 mb-1">Epoch Checkpoint</label>
+                            {spadeEpochList.length > 0 ? (
+                              <select
+                                value={spadeEpochList.includes(spadeEpoch) ? spadeEpoch : spadeEpochList[0]}
+                                onChange={(e) => setSpadeEpoch(e.target.value)}
+                                className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500"
+                              >
+                                {spadeEpochList.map(ep => (
+                                  <option key={ep} value={ep}>{ep}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                type="text"
+                                value={spadeEpoch}
+                                onChange={(e) => setSpadeEpoch(e.target.value)}
+                                className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-white outline-none focus:border-purple-500"
+                                placeholder="latest"
+                              />
+                            )}
+                          </div>
+                        </div>
+                        );
+                      })()}
+                    </span>
+                  </span>
+                  {taskType === 'test_spade' && <CheckCircle className="h-5 w-5 text-purple-500 absolute right-4 top-4" />}
                 </label>
               </div>
             </div>
