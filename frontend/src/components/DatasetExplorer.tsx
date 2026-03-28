@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Database, Image as ImageIcon, Search, ChevronLeft, ChevronRight, RefreshCw, FolderSearch } from 'lucide-react';
+import { Database, ChevronLeft, ChevronRight, RefreshCw, FolderSearch } from 'lucide-react';
 
 interface DatasetImage {
   id: string;
@@ -18,8 +18,8 @@ interface DatasetImage {
 interface DatasetResponse {
   images: DatasetImage[];
   total: number;
-  page: int;
-  limit: int;
+  page: number;
+  limit: number;
   total_pages: number;
 }
 
@@ -178,10 +178,10 @@ export default function DatasetExplorer() {
                           key={idx}
                           className="absolute border-2 border-green-500 bg-green-500/20"
                           style={{
-                            left: `${xmin}px`,
-                            top: `${ymin}px`,
-                            width: `${xmax - xmin}px`,
-                            height: `${ymax - ymin}px`,
+                            left: `${(xmin / item.width) * 100}%`,
+                            top: `${(ymin / item.height) * 100}%`,
+                            width: `${((xmax - xmin) / item.width) * 100}%`,
+                            height: `${((ymax - ymin) / item.height) * 100}%`,
                           }}
                         >
                           <span className="absolute -top-5 left-0 bg-green-500 text-black text-[10px] font-bold px-1 rounded-sm whitespace-nowrap">

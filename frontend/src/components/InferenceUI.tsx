@@ -2,10 +2,6 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { UploadCloud, Image as ImageIcon, AlertCircle, Layers } from 'lucide-react';
 
-interface ModelInfo {
-  filename: str;
-}
-
 export default function InferenceUI() {
   const [models, setModels] = useState<string[]>([]);
   const [selectedModel, setSelectedModel] = useState('');

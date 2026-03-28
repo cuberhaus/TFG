@@ -2,8 +2,23 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
+interface PerformanceRow {
+  Model: string;
+  BATCH_SIZE: number;
+  LR: number;
+  LR_fmt: string;
+  NUM_EPOCHS: number;
+  Config: string;
+  F1: number;
+  AP_50_all: number;
+  AP_50_95_all: number;
+  AP_75_all: number;
+  AR_50_95_all_maxDets_100: number;
+  [key: string]: string | number;
+}
+
 export default function PerformanceExplorer() {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<PerformanceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [sourcePath, setSourcePath] = useState('');
 

@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { BarChart, Search, Activity, Cpu, Play, TrendingUp, ClipboardList, Sparkles, Sliders, FolderSearch, Menu } from 'lucide-react';
+import { useState } from 'react';
+import { BarChart, Search, Activity, Play, TrendingUp, ClipboardList, Sparkles, Sliders, FolderSearch, Menu } from 'lucide-react';
 import PerformanceExplorer from './components/PerformanceExplorer';
 import InferenceUI from './components/InferenceUI';
 import ModelTraining from './components/ModelTraining';
