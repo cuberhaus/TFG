@@ -44,7 +44,7 @@ def main():
         "--dataset_mode", "custom",
         "--label_dir", A_dir,
         "--image_dir", B_dir,
-        "--label_nc", "1",
+        "--label_nc", "2",
         "--no_instance",
         "--checkpoints_dir", checkpoints_dir,
         "--save_epoch_freq", "5",
