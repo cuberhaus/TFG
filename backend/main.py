@@ -1209,3 +1209,16 @@ def predict_batch(
         })
 
     return {"results": results}
+
+
+# --- Static file serving (production / Docker) ---
+FRONTEND_DIST = os.path.join(PROJ_DIR, "frontend", "dist")
+if os.path.isdir(FRONTEND_DIST):
+    from fastapi.responses import FileResponse
+    from fastapi.staticfiles import StaticFiles
+
+    @app.get("/")
+    async def _serve_index():
+        return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
+
+    app.mount("/", StaticFiles(directory=FRONTEND_DIST), name="frontend")

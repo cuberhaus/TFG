@@ -1,0 +1,8 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./code/out:/app/code/out
+      - ./code/data:/app/code/data

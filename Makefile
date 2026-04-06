@@ -27,6 +27,25 @@ install:
 	@echo "Installing frontend dependencies..."
 	cd frontend && npm install
 
+# Docker
+.PHONY: docker-build docker-up docker-down docker-logs
+
+docker-build:
+	docker compose build
+
+docker-up:
+	docker compose up -d
+	@echo ""
+	@echo "  TFG Polyp Detection is running at:"
+	@echo "    ➜  http://localhost:8082"
+	@echo ""
+
+docker-down:
+	docker compose down
+
+docker-logs:
+	docker compose logs -f
+
 # Stop running processes on the specific ports
 clean:
 	@echo "Stopping processes on ports 8082 (backend) and 5173 (frontend)..."
