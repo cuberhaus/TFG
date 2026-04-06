@@ -1,4 +1,4 @@
-.PHONY: all run backend frontend install clean
+.PHONY: all run backend frontend install clean help
 
 # Default target
 all: run
@@ -52,3 +52,15 @@ clean:
 	-fuser -k 8082/tcp
 	-fuser -k 5173/tcp
 	@echo "Cleaned up."
+
+help:
+	@echo "Usage:"
+	@echo "  make run            Start backend (:8082) and frontend (:5173) concurrently"
+	@echo "  make backend        Start FastAPI backend only"
+	@echo "  make frontend       Start React/Vite frontend only"
+	@echo "  make install        Install all dependencies (backend + ML + frontend)"
+	@echo "  make docker-build   Build Docker image"
+	@echo "  make docker-up      Start Docker container on :8082"
+	@echo "  make docker-down    Stop Docker container"
+	@echo "  make docker-logs    Tail Docker container logs"
+	@echo "  make clean          Stop running dev processes"
