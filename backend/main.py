@@ -374,6 +374,28 @@ def run_prepare_cyclegan():
 def get_prepare_status():
     return prep_state
 
+
+@app.get("/api/prepare/check")
+def check_dataset_ready():
+    """Check whether the CycleGAN dataset structure exists and has files."""
+    import glob
+    data_root = os.path.join(PROJ_DIR, "code", "data")
+    datasets = {}
+    for name in ["PolypDataset", "PolypDatasetSPADE"]:
+        root = os.path.join(data_root, name)
+        info = {}
+        for split in ["trainA", "trainB", "testA", "testB"]:
+            d = os.path.join(root, split)
+            count = len(glob.glob(os.path.join(d, "*"))) if os.path.isdir(d) else 0
+            info[split] = count
+        datasets[name] = info
+
+    source_ok = os.path.isdir(os.path.join(data_root, "TrainValid", "Images")) and \
+                os.path.isdir(os.path.join(data_root, "TrainValid", "Annotations"))
+    polypds = datasets.get("PolypDataset", {})
+    ready = polypds.get("trainA", 0) > 0 and polypds.get("trainB", 0) > 0
+    return {"datasets": datasets, "source_available": source_ok, "ready": ready}
+
 @app.post("/api/prepare")
 def start_prepare(background_tasks: BackgroundTasks):
     if prep_state["is_running"]:

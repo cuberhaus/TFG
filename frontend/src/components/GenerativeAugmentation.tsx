@@ -57,6 +57,11 @@ export default function GenerativeAugmentation() {
 
   const [prepStatus, setPrepStatus] = useState<PrepStatus>({ is_running: false, message: 'Idle' });
   const [prepError, setPrepError] = useState<string | null>(null);
+  const [datasetCheck, setDatasetCheck] = useState<{
+    datasets: Record<string, Record<string, number>>;
+    source_available: boolean;
+    ready: boolean;
+  } | null>(null);
   
   // Gallery state
   const [showGallery, setShowGallery] = useState(false);
@@ -95,6 +100,15 @@ export default function GenerativeAugmentation() {
       setPrepStatus(response.data);
     } catch (err) {
       console.error("Failed to fetch preparation status:", err);
+    }
+  };
+
+  const fetchDatasetCheck = async () => {
+    try {
+      const response = await api.get('/api/prepare/check');
+      setDatasetCheck(response.data);
+    } catch (err) {
+      console.error("Failed to check dataset status:", err);
     }
   };
 
@@ -165,12 +179,14 @@ export default function GenerativeAugmentation() {
   useEffect(() => {
     fetchStatus();
     fetchPrepStatus();
+    fetchDatasetCheck();
     fetchExperiments();
     fetchSpadeExperiments();
     const rate = status.is_running || prepStatus.is_running ? 1000 : 3000;
     const interval = setInterval(() => {
       fetchStatus();
       fetchPrepStatus();
+      if (!prepStatus.is_running) fetchDatasetCheck();
     }, rate);
     return () => clearInterval(interval);
   }, [status.is_running, prepStatus.is_running]);
@@ -319,29 +335,70 @@ export default function GenerativeAugmentation() {
       )}
 
       {!showGallery && !status.is_running && (
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 flex items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <Wand2 className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
-            <div>
-              <h3 className="text-sm font-medium text-gray-200">Prepare CycleGAN Dataset</h3>
-              <p className="text-xs text-gray-400 mt-1">
-                Generate binary masks from bounding box annotations and copy images + masks into the CycleGAN folder structure (PolypDataset &amp; PolypDatasetSPADE).
-              </p>
+        <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <Wand2 className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <h3 className="text-sm font-medium text-gray-200">Prepare CycleGAN Dataset</h3>
+                <p className="text-xs text-gray-400 mt-1">
+                  Generate binary masks from bounding box annotations and copy images + masks into the CycleGAN folder structure (PolypDataset &amp; PolypDatasetSPADE).
+                </p>
+              </div>
             </div>
-          </div>
-          <button
-            onClick={handleStartPreparation}
-            disabled={prepStatus.is_running}
-            className="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shadow-lg"
-          >
-            {prepStatus.is_running ? (
-              <><RefreshCw className="w-4 h-4 animate-spin" /> Preparing...</>
-            ) : (
-              <><Wand2 className="w-4 h-4" /> Prepare Dataset</>
+            <button
+              onClick={handleStartPreparation}
+              disabled={prepStatus.is_running}
+              className="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shadow-lg"
+            >
+              {prepStatus.is_running ? (
+                <><RefreshCw className="w-4 h-4 animate-spin" /> Preparing...</>
+              ) : (
+                <><Wand2 className="w-4 h-4" /> Prepare Dataset</>
+              )}
+            </button>
+            {prepError && (
+              <span className="text-xs text-red-400">{prepError}</span>
             )}
-          </button>
-          {prepError && (
-            <span className="text-xs text-red-400">{prepError}</span>
+          </div>
+
+          {datasetCheck && (
+            <div className={`rounded-lg border px-4 py-3 text-xs font-mono ${
+              datasetCheck.ready
+                ? 'bg-green-900/20 border-green-800 text-green-300'
+                : !datasetCheck.source_available
+                  ? 'bg-red-900/20 border-red-800 text-red-300'
+                  : 'bg-amber-900/20 border-amber-800 text-amber-300'
+            }`}>
+              {datasetCheck.ready ? (
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                  <span className="font-sans text-sm font-medium">Dataset ready</span>
+                </div>
+              ) : !datasetCheck.source_available ? (
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span className="font-sans text-sm font-medium">Source data missing — place images in <code className="bg-gray-700 px-1 rounded">code/data/TrainValid/Images</code></span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  <span className="font-sans text-sm font-medium">Dataset not prepared — click "Prepare Dataset" to generate</span>
+                </div>
+              )}
+              <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-gray-400">
+                {Object.entries(datasetCheck.datasets).map(([name, splits]) => (
+                  <div key={name}>
+                    <span className="text-gray-300">{name}</span>
+                    <div className="ml-2">
+                      {Object.entries(splits).map(([split, count]) => (
+                        <span key={split} className="mr-3">{split}: <span className={count > 0 ? 'text-green-400' : 'text-gray-500'}>{count.toLocaleString()}</span></span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}
