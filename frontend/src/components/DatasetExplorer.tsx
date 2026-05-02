@@ -101,28 +101,28 @@ export default function DatasetExplorer() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedImage, setSelectedImage] = useState<DatasetImage | null>(null);
+  // When ←/→ navigation crosses a page boundary, we change `page` and need
+  // to wait for the new page's data to arrive before picking which image
+  // to focus on the modal. `pendingSelection` carries that intent across
+  // the async fetch: 'first' means "select images[0] when data arrives",
+  // 'last' means "select images[length-1]".
+  const [pendingSelection, setPendingSelection] = useState<'first' | 'last' | null>(null);
 
-  useEffect(() => {
-    if (!selectedImage) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setSelectedImage(null);
-    };
-    window.addEventListener('keydown', onKey);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [selectedImage]);
+  // Page-size options surfaced in the bottom selector. Kept conservative
+  // upper bound — the backend has no hard cap, but 96 is already enough
+  // thumbnails to slow rendering on low-end devices.
+  const PAGE_SIZES = [12, 24, 48, 96] as const;
+  const [limit, setLimit] = useState<number>(PAGE_SIZES[0]);
 
-  const limit = 12;
-
-  const fetchDataset = useCallback(async (currentSplit: string, currentPage: number) => {
+  // `currentLimit` is threaded through as a parameter (rather than read
+  // from the closure) so the useCallback identity stays stable across
+  // page-size changes. Otherwise every `setLimit` would recreate
+  // fetchDataset and re-fire the [split, page, fetchDataset] effect twice.
+  const fetchDataset = useCallback(async (currentSplit: string, currentPage: number, currentLimit: number) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await api.get(`/api/dataset/${currentSplit}?page=${currentPage}&limit=${limit}`);
+      const response = await api.get(`/api/dataset/${currentSplit}?page=${currentPage}&limit=${currentLimit}`);
       setData(response.data);
     } catch (err: any) {
       console.error(err);
@@ -133,8 +133,103 @@ export default function DatasetExplorer() {
   }, []);
 
   useEffect(() => {
-    fetchDataset(split, page);
-  }, [split, page, fetchDataset]);
+    fetchDataset(split, page, limit);
+  }, [split, page, limit, fetchDataset]);
+
+  // Switching page size: keep the user roughly in the same spot rather
+  // than jumping back to page 1. We pin the index of the *first item
+  // currently visible* and recompute which page contains it under the new
+  // page size. The modal is closed because its `selectedImage` belongs to
+  // the soon-to-be-stale `data.images` array — easier to close than to
+  // chase the same image across the new page boundary.
+  const handleLimitChange = (newLimit: number) => {
+    if (newLimit === limit) return;
+    const firstVisibleIndex = (page - 1) * limit; // 0-based
+    const newPage = Math.floor(firstVisibleIndex / newLimit) + 1;
+    setSelectedImage(null);
+    setPendingSelection(null);
+    setLimit(newLimit);
+    setPage(newPage);
+  };
+
+  // Modal navigation across the *whole* dataset (not just the current page).
+  // Returns true if a move was performed (so the caller can update e.g. the
+  // status bar). Wraps are intentionally NOT supported — landing on the very
+  // first image and pressing ← should be a no-op, same for last + →.
+  const goToAdjacent = useCallback(
+    (direction: 'prev' | 'next') => {
+      if (!selectedImage || !data || loading) return false;
+      const idx = data.images.findIndex((img) => img.id === selectedImage.id);
+      if (idx === -1) return false;
+
+      if (direction === 'prev') {
+        if (idx > 0) {
+          setSelectedImage(data.images[idx - 1]);
+          return true;
+        }
+        if (page > 1) {
+          setPendingSelection('last');
+          setPage((p) => p - 1);
+          return true;
+        }
+        return false;
+      }
+
+      if (idx < data.images.length - 1) {
+        setSelectedImage(data.images[idx + 1]);
+        return true;
+      }
+      if (page < (data.total_pages || 1)) {
+        setPendingSelection('first');
+        setPage((p) => p + 1);
+        return true;
+      }
+      return false;
+    },
+    [selectedImage, data, loading, page]
+  );
+
+  // After a cross-page navigation, attach the modal to the right end of the
+  // freshly-loaded page so ←/→ continues to feel uninterrupted.
+  useEffect(() => {
+    if (!data || !pendingSelection) return;
+    const target =
+      pendingSelection === 'first'
+        ? data.images[0]
+        : data.images[data.images.length - 1];
+    if (target) setSelectedImage(target);
+    setPendingSelection(null);
+  }, [data, pendingSelection]);
+
+  // Modal-scoped keyboard handlers: Esc to close, ←/→ to navigate. Mounted
+  // here (not inside the modal) because the modal unmounts/remounts on every
+  // selection change, which would briefly drop the listener at exactly the
+  // moments the user is most likely to spam arrow keys.
+  useEffect(() => {
+    if (!selectedImage) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedImage(null);
+        return;
+      }
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goToAdjacent('prev');
+        return;
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        goToAdjacent('next');
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [selectedImage, goToAdjacent]);
 
   const handleSplitChange = (newSplit: 'train' | 'test') => {
     setSplit(newSplit);
@@ -186,7 +281,7 @@ export default function DatasetExplorer() {
     });
 
     setPage(1);
-    fetchDataset(split, 1);
+    fetchDataset(split, 1, limit);
   }
 
   async function processDroppedItems(items: DataTransferItemList) {
@@ -476,7 +571,7 @@ export default function DatasetExplorer() {
         <div className="bg-red-900/30 border border-red-800 text-red-300 p-6 rounded-xl text-center">
           <p>{error}</p>
           <button 
-            onClick={() => fetchDataset(split, page)}
+            onClick={() => fetchDataset(split, page, limit)}
             className="mt-4 px-4 py-2 bg-red-800 hover:bg-red-700 text-white rounded-lg text-sm transition-colors"
           >
             Try Again
@@ -594,57 +689,105 @@ export default function DatasetExplorer() {
             ))}
           </div>
           
-          {/* Bottom Pagination */}
-          {data && data.total_pages > 1 && (
+          {/* Bottom Pagination + page-size selector. Always rendered when
+              data is loaded so the user can change page size even on a
+              single-page dataset. Page-navigation buttons collapse when
+              there's only one page (no point showing them). */}
+          {data && (
             <div className="flex justify-center mt-8 mb-4">
-              <div className="flex items-center gap-2 bg-gray-800 p-2 rounded-xl border border-gray-700">
-                <button 
-                  disabled={page === 1 || loading}
-                  onClick={() => setPage(1)}
-                  className="px-3 py-1.5 rounded-md text-sm text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  First
-                </button>
-                <button 
-                  disabled={page === 1 || loading}
-                  onClick={() => setPage(p => p - 1)}
-                  className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                
-                <div className="px-4 text-sm font-medium text-gray-300">
-                  Page {page} of {data.total_pages}
+              <div className="flex items-center gap-3 bg-gray-800 p-2 rounded-xl border border-gray-700 flex-wrap justify-center">
+                {/* Per-page segmented selector — mirrors the Train/Test
+                    toggle styling in the header for visual consistency. */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 pl-2 select-none">Per page</span>
+                  <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-700">
+                    {PAGE_SIZES.map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => handleLimitChange(size)}
+                        disabled={loading && size !== limit}
+                        aria-pressed={limit === size}
+                        className={`px-3 py-1 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                          limit === size
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'text-gray-400 hover:text-white hover:bg-gray-800'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                
-                <button 
-                  disabled={page === data.total_pages || loading}
-                  onClick={() => setPage(p => p + 1)}
-                  className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <ChevronRight className="w-5 h-5" />
-                </button>
-                <button 
-                  disabled={page === data.total_pages || loading}
-                  onClick={() => setPage(data.total_pages)}
-                  className="px-3 py-1.5 rounded-md text-sm text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Last
-                </button>
+
+                {data.total_pages > 1 && (
+                  <>
+                    <div className="w-px h-6 bg-gray-700"></div>
+                    <button
+                      disabled={page === 1 || loading}
+                      onClick={() => setPage(1)}
+                      className="px-3 py-1.5 rounded-md text-sm text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      First
+                    </button>
+                    <button
+                      disabled={page === 1 || loading}
+                      onClick={() => setPage((p) => p - 1)}
+                      className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+
+                    <div className="px-4 text-sm font-medium text-gray-300">
+                      Page {page} of {data.total_pages}
+                    </div>
+
+                    <button
+                      disabled={page === data.total_pages || loading}
+                      onClick={() => setPage((p) => p + 1)}
+                      className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                    <button
+                      disabled={page === data.total_pages || loading}
+                      onClick={() => setPage(data.total_pages)}
+                      className="px-3 py-1.5 rounded-md text-sm text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Last
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}
         </div>
       )}
 
-      {selectedImage && (
-        <DatasetImageModal
-          image={selectedImage}
-          showBoxes={showBoxes}
-          split={split}
-          onClose={() => setSelectedImage(null)}
-        />
-      )}
+      {selectedImage && data && (() => {
+        const idxInPage = data.images.findIndex((img) => img.id === selectedImage.id);
+        const globalIndex =
+          idxInPage === -1 ? null : (page - 1) * limit + idxInPage + 1;
+        const canPrev = (idxInPage > 0) || (page > 1);
+        const canNext =
+          (idxInPage !== -1 && idxInPage < data.images.length - 1) ||
+          page < (data.total_pages || 1);
+        return (
+          <DatasetImageModal
+            image={selectedImage}
+            showBoxes={showBoxes}
+            split={split}
+            onClose={() => setSelectedImage(null)}
+            onPrev={() => goToAdjacent('prev')}
+            onNext={() => goToAdjacent('next')}
+            canPrev={canPrev}
+            canNext={canNext}
+            globalIndex={globalIndex}
+            globalTotal={data.total}
+            isLoading={loading}
+          />
+        );
+      })()}
     </div>
   );
 }
@@ -654,9 +797,28 @@ interface DatasetImageModalProps {
   showBoxes: boolean;
   split: 'train' | 'test';
   onClose: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+  canPrev: boolean;
+  canNext: boolean;
+  globalIndex: number | null;
+  globalTotal: number;
+  isLoading: boolean;
 }
 
-function DatasetImageModal({ image, showBoxes, split, onClose }: DatasetImageModalProps) {
+function DatasetImageModal({
+  image,
+  showBoxes,
+  split,
+  onClose,
+  onPrev,
+  onNext,
+  canPrev,
+  canNext,
+  globalIndex,
+  globalTotal,
+  isLoading,
+}: DatasetImageModalProps) {
   const [localShowBoxes, setLocalShowBoxes] = useState(showBoxes);
 
   const aspectRatio = image.original_width / image.original_height;
@@ -709,7 +871,32 @@ function DatasetImageModal({ image, showBoxes, split, onClose }: DatasetImageMod
 
         {/* Body — image left, metadata right (stacked on small screens) */}
         <div className="flex flex-col md:flex-row min-h-0 flex-1 overflow-hidden">
-          <div className="flex-1 bg-black flex items-center justify-center p-4 overflow-auto min-h-[300px]">
+          <div className="relative flex-1 bg-black flex items-center justify-center p-4 overflow-auto min-h-[300px]">
+            {/* Prev / next overlay buttons. Positioned absolutely on the
+                image pane so they don't shift the image as it loads. The
+                arrow-key handlers in DatasetExplorer do the real work; these
+                are the visual affordance + a fallback for touch users. */}
+            <button
+              type="button"
+              onClick={onPrev}
+              disabled={!canPrev || isLoading}
+              aria-label="Previous image (Left arrow)"
+              title="Previous image (←)"
+              className="absolute left-3 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-gray-900/70 hover:bg-gray-900 border border-gray-700 text-gray-200 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-gray-900/70 backdrop-blur-sm"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <button
+              type="button"
+              onClick={onNext}
+              disabled={!canNext || isLoading}
+              aria-label="Next image (Right arrow)"
+              title="Next image (→)"
+              className="absolute right-3 top-1/2 -translate-y-1/2 z-10 p-2 rounded-full bg-gray-900/70 hover:bg-gray-900 border border-gray-700 text-gray-200 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-gray-900/70 backdrop-blur-sm"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+
             <div className="relative inline-block max-w-full">
               <img
                 src={image.image}
@@ -828,9 +1015,21 @@ function DatasetImageModal({ image, showBoxes, split, onClose }: DatasetImageMod
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-2.5 border-t border-gray-700 bg-gray-800/80 text-[11px] text-gray-500 flex items-center justify-between flex-shrink-0">
-          <span>Click outside or press <kbd className="px-1 py-0.5 bg-gray-900 border border-gray-700 rounded font-mono">Esc</kbd> to close</span>
-          <span className="font-mono truncate ml-4">id: {image.id}</span>
+        <div className="px-5 py-2.5 border-t border-gray-700 bg-gray-800/80 text-[11px] text-gray-500 flex items-center justify-between gap-4 flex-shrink-0 flex-wrap">
+          <span className="flex items-center gap-1.5 flex-wrap">
+            <kbd className="px-1 py-0.5 bg-gray-900 border border-gray-700 rounded font-mono">←</kbd>
+            <kbd className="px-1 py-0.5 bg-gray-900 border border-gray-700 rounded font-mono">→</kbd>
+            <span>navigate</span>
+            <span className="text-gray-700">·</span>
+            <kbd className="px-1 py-0.5 bg-gray-900 border border-gray-700 rounded font-mono">Esc</kbd>
+            <span>close</span>
+          </span>
+          {globalIndex !== null && (
+            <span className="font-mono text-gray-400">
+              {globalIndex.toLocaleString()} / {globalTotal.toLocaleString()}
+            </span>
+          )}
+          <span className="font-mono truncate min-w-0">id: {image.id}</span>
         </div>
       </div>
     </div>

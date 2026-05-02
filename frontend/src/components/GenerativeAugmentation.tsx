@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
-import { Play, Square, X, Sparkles, CheckCircle, AlertCircle, RefreshCw, Image as ImageIcon, Wand2 } from 'lucide-react';
+import { Play, Square, X, Sparkles, CheckCircle, AlertCircle, RefreshCw, Image as ImageIcon, Wand2, ArrowRight, FolderTree, Info } from 'lucide-react';
 
 interface GenStatus {
   is_running: boolean;
@@ -335,72 +335,12 @@ export default function GenerativeAugmentation() {
       )}
 
       {!showGallery && !status.is_running && (
-        <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 space-y-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <Wand2 className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <h3 className="text-sm font-medium text-gray-200">Prepare CycleGAN Dataset</h3>
-                <p className="text-xs text-gray-400 mt-1">
-                  Generate binary masks from bounding box annotations and copy images + masks into the CycleGAN folder structure (PolypDataset &amp; PolypDatasetSPADE).
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={handleStartPreparation}
-              disabled={prepStatus.is_running}
-              className="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shadow-lg"
-            >
-              {prepStatus.is_running ? (
-                <><RefreshCw className="w-4 h-4 animate-spin" /> Preparing...</>
-              ) : (
-                <><Wand2 className="w-4 h-4" /> Prepare Dataset</>
-              )}
-            </button>
-            {prepError && (
-              <span className="text-xs text-red-400">{prepError}</span>
-            )}
-          </div>
-
-          {datasetCheck && (
-            <div className={`rounded-lg border px-4 py-3 text-xs font-mono ${
-              datasetCheck.ready
-                ? 'bg-green-900/20 border-green-800 text-green-300'
-                : !datasetCheck.source_available
-                  ? 'bg-red-900/20 border-red-800 text-red-300'
-                  : 'bg-amber-900/20 border-amber-800 text-amber-300'
-            }`}>
-              {datasetCheck.ready ? (
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                  <span className="font-sans text-sm font-medium">Dataset ready</span>
-                </div>
-              ) : !datasetCheck.source_available ? (
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  <span className="font-sans text-sm font-medium">Source data missing — place images in <code className="bg-gray-700 px-1 rounded">code/data/TrainValid/Images</code></span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                  <span className="font-sans text-sm font-medium">Dataset not prepared — click "Prepare Dataset" to generate</span>
-                </div>
-              )}
-              <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-gray-400">
-                {Object.entries(datasetCheck.datasets).map(([name, splits]) => (
-                  <div key={name}>
-                    <span className="text-gray-300">{name}</span>
-                    <div className="ml-2">
-                      {Object.entries(splits).map(([split, count]) => (
-                        <span key={split} className="mr-3">{split}: <span className={count > 0 ? 'text-green-400' : 'text-gray-500'}>{count.toLocaleString()}</span></span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        <PrepareDatasetCard
+          prepStatus={prepStatus}
+          prepError={prepError}
+          datasetCheck={datasetCheck}
+          onStart={handleStartPreparation}
+        />
       )}
 
       {showGallery ? (() => {
@@ -881,6 +821,351 @@ export default function GenerativeAugmentation() {
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+interface PrepareDatasetCardProps {
+  prepStatus: PrepStatus;
+  prepError: string | null;
+  datasetCheck: {
+    datasets: Record<string, Record<string, number>>;
+    source_available: boolean;
+    ready: boolean;
+  } | null;
+  onStart: () => void;
+}
+
+// The "Prepare Dataset" step is the most opaque thing on this page if you
+// haven't read the CycleGAN repo's README — the button just says "Prepare"
+// and the trainA/trainB/testA/testB folder names are pure jargon. This
+// card breaks that down: it explains in plain English that we (1) turn
+// bounding-box .txt files into binary mask PNGs and (2) restage everything
+// into the layout the trainer scripts expect, with a small visual diagram.
+function PrepareDatasetCard({
+  prepStatus,
+  prepError,
+  datasetCheck,
+  onStart,
+}: PrepareDatasetCardProps) {
+  const isRunning = prepStatus.is_running;
+  const isReady = !!datasetCheck?.ready;
+  const sourceMissing = datasetCheck && !datasetCheck.source_available;
+
+  // CycleGAN convention: domain A = "input" (here, masks), domain B =
+  // "target" (here, real polyp images). The `prepare_dataset` step copies
+  // one mask per image, so trainA == trainB and testA == testB whenever
+  // prep finished successfully — collapsing them into "pairs" is more
+  // honest than printing both numbers.
+  const polyp = datasetCheck?.datasets['PolypDataset'] || {};
+  const spade = datasetCheck?.datasets['PolypDatasetSPADE'] || {};
+  const trainPairs = Math.min(polyp.trainA || 0, polyp.trainB || 0);
+  const testPairs = Math.min(polyp.testA || 0, polyp.testB || 0);
+  const polypMismatch =
+    polyp.trainA !== polyp.trainB || polyp.testA !== polyp.testB;
+  const spadeMismatch =
+    spade.trainA !== spade.trainB || spade.testA !== spade.testB;
+
+  const accent = isReady
+    ? 'border-emerald-800/40 from-emerald-900/10'
+    : sourceMissing
+    ? 'border-red-800/40 from-red-900/10'
+    : 'border-amber-800/40 from-amber-900/10';
+
+  const stepBadgeAccent = isReady
+    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+    : sourceMissing
+    ? 'bg-red-500/15 border-red-500/40 text-red-300'
+    : 'bg-amber-500/15 border-amber-500/40 text-amber-300';
+
+  return (
+    <div
+      className={`rounded-xl border bg-gradient-to-br ${accent} to-gray-800 p-6 space-y-5 shadow-lg`}
+    >
+      {/* Header — step number, title, button */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div
+            className={`flex-shrink-0 w-9 h-9 rounded-lg border flex items-center justify-center font-bold text-sm ${stepBadgeAccent}`}
+            aria-label="Step 1"
+          >
+            1
+          </div>
+          <div className="min-w-0">
+            <h3 className="text-base font-semibold text-gray-100 flex items-center gap-2 flex-wrap">
+              <Wand2 className="w-4 h-4 text-amber-400" />
+              Stage your data for the generators
+              {isReady && (
+                <span className="text-[11px] font-normal text-emerald-300 bg-emerald-900/40 border border-emerald-700/60 px-2 py-0.5 rounded-full">
+                  done
+                </span>
+              )}
+            </h3>
+            <p className="text-sm text-gray-400 mt-1.5 leading-relaxed max-w-2xl">
+              CycleGAN and SPADE train on{' '}
+              <strong className="text-gray-200">(mask, image) pairs</strong> in
+              a fixed folder layout, but the raw dataset only ships with
+              bounding-box <code className="text-gray-300 bg-gray-900/60 px-1 rounded">.txt</code>{' '}
+              annotations. This step rasterises the boxes into binary mask PNGs
+              and restages everything into the layout the trainer scripts below
+              expect. Re-running is safe — it just refreshes any new
+              annotations.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={onStart}
+          disabled={isRunning || sourceMissing === true}
+          title={
+            sourceMissing
+              ? 'Upload a TrainValid / Test dataset in the Dataset Explorer tab first'
+              : isReady
+              ? 'Re-run to refresh masks (idempotent)'
+              : 'Generate masks and stage files for training'
+          }
+          className="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:bg-gray-700 disabled:cursor-not-allowed disabled:text-gray-500 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shadow-lg"
+        >
+          {isRunning ? (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" /> Preparing…
+            </>
+          ) : isReady ? (
+            <>
+              <RefreshCw className="w-4 h-4" /> Re-run prep
+            </>
+          ) : (
+            <>
+              <Wand2 className="w-4 h-4" /> Prepare dataset
+            </>
+          )}
+        </button>
+      </div>
+
+      {prepError && (
+        <div className="flex items-start gap-2 text-xs bg-red-900/30 border border-red-800 rounded-lg px-3 py-2 text-red-300">
+          <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <span>{prepError}</span>
+        </div>
+      )}
+
+      {/* Visual transformation diagram — source layout → trainer layout. */}
+      <div className="bg-gray-900/60 border border-gray-700 rounded-lg p-4">
+        <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-gray-500 mb-3">
+          <FolderTree className="w-3 h-3" />
+          What this step transforms
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-center">
+          {/* Input */}
+          <div className="bg-gray-950/60 border border-gray-700 rounded-md p-3">
+            <div className="text-[10px] text-gray-500 mb-1.5">
+              Source · what you uploaded
+            </div>
+            <pre className="text-[11px] font-mono text-gray-300 leading-snug">
+              {`TrainValid/, Test/
+├─ `}
+              <span className="text-blue-300">Images/</span>
+              {`           `}
+              <span className="text-gray-500">.jpg frames</span>
+              {`
+└─ `}
+              <span className="text-blue-300">Annotations/</span>
+              {`      `}
+              <span className="text-gray-500">.txt boxes</span>
+            </pre>
+          </div>
+
+          {/* Arrow + caption */}
+          <div className="flex md:flex-col items-center justify-center gap-1 text-amber-400">
+            <ArrowRight className="w-5 h-5 hidden md:block" />
+            <ArrowRight className="w-5 h-5 md:hidden rotate-90" />
+            <span className="text-[10px] text-gray-500 uppercase tracking-wider">
+              prepare
+            </span>
+          </div>
+
+          {/* Output */}
+          <div className="bg-gray-950/60 border border-gray-700 rounded-md p-3">
+            <div className="text-[10px] text-gray-500 mb-1.5">
+              Trainer-ready · used by Train CycleGAN / Train SPADE below
+            </div>
+            <pre className="text-[11px] font-mono text-gray-300 leading-snug">
+              <span className="text-emerald-300">PolypDataset/</span>
+              {`            `}
+              <span className="text-gray-500">(CycleGAN)</span>
+              {`
+├─ trainA/  `}
+              <span className="text-gray-500">PNG masks</span>
+              {`
+├─ trainB/  `}
+              <span className="text-gray-500">JPG images</span>
+              {`
+└─ testA/, testB/  `}
+              <span className="text-gray-500">(same)</span>
+              {`
+`}
+              <span className="text-emerald-300">PolypDatasetSPADE/</span>
+              {`        `}
+              <span className="text-gray-500">(SPADE)</span>
+              {`
+└─ identical mirror`}
+            </pre>
+          </div>
+        </div>
+        <p className="text-[11px] text-gray-500 mt-3 leading-relaxed flex items-start gap-1.5">
+          <Info className="w-3 h-3 mt-0.5 flex-shrink-0" />
+          <span>
+            <strong className="text-gray-400">trainA / trainB</strong> are
+            CycleGAN's "input domain" and "target domain". Here we put masks on
+            the A side and real images on the B side, so the model learns{' '}
+            <em className="text-gray-300">mask → realistic polyp image</em>.
+            The two output directories are duplicates because CycleGAN and
+            SPADE training scripts each expect their own copy.
+          </span>
+        </p>
+      </div>
+
+      {/* Readiness panel */}
+      {datasetCheck && (
+        <div
+          className={`rounded-lg border px-4 py-3 ${
+            isReady
+              ? 'bg-emerald-900/20 border-emerald-800/60'
+              : sourceMissing
+              ? 'bg-red-900/20 border-red-800/60'
+              : 'bg-amber-900/20 border-amber-800/60'
+          }`}
+        >
+          {isReady ? (
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <span className="text-sm font-medium text-emerald-200">
+                Ready for training — {trainPairs.toLocaleString()} train pairs
+                · {testPairs.toLocaleString()} test pairs
+              </span>
+            </div>
+          ) : sourceMissing ? (
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+              <span className="text-sm font-medium text-red-200">
+                Source dataset missing — upload a{' '}
+                <code className="bg-gray-900/70 text-red-200 px-1 rounded">
+                  TrainValid/
+                </code>{' '}
+                folder in the{' '}
+                <strong className="text-red-100">Dataset Explorer</strong> tab
+                first.
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              <span className="text-sm font-medium text-amber-200">
+                Source data found, but not yet staged. Click{' '}
+                <strong>Prepare dataset</strong> to enable the training tasks
+                below.
+              </span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+            <DatasetReadinessBlock
+              name="PolypDataset"
+              subtitle="CycleGAN"
+              splits={polyp}
+              mismatch={polypMismatch}
+            />
+            <DatasetReadinessBlock
+              name="PolypDatasetSPADE"
+              subtitle="SPADE"
+              splits={spade}
+              mismatch={spadeMismatch}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DatasetReadinessBlock({
+  name,
+  subtitle,
+  splits,
+  mismatch,
+}: {
+  name: string;
+  subtitle: string;
+  splits: Record<string, number>;
+  mismatch: boolean;
+}) {
+  const trainA = splits.trainA || 0;
+  const trainB = splits.trainB || 0;
+  const testA = splits.testA || 0;
+  const testB = splits.testB || 0;
+  const trainPairs = Math.min(trainA, trainB);
+  const testPairs = Math.min(testA, testB);
+
+  return (
+    <div className="bg-gray-900/40 border border-gray-700 rounded-md p-3 text-xs">
+      <div className="flex items-center justify-between mb-2">
+        <span className="font-mono text-gray-200 font-medium">{name}</span>
+        <span className="text-[10px] uppercase tracking-wider text-gray-500">
+          {subtitle}
+        </span>
+      </div>
+      <div className="space-y-1 text-gray-400">
+        <ReadinessRow
+          label="Train"
+          pairs={trainPairs}
+          a={trainA}
+          b={trainB}
+          mismatch={trainA !== trainB}
+        />
+        <ReadinessRow
+          label="Test"
+          pairs={testPairs}
+          a={testA}
+          b={testB}
+          mismatch={testA !== testB}
+        />
+      </div>
+      {mismatch && (
+        <p className="text-[10px] text-amber-400 mt-2">
+          ⚠ Mask / image counts don't match — re-run prep to resync.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function ReadinessRow({
+  label,
+  pairs,
+  a,
+  b,
+  mismatch,
+}: {
+  label: string;
+  pairs: number;
+  a: number;
+  b: number;
+  mismatch: boolean;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-2">
+      <span className="text-gray-500">{label}</span>
+      {mismatch ? (
+        <span className="font-mono text-amber-300">
+          {a.toLocaleString()} masks · {b.toLocaleString()} images
+        </span>
+      ) : (
+        <span className="font-mono">
+          <span className={pairs > 0 ? 'text-emerald-300' : 'text-gray-600'}>
+            {pairs.toLocaleString()}
+          </span>
+          <span className="text-gray-500 ml-1">pairs</span>
+        </span>
       )}
     </div>
   );
