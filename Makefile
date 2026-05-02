@@ -3,8 +3,17 @@
 # ── MLOps overlay (MLflow + Evidently) ─────────────────────────────────
 # Auto-source the .env.mlops file when present so the host ports /
 # image pins / credentials defined there flow into docker-compose.
+#
+# IMPORTANT: the overlay runs under its OWN Compose project (`tfg-mlops`)
+# rather than sharing the default `tfg` project with docker-compose.yml.
+# Reason: PersonalPortfolio's dev-all-demos.sh calls
+#   docker compose -f docker-compose.yml down --remove-orphans
+# on TFG before bringing the app up. If MLOps containers shared the `tfg`
+# project, that one-liner would treat them as orphans and tear them down
+# right after `make all` brought them up. Keeping the MLOps stack in a
+# separate project name makes the two compose lifecycles fully independent.
 MLOPS_ENV_FILE := observability/.env.mlops
-MLOPS_COMPOSE := -f docker-compose.yml -f docker-compose.mlops.yml
+MLOPS_COMPOSE := -p tfg-mlops -f docker-compose.mlops.yml
 ifneq ($(wildcard $(MLOPS_ENV_FILE)),)
   MLOPS_COMPOSE_ENV := --env-file $(MLOPS_ENV_FILE)
 else

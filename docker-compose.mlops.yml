@@ -167,7 +167,16 @@ services:
       EVIDENTLY_SCAN_INTERVAL_SECONDS: ${EVIDENTLY_SCAN_INTERVAL_SECONDS:-60}
 
 volumes:
+  # Volume names are pinned (instead of derived from the Compose project
+  # name) so the underlying data survives even if the project moves — e.g.
+  # the 2026-05 migration from project `tfg` to `tfg-mlops` (see Makefile
+  # comment on MLOPS_COMPOSE for the rationale). The `tfg_*` prefix matches
+  # the volumes Docker Compose previously auto-named under project `tfg`.
   mlflow-postgres-data:
+    name: tfg_mlflow-postgres-data
   mlflow-minio-data:
+    name: tfg_mlflow-minio-data
   prediction-log-data:
+    name: tfg_prediction-log-data
   evidently-workspace:
+    name: tfg_evidently-workspace
