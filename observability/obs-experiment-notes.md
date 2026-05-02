@@ -58,11 +58,22 @@ out, what was confusing, what was surprisingly fast or slow._
      [`INTEGRATION-NOTES.md`](INTEGRATION-NOTES.md).
   3. **`code/requirements.txt` is encoded as UTF-16-with-BOM and contains
      literal spaces between every character** (`a i o s i g n a l = =
-     1 . 3 . 1`). Out of scope for this PoC. The MLflow dep was added
-     to `backend/requirements.txt` (which works) and the training
-     scripts run from a manual venv with `mlflow==2.18.0` installed
-     separately. README documents this.
-  4. **MLflow image doesn't ship `psycopg2-binary` or `boto3`.** First
+     1 . 3 . 1`). Out of scope for this PoC.
+  4. **`mlflow` client `pandas<3` pin clashes with TFG's `pandas==3.0.2`.**
+     Initially the client *was* added to `backend/requirements.txt`,
+     but `make build` from PersonalPortfolio failed with
+     `ResolutionImpossible` because every published `mlflow` release as
+     of 2026-05 (incl. 3.11.1) still declares `pandas<3` even though
+     pandas 3.0 shipped in January 2026. Fix: drop the client from the
+     backend container — the FastAPI process never imports `mlflow`
+     anyway; it writes prediction-log rows via plain `psycopg`. The
+     three training scripts in `code/src/*.py` already had
+     `try: import mlflow / except: _MLFLOW_OK = False` guards from
+     Phase 3, so they no-op gracefully when run from a venv that
+     doesn't have it and light up when one does. README's
+     [Things that bit me](README.md#things-that-bit-me-along-the-way)
+     captures the rationale.
+  5. **MLflow image doesn't ship `psycopg2-binary` or `boto3`.** First
      boot does a one-shot `pip install` of both (~30 s) before
      starting the server. Tradeoff: starting from a thicker image
      would save 30 s per first-start but add ~80 MB to the pulled

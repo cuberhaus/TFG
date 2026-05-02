@@ -11,6 +11,14 @@ dominate==2.9.1
 wandb==0.25.1
 opencv-python-headless==4.13.0.92
 sentry-sdk[fastapi]==2.18.0
-# MLOps observability — see observability/README.md
-mlflow==2.18.0
+# MLOps observability — see observability/README.md.
+# `psycopg` is what the FastAPI process uses to write prediction-log
+# rows (backend/_mlops_obs.py). The mlflow client is intentionally
+# NOT installed here: as of 2026-05, every published mlflow release
+# (incl. 3.11.1) still pins `pandas<3`, which conflicts with this
+# repo's `pandas==3.0.2` pin. The training scripts in `code/src/`
+# import mlflow guarded by `try: import mlflow / except: _MLFLOW_OK
+# = False`, and they run from their own venv (because `code/
+# requirements.txt` has a separate UTF-16 BOM issue), so the FastAPI
+# container doesn't need the client at all.
 psycopg[binary]==3.2.4

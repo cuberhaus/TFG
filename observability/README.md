@@ -163,7 +163,16 @@ MLflow into your training venv manually:
 pip install mlflow==2.18.0
 ```
 
-The backend side adds `mlflow` to `backend/requirements.txt` cleanly.
+The MLflow client is **deliberately not added to `backend/requirements.txt`**.
+The FastAPI process in the backend container only writes
+prediction-log rows via plain `psycopg` SQL — it never imports `mlflow`.
+And as of 2026-05, every published MLflow release (incl. 3.11.1) still
+pins `pandas<3`, which conflicts with this repo's `pandas==3.0.2` pin.
+Adding the client to the backend image would make the whole TFG
+container fail to build (`pip` resolution impossible). The training
+scripts in `code/src/*.py` do import `mlflow`, but they're guarded by
+`try: import mlflow / except: _MLFLOW_OK = False` and run from their
+own training venv anyway — see *Things that bit me* below.
 
 ## Things that bit me along the way
 
@@ -197,6 +206,23 @@ The backend side adds `mlflow` to `backend/requirements.txt` cleanly.
   server command does a one-shot `pip install` of `psycopg2-binary` and
   `boto3` before starting. First boot is ~30 s slower; subsequent boots
   cache and start fast.
+- **`mlflow` client pins `pandas<3`, but TFG pins `pandas==3.0.2`.** As
+  of 2026-05, every published MLflow release (latest is 3.11.1) still
+  declares `pandas<3` in its requirements; the upstream pandas 3.0
+  release in January 2026 hasn't been picked up yet. Adding `mlflow` to
+  `backend/requirements.txt` makes `pip install -r requirements.txt`
+  impossible to resolve — `make build` from PersonalPortfolio fails
+  with `ResolutionImpossible`. Fix: keep the MLflow client out of the
+  backend container entirely. The FastAPI process never imports
+  `mlflow` (it writes prediction-log rows via plain `psycopg` SQL); the
+  three training scripts in `code/src/*.py` use `try: import mlflow /
+  except: _MLFLOW_OK = False` and run from their own training venv, so
+  they pick up `pip install mlflow==2.18.0` independently. Symmetric
+  ergonomics would say "have the dep declared everywhere it's used,"
+  but the upstream pandas-3-pin clash makes that impossible until
+  MLflow loosens its requirement. Watch
+  [mlflow/mlflow#13912](https://github.com/mlflow/mlflow/issues/13912)
+  (or whichever issue eventually tracks it).
 - **Prediction logger inside the FastAPI Docker container.** When the
   app runs via `make docker-up` (TFG-side or PersonalPortfolio-orchestrated),
   it can't reach `localhost:15432` — the host port lives on the host.

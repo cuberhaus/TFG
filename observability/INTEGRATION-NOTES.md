@@ -57,9 +57,22 @@ is therefore three near-identical 2-line patches, one per file.
 `code/requirements.txt` is encoded as **UTF-16-with-BOM** and contains
 literal spaces between every character (`a i o s i g n a l = = 1 . 3 .
 1`). It can't be `pip install`-ed in its current state. Out of scope for
-this PoC. The training scripts run from a manual venv anyway; we'll add
-the MLflow dep to `backend/requirements.txt` (which works) and document
-the manual install in the README.
+this PoC. The training scripts run from a manual venv anyway, with
+`pip install mlflow==2.18.0` added by hand.
+
+The MLflow client is **deliberately not declared in
+`backend/requirements.txt`** either. Every published MLflow release as
+of 2026-05 (latest is 3.11.1) still pins `pandas<3` in its
+`requires_dist`, but this repo pins `pandas==3.2.0` directly — adding
+the MLflow client makes `pip install -r backend/requirements.txt`
+unsolvable and the TFG image fails to build. The FastAPI process
+never imports `mlflow` anyway (it only writes prediction-log rows via
+plain `psycopg` SQL), so dropping the client from the backend
+container has zero functional impact. The training scripts use
+`try: import mlflow / except: _MLFLOW_OK = False` guards so they
+no-op gracefully when run from a venv without MLflow. README's
+*Things that bit me* captures the rationale and links the upstream
+issue to track.
 
 ## 5. Existing Sentry session-id machinery (reuse target)
 
