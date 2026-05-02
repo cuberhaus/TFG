@@ -17,6 +17,7 @@ try:
         breadcrumb as _crumb,
         span as _span,
         tag as _tag,
+        SessionIdMiddleware as _SessionIdMiddleware,
     )
 
     init_observability(service="tfg-polyps")
@@ -32,6 +33,13 @@ except ImportError:
     @contextmanager
     def _span(*_a, **_kw):
         yield None
+
+    class _SessionIdMiddleware:  # type: ignore[no-redef]
+        def __init__(self, app):
+            self.app = app
+
+        async def __call__(self, scope, receive, send):
+            await self.app(scope, receive, send)
 
 import collections
 import io
@@ -157,6 +165,7 @@ from PIL import Image
 
 app = FastAPI(title="TFG Polyp Detection API")
 
+app.add_middleware(_SessionIdMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
