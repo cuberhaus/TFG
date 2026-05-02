@@ -72,7 +72,7 @@ export default function ModelEvaluation() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col gap-6 pt-2">
+    <div className="max-w-6xl mx-auto flex flex-col gap-6 pt-2">
       <div>
         <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
           <Terminal className="w-6 h-6 text-blue-400" />

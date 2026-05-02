@@ -433,7 +433,7 @@ export default function DatasetExplorer() {
 
   return (
     <div
-      className="max-w-6xl mx-auto flex flex-col gap-6 pt-2 relative"
+      className="max-w-7xl mx-auto flex flex-col gap-6 pt-2 relative"
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -622,7 +622,7 @@ export default function DatasetExplorer() {
             </div>
           </div>
 
-          <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 transition-opacity duration-300 ${loading ? 'opacity-50' : 'opacity-100'}`}>
+          <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6 transition-opacity duration-300 ${loading ? 'opacity-50' : 'opacity-100'}`}>
             {data?.images.map((item) => (
               <button
                 key={item.id}

@@ -121,7 +121,7 @@ export default function TrainingLossViewer() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-6 pt-2">
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 pt-2">
       <div>
         <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
           <TrendingUp className="w-6 h-6 text-emerald-400" />

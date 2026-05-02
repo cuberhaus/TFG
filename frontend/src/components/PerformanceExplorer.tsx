@@ -58,7 +58,7 @@ export default function PerformanceExplorer() {
   const bestModel = [...data].sort((a, b) => (b.F1 || 0) - (a.F1 || 0))[0];
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-8 pt-2">
+    <div className="max-w-7xl mx-auto flex flex-col gap-8 pt-2">
       <div className="flex justify-between items-start">
         <div>
           <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">

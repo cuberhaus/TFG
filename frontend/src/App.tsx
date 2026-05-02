@@ -1,14 +1,22 @@
 import { useState } from 'react';
-import { BarChart, Search, Activity, Play, TrendingUp, ClipboardList, Sparkles, Sliders, FolderSearch, Menu } from 'lucide-react';
+import { BarChart, Search, Activity, Play, TrendingUp, ClipboardList, Sparkles, Sliders, FolderSearch, Menu, Images, Layers } from 'lucide-react';
 import PerformanceExplorer from './components/PerformanceExplorer';
 import InferenceUI from './components/InferenceUI';
 import ModelTraining from './components/ModelTraining';
 import TrainingLossViewer from './components/TrainingLossViewer';
 import ModelEvaluation from './components/ModelEvaluation';
-import GenerativeAugmentation from './components/GenerativeAugmentation';
+import GenerativeAugmentation, { GenerativeView } from './components/GenerativeAugmentation';
 import HyperparameterTuning from './components/HyperparameterTuning';
 import DatasetExplorer from './components/DatasetExplorer';
 import MlopsStatusCard from './components/MlopsStatusCard';
+
+// Sidebar tab IDs that all render <GenerativeAugmentation> with a different
+// `view` prop. Kept as a Set so the conditional in the JSX stays readable.
+const GENERATIVE_TABS: Record<string, GenerativeView> = {
+  generative: 'tasks',
+  'cyclegan-results': 'cyclegan-results',
+  'spade-results': 'spade-results',
+};
 
 function App() {
   const [activeTab, setActiveTab] = useState('dataset');
@@ -20,6 +28,8 @@ function App() {
       items: [
         { id: 'dataset', label: 'Dataset Explorer', icon: FolderSearch, color: 'text-blue-400' },
         { id: 'generative', label: 'Data Augmentation', icon: Sparkles, color: 'text-purple-400' },
+        { id: 'cyclegan-results', label: 'CycleGAN Results', icon: Images, color: 'text-purple-300' },
+        { id: 'spade-results', label: 'SPADE Results', icon: Layers, color: 'text-fuchsia-300' },
       ]
     },
     {
@@ -110,14 +120,32 @@ function App() {
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-900 w-full relative">
-          <div className="max-w-6xl mx-auto w-full">
+          {/* Outer width cap — was `max-w-6xl` (1152px), bumped to
+              `max-w-screen-2xl` (1536px) so the visible card fills more
+              screen on modern 1920+px displays without becoming
+              ridiculously wide on 4K. Components inside still set their
+              own caps appropriate to their content (forms tighter,
+              grids wider). */}
+          <div className="max-w-screen-2xl mx-auto w-full">
             <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-6 min-h-[600px]">
               {activeTab === 'performance' && <PerformanceExplorer />}
               {activeTab === 'inference' && <InferenceUI />}
               {activeTab === 'training' && <ModelTraining />}
               {activeTab === 'losses' && <TrainingLossViewer />}
               {activeTab === 'evaluation' && <ModelEvaluation />}
-              {activeTab === 'generative' && <GenerativeAugmentation />}
+              {/* All three generative-related sidebar tabs render the
+                  same component with a different `view`. Sharing one mount
+                  preserves the dataset-prep status and form state when the
+                  user flips between Tasks / CycleGAN / SPADE galleries. */}
+              {activeTab in GENERATIVE_TABS && (
+                <GenerativeAugmentation
+                  view={GENERATIVE_TABS[activeTab]}
+                  onNavigate={(v) => {
+                    const id = Object.entries(GENERATIVE_TABS).find(([, val]) => val === v)?.[0];
+                    if (id) setActiveTab(id);
+                  }}
+                />
+              )}
               {activeTab === 'hpo' && <HyperparameterTuning />}
               {activeTab === 'dataset' && <DatasetExplorer />}
             </div>

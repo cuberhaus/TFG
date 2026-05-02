@@ -19,7 +19,20 @@ interface GenImage {
   fake: string | null;
 }
 
-export default function GenerativeAugmentation() {
+export type GenerativeView = 'tasks' | 'cyclegan-results' | 'spade-results';
+
+interface GenerativeAugmentationProps {
+  // Which sub-view to render. Driven by the sidebar so users can deep-link
+  // to the gallery without going through the in-page CTA. When omitted,
+  // the component runs in self-managed mode (back-compat / standalone).
+  view?: GenerativeView;
+  onNavigate?: (view: GenerativeView) => void;
+}
+
+export default function GenerativeAugmentation({
+  view: viewProp,
+  onNavigate,
+}: GenerativeAugmentationProps = {}) {
   const [taskType, setTaskType] = useState('train_cyclegan');
   const [experimentName, setExperimentName] = useState('');
   const [availableExperiments, setAvailableExperiments] = useState<Record<string, string[]>>({});
@@ -63,8 +76,20 @@ export default function GenerativeAugmentation() {
     ready: boolean;
   } | null>(null);
   
-  // Gallery state
-  const [showGallery, setShowGallery] = useState(false);
+  // Gallery state. The "current view" (tasks vs. cyclegan-results vs.
+  // spade-results) is normally driven by the sidebar via `viewProp`. When
+  // the component is used standalone (no prop), we fall back to local
+  // state so the in-page transitions still work — useful for tests.
+  const [internalView, setInternalView] = useState<GenerativeView>('tasks');
+  const view: GenerativeView = viewProp ?? internalView;
+  const setView = (v: GenerativeView) => {
+    if (onNavigate) onNavigate(v);
+    else setInternalView(v);
+  };
+  const showGallery = view !== 'tasks';
+  const galleryType: 'cyclegan' | 'spade' =
+    view === 'spade-results' ? 'spade' : 'cyclegan';
+
   const [galleryImages, setGalleryImages] = useState<GenImage[]>([]);
   const [galleryLoading, setGalleryLoading] = useState(false);
   const [galleryExp, setGalleryExp] = useState('');
@@ -156,8 +181,6 @@ export default function GenerativeAugmentation() {
     }
   };
 
-  const [galleryType, setGalleryType] = useState<'cyclegan' | 'spade'>('cyclegan');
-
   const fetchGallery = async (exp: string, ep: string, type: 'cyclegan' | 'spade' = galleryType) => {
     setGalleryLoading(true);
     setError(null);
@@ -167,7 +190,6 @@ export default function GenerativeAugmentation() {
       setGalleryImages(response.data.images);
       setGalleryExp(response.data.experiment || exp);
       setGalleryEpoch(response.data.test_dir || ep);
-      setGalleryType(type);
     } catch (err) {
       console.error("Failed to fetch gallery:", err);
       setError("Failed to load results gallery.");
@@ -202,6 +224,25 @@ export default function GenerativeAugmentation() {
          setSpadeEpoch(availableSpadeExperiments[spadeExperimentName][0]);
      }
   }, [spadeExperimentName, availableSpadeExperiments]);
+
+  // Auto-fetch the gallery when the sidebar deep-links into a results
+  // view, OR when the relevant experiment/epoch becomes available after
+  // the initial fetchExperiments() round-trip. Also refires when the user
+  // changes the dropdowns inside the gallery itself (those handlers just
+  // update the experiment/epoch state — this effect does the actual GET).
+  useEffect(() => {
+    if (view === 'tasks') return;
+    const isCyclegan = view === 'cyclegan-results';
+    const exp = isCyclegan ? experimentName : spadeExperimentName;
+    const ep = isCyclegan ? epoch : spadeEpoch;
+    const type = isCyclegan ? 'cyclegan' : 'spade';
+    if (exp) {
+      fetchGallery(exp, ep, type);
+    }
+    // fetchGallery isn't memoised and its deps would just be the same
+    // state we're already watching here — safe to omit from the array.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, experimentName, epoch, spadeExperimentName, spadeEpoch]);
 
   const handleCancelGeneration = async () => {
     try {
@@ -247,41 +288,24 @@ export default function GenerativeAugmentation() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col gap-6 pt-2">
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-purple-400" />
-            Generative Data Augmentation
-          </h2>
-          <p className="text-gray-400">
-            Create synthetic training data using generative AI models to improve polyp detection performance.
-          </p>
-        </div>
-        {!showGallery && (
-           <div className="flex gap-2">
-             <button 
-               onClick={() => {
-                 setShowGallery(true);
-                 fetchGallery(experimentName, epoch, 'cyclegan');
-               }}
-               className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-600 px-4 py-2 rounded-lg text-sm transition-colors"
-             >
-               <ImageIcon className="w-4 h-4" />
-               CycleGAN Results
-             </button>
-             <button 
-               onClick={() => {
-                 setShowGallery(true);
-                 fetchGallery(spadeExperimentName, spadeEpoch, 'spade');
-               }}
-               className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-600 px-4 py-2 rounded-lg text-sm transition-colors"
-             >
-               <ImageIcon className="w-4 h-4" />
-               SPADE Results
-             </button>
-           </div>
-        )}
+    <div className="max-w-6xl mx-auto flex flex-col gap-6 pt-2">
+      {/* Header — title only. The "View results" entry points used to
+          live here as buttons in the top-right, but that placement
+          confused users (they look like header chrome, not navigation).
+          They're now first-class entries in the sidebar under
+          "Data & Exploration" → CycleGAN Results / SPADE Results. */}
+      <div>
+        <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
+          <Sparkles className="w-6 h-6 text-purple-400" />
+          {showGallery
+            ? `${galleryType === 'spade' ? 'SPADE' : 'CycleGAN'} — Generated results`
+            : 'Generative Data Augmentation'}
+        </h2>
+        <p className="text-gray-400">
+          {showGallery
+            ? `Browse the synthetic images produced by the most recent ${galleryType === 'spade' ? 'SPADE' : 'CycleGAN'} test run.`
+            : 'Create synthetic training data using generative AI models to improve polyp detection performance.'}
+        </p>
       </div>
 
       {lastResult && (
@@ -360,11 +384,15 @@ export default function GenerativeAugmentation() {
                <div className="min-w-0">
                  <label className="text-xs text-gray-400 block uppercase tracking-wider mb-1">Model</label>
                  <div className="flex gap-1">
-                   <button onClick={() => { setGalleryType('cyclegan'); fetchGallery(experimentName, epoch, 'cyclegan'); }}
+                   {/* In-gallery model toggle. Routes through setView so
+                       the sidebar's active highlight stays in sync. The
+                       auto-fetch useEffect above re-fires when the view
+                       changes — no explicit fetchGallery() needed here. */}
+                   <button onClick={() => setView('cyclegan-results')}
                      className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${galleryType === 'cyclegan' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-400 hover:text-white'}`}>
                      CycleGAN
                    </button>
-                   <button onClick={() => { setGalleryType('spade'); fetchGallery(spadeExperimentName, spadeEpoch, 'spade'); }}
+                   <button onClick={() => setView('spade-results')}
                      className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${galleryType === 'spade' ? 'bg-purple-600 text-white' : 'bg-gray-700 text-gray-400 hover:text-white'}`}>
                      SPADE
                    </button>
@@ -381,7 +409,8 @@ export default function GenerativeAugmentation() {
                        const epochs = exps[e.target.value];
                        const ep = epochs?.[0] || 'latest';
                        setCurEpoch(ep);
-                       fetchGallery(e.target.value, ep, galleryType);
+                       // The auto-fetch useEffect picks up the new
+                       // experiment/epoch state and refreshes the gallery.
                      }}
                      className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-purple-300 font-mono font-semibold outline-none focus:border-purple-500"
                    >
@@ -401,7 +430,6 @@ export default function GenerativeAugmentation() {
                      value={epochList.includes(curEpoch) ? curEpoch : epochList[0]}
                      onChange={(e) => {
                        setCurEpoch(e.target.value);
-                       fetchGallery(resolvedExp, e.target.value, galleryType);
                      }}
                      className="w-full bg-gray-900 border border-gray-600 rounded px-3 py-1.5 text-sm text-purple-300 font-mono outline-none focus:border-purple-500"
                    >
@@ -424,7 +452,7 @@ export default function GenerativeAugmentation() {
                  <RefreshCw className={`w-4 h-4 ${galleryLoading ? 'animate-spin' : ''}`} />
                </button>
                <button 
-                 onClick={() => setShowGallery(false)}
+                 onClick={() => setView('tasks')}
                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded font-medium text-sm transition-colors"
                >
                  Back to Tasks
