@@ -13,6 +13,7 @@ import {
   Copy,
   Check,
   Info,
+  X,
 } from 'lucide-react';
 import { api, getOrCreateSessionId } from '../api';
 
@@ -32,21 +33,41 @@ interface MlopsStats {
   error?: string;
 }
 
-const DRIFT_BADGE: Record<DriftStatus, { label: string; bg: string; text: string }> = {
-  ok: { label: 'No drift', bg: 'bg-emerald-500/15 border-emerald-500/40', text: 'text-emerald-300' },
-  warning: { label: 'Minor drift', bg: 'bg-amber-500/15 border-amber-500/40', text: 'text-amber-300' },
-  critical: { label: 'Drift detected', bg: 'bg-rose-500/15 border-rose-500/40', text: 'text-rose-300' },
-  unknown: { label: 'Drift unknown', bg: 'bg-gray-700/40 border-gray-600/50', text: 'text-gray-300' },
+const DRIFT_BADGE: Record<DriftStatus, { label: string; bg: string; text: string; dot: string }> = {
+  ok:       { label: 'No drift',        bg: 'bg-emerald-500/15 border-emerald-500/40', text: 'text-emerald-300', dot: 'bg-emerald-400' },
+  warning:  { label: 'Minor drift',     bg: 'bg-amber-500/15 border-amber-500/40',     text: 'text-amber-300',   dot: 'bg-amber-400'   },
+  critical: { label: 'Drift detected',  bg: 'bg-rose-500/15 border-rose-500/40',       text: 'text-rose-300',    dot: 'bg-rose-400'    },
+  unknown:  { label: 'Drift unknown',   bg: 'bg-gray-700/40 border-gray-600/50',       text: 'text-gray-300',    dot: 'bg-gray-500'    },
 };
 
 const POLL_INTERVAL_MS = 30_000;
+// We persist "user dismissed the pill" in sessionStorage (not localStorage)
+// so it comes back on the next browser session — the pill's purpose is
+// to surface drift, and silencing it forever risks burying a real signal.
+const DISMISS_KEY = 'mlops-status-dismissed';
 
 export default function MlopsStatusCard() {
   const [stats, setStats] = useState<MlopsStats | null>(null);
-  const [collapsed, setCollapsed] = useState(false);
+  // Default to collapsed: the header alone (drift badge + dot) is enough
+  // to monitor at a glance, and the full card was overlapping content
+  // (especially in the Dataset Explorer's bottom-row thumbnails).
+  const [collapsed, setCollapsed] = useState(true);
   const [showHelp, setShowHelp] = useState(false);
   const [copied, setCopied] = useState(false);
   const [sessionId] = useState(() => getOrCreateSessionId());
+  const [dismissed, setDismissed] = useState(() => {
+    try {
+      return window.sessionStorage.getItem(DISMISS_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleDismiss = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDismissed(true);
+    try { window.sessionStorage.setItem(DISMISS_KEY, '1'); } catch { /* sessionStorage may be blocked */ }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -80,7 +101,7 @@ export default function MlopsStatusCard() {
     }
   };
 
-  if (!stats) {
+  if (!stats || dismissed) {
     return null;
   }
 
@@ -88,9 +109,19 @@ export default function MlopsStatusCard() {
     return (
       <div className="fixed bottom-4 right-4 z-30 max-w-xs">
         <div className="bg-gray-800/95 border border-gray-700 rounded-lg shadow-xl p-3 text-xs">
-          <div className="flex items-center gap-2 text-gray-400">
-            <Activity className="w-4 h-4" />
-            <span className="font-medium">MLOps observability offline</span>
+          <div className="flex items-start justify-between gap-2 text-gray-400">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4" />
+              <span className="font-medium">MLOps observability offline</span>
+            </div>
+            <button
+              onClick={handleDismiss}
+              className="text-gray-500 hover:text-gray-300 transition-colors flex-shrink-0 -mt-0.5 -mr-0.5"
+              title="Hide for this session"
+              aria-label="Dismiss"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
           <div className="text-gray-500 mt-1.5 leading-relaxed">
             Run{' '}
@@ -105,15 +136,42 @@ export default function MlopsStatusCard() {
 
   const drift = DRIFT_BADGE[stats.drift_status ?? 'unknown'];
 
+  // Collapsed view — a small inline pill with just an activity icon and
+  // a coloured drift dot. ~110-130px wide instead of the previous full
+  // 320px card, so it stops overlapping image thumbnails and other
+  // content. Click anywhere on it to expand back to the full card.
+  if (collapsed) {
+    return (
+      <div className="fixed bottom-4 right-4 z-30">
+        <button
+          onClick={() => setCollapsed(false)}
+          title={`MLOps observability · ${drift.label}`}
+          className="group flex items-center gap-2 bg-gray-800/95 backdrop-blur-sm border border-gray-700 hover:border-gray-600 rounded-full pl-2.5 pr-3 py-1.5 shadow-xl transition-colors"
+        >
+          <Activity className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+          <span className="text-[11px] font-medium text-gray-200">MLOps</span>
+          <span
+            className={`w-2 h-2 rounded-full ${drift.dot} flex-shrink-0`}
+            aria-label={drift.label}
+          />
+          <ChevronUp className="w-3 h-3 text-gray-500 group-hover:text-gray-300 transition-colors" />
+        </button>
+      </div>
+    );
+  }
+
+  // Expanded view (full card). Only rendered when the user clicked the
+  // collapsed pill; closing returns to the small pill — the X button
+  // hides the whole component for the rest of the session.
   return (
     <div className="fixed bottom-4 right-4 z-30 w-80 max-w-[calc(100vw-2rem)]">
       <div className="bg-gray-800/95 backdrop-blur-sm border border-gray-700 rounded-lg shadow-2xl overflow-hidden">
-        {/* Header — always visible, click to toggle */}
-        <button
-          onClick={() => setCollapsed((c) => !c)}
-          className="w-full px-3 py-2 flex items-center justify-between bg-gray-800 hover:bg-gray-750 border-b border-gray-700 transition-colors"
-        >
-          <div className="flex items-center gap-2 min-w-0">
+        {/* Header — click anywhere to collapse, dedicated X to hide. */}
+        <div className="w-full px-3 py-2 flex items-center justify-between bg-gray-800 border-b border-gray-700">
+          <button
+            onClick={() => setCollapsed(true)}
+            className="flex items-center gap-2 min-w-0 flex-1 hover:opacity-80 transition-opacity"
+          >
             <Activity className="w-4 h-4 text-blue-400 flex-shrink-0" />
             <span className="text-sm font-semibold text-gray-200">MLOps observability</span>
             <span
@@ -121,19 +179,31 @@ export default function MlopsStatusCard() {
             >
               {drift.label}
             </span>
+          </button>
+          <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+            <button
+              onClick={() => setCollapsed(true)}
+              className="text-gray-500 hover:text-gray-300 transition-colors p-0.5"
+              title="Minimise"
+              aria-label="Minimise"
+            >
+              <ChevronDown className="w-4 h-4" />
+            </button>
+            <button
+              onClick={handleDismiss}
+              className="text-gray-500 hover:text-gray-300 transition-colors p-0.5"
+              title="Hide for this session"
+              aria-label="Dismiss"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
-          {collapsed ? (
-            <ChevronUp className="w-4 h-4 text-gray-500" />
-          ) : (
-            <ChevronDown className="w-4 h-4 text-gray-500" />
-          )}
-        </button>
+        </div>
 
-        {!collapsed && (
-          <div className="p-3 space-y-3 text-xs text-gray-300">
-            {/* What writes the data — answers "how do I make stuff
-                show up here?" without leaving the page. */}
-            <div>
+        <div className="p-3 space-y-3 text-xs text-gray-300">
+          {/* What writes the data — answers "how do I make stuff
+              show up here?" without leaving the page. */}
+          <div>
               <button
                 onClick={() => setShowHelp((s) => !s)}
                 className="w-full flex items-center justify-between text-[10px] uppercase tracking-wider text-gray-500 hover:text-gray-400 transition-colors"
@@ -243,13 +313,12 @@ export default function MlopsStatusCard() {
               <code className="block text-[10px] text-gray-400 font-mono break-all leading-snug">
                 {sessionId}
               </code>
-              <p className="mt-1 text-[10px] text-gray-500 leading-relaxed">
-                Tags every backend call + prediction-log row. Paste into
-                Sentry's search to find this tab's traces.
-              </p>
-            </div>
+            <p className="mt-1 text-[10px] text-gray-500 leading-relaxed">
+              Tags every backend call + prediction-log row. Paste into
+              Sentry's search to find this tab's traces.
+            </p>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
