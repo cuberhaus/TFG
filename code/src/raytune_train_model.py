@@ -1,5 +1,6 @@
 import argparse
 import csv
+import os
 
 import ray
 import torch
@@ -10,8 +11,26 @@ from torch.utils.data import Subset
 
 from clases.model_utils import train_model, prepare_dataset
 
+# MLflow integration: each Ray Tune worker creates its own (un-nested)
+# run because workers run in separate processes. The shared experiment
+# name groups them in the MLflow UI; the trial id is logged as a tag so
+# they can be filtered/sorted alongside Optuna sweeps.
+try:
+    import mlflow
+
+    _MLFLOW_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
+    _MLFLOW_OK = True
+except Exception:
+    _MLFLOW_OK = False
+    _MLFLOW_TRACKING_URI = None
+
 
 def train_model_tune(config, data_dir="./raytune", model_name='FasterRCNN', debug=False):
+    if _MLFLOW_OK:
+        if _MLFLOW_TRACKING_URI:
+            mlflow.set_tracking_uri(_MLFLOW_TRACKING_URI)
+        mlflow.set_experiment("polyp-detection-raytune-sweep")
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if device.type == 'cuda':
         print("Waiting for memory")
@@ -21,16 +40,35 @@ def train_model_tune(config, data_dir="./raytune", model_name='FasterRCNN', debu
         subset_indices = torch.randperm(len(train_dataset))[:20]
         train_dataset = Subset(train_dataset, subset_indices)
 
-    trained_model, _, _, _, _, metric_value = train_model(train_dataset, config, config["NUM_EPOCHS"], device,
-                                                          model_name, debug=debug,
-                                                          metric_choice=config["metric_choice"])
+    run_cm = mlflow.start_run() if _MLFLOW_OK else _NoopCM()
+    with run_cm:
+        if _MLFLOW_OK:
+            trial_id = ray_train.get_context().get_trial_id() if hasattr(ray_train, "get_context") else None
+            mlflow.set_tag("ray_trial_id", str(trial_id))
+            mlflow.log_params({k: v for k, v in config.items() if not callable(v)})
+            mlflow.log_params({"model_name": model_name, "debug": debug, "device": device.type})
 
-    # Free up memory
-    if device.type == 'cuda':
-        print("Freeing up memory")
-        torch.cuda.empty_cache()
+        trained_model, _, _, _, _, metric_value = train_model(
+            train_dataset, config, config["NUM_EPOCHS"], device,
+            model_name, debug=debug, metric_choice=config["metric_choice"],
+        )
 
-    ray_train.report({'metric_value': metric_value})
+        if _MLFLOW_OK:
+            mlflow.log_metric("metric_value", float(metric_value))
+
+        if device.type == 'cuda':
+            print("Freeing up memory")
+            torch.cuda.empty_cache()
+
+        ray_train.report({'metric_value': metric_value})
+
+
+class _NoopCM:
+    def __enter__(self):
+        return None
+
+    def __exit__(self, *exc):
+        return False
 
 
 def tune_model(model_name, num_samples=10, max_num_epochs=10, gpus_per_trial=1, debug=False, data_dir="./raytune"):

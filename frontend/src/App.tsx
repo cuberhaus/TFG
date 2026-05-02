@@ -8,6 +8,7 @@ import ModelEvaluation from './components/ModelEvaluation';
 import GenerativeAugmentation from './components/GenerativeAugmentation';
 import HyperparameterTuning from './components/HyperparameterTuning';
 import DatasetExplorer from './components/DatasetExplorer';
+import MlopsStatusCard from './components/MlopsStatusCard';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dataset');
@@ -131,6 +132,11 @@ function App() {
           />
         )}
       </div>
+
+      {/* MLOps observability status — visible on every tab. Auto-renders
+          a graceful "stack offline" pill when MLOPS_PREDICTION_LOG_DSN
+          isn't set on the backend. */}
+      <MlopsStatusCard />
     </div>
   );
 }

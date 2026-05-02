@@ -10,6 +10,17 @@ sys.path.append(SCRIPT_DIR)
 import torch
 from clases.model_utils import prepare_dataset, train_model
 
+try:
+    import mlflow
+
+    if os.environ.get("MLFLOW_TRACKING_URI"):
+        mlflow.set_tracking_uri(os.environ["MLFLOW_TRACKING_URI"])
+    mlflow.set_experiment("polyp-detection-baseline")
+    mlflow.pytorch.autolog(log_models=False, silent=True)
+    _MLFLOW_OK = True
+except Exception:
+    _MLFLOW_OK = False
+
 
 def train_and_save_model():
     if len(sys.argv) < 3:
@@ -45,11 +56,31 @@ def train_and_save_model():
 
     num_epochs = params['NUM_EPOCHS']
 
-    trained_model, epoch_losses, batch_losses, epoch, model_path, metric_value = train_model(train_dataset, params,
-                                                                                             num_epochs,
-                                                                                             device,
-                                                                                             model_s=model_name,
-                                                                                             debug=debug)
+    run_cm = mlflow.start_run(run_name=f"baseline-{model_name}") if _MLFLOW_OK else _NoopCM()
+    with run_cm:
+        if _MLFLOW_OK:
+            mlflow.log_params(params)
+            mlflow.log_params({"model_name": model_name, "debug": debug, "device": device.type})
+            if args.max_samples:
+                mlflow.log_param("max_samples", args.max_samples)
+
+        trained_model, epoch_losses, batch_losses, epoch, model_path, metric_value = train_model(
+            train_dataset, params, num_epochs, device, model_s=model_name, debug=debug
+        )
+
+        if _MLFLOW_OK:
+            mlflow.log_metric("metric_value", float(metric_value))
+            mlflow.log_metric("epochs_completed", int(epoch))
+            if model_path and os.path.exists(model_path):
+                mlflow.log_artifact(model_path, artifact_path="model")
+
+
+class _NoopCM:
+    def __enter__(self):
+        return None
+
+    def __exit__(self, *exc):
+        return False
 
 
 if __name__ == "__main__":

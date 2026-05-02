@@ -167,12 +167,25 @@ The backend side adds `mlflow` to `backend/requirements.txt` cleanly.
 
 ## Things that bit me along the way
 
-- **Evidently 0.5 → 0.7 API split.** 0.7 introduced an `evidently.future`
-  package alongside the legacy `evidently.report.Report`. The scheduler
-  imports both with a fallback so version bumps don't break it
-  silently. If a future Evidently release drops the legacy classes
-  outright, the scheduler will surface the import error immediately on
-  startup rather than silently skip drift scans.
+- **Evidently 0.7's `LocalStorageComponent` autorefresh hits an
+  inotify-instance ceiling.** The default config wires a watchdog
+  observer onto the workspace directory, which consumes one of the
+  host's `fs.inotify.max_user_instances` (default 128 on Linux). If
+  Coroot, LGTM, Sentry-self-hosted, and Langfuse are also running, that
+  ceiling is already exhausted and Evidently's UI 500s on every
+  `/api/projects` call. Fix: `EVIDENTLY_STORAGE__TYPE=local` +
+  `EVIDENTLY_STORAGE__AUTOREFRESH=false` (already in the Compose file).
+  Symptom without the fix is a bare `500 Internal Server Error` because
+  the watchdog crash happens before request handling. The
+  `EVIDENTLY_DEBUG=1` env var makes the trace visible in the container
+  logs. The scheduler pushes via `RemoteWorkspace` over HTTP, so
+  watching the workspace dir for changes adds zero value here anyway.
+- **Evidently 0.7 split the legacy and modern APIs.** Reports now live
+  at `evidently.Report` (root namespace), presets at `evidently.presets`,
+  and the workspace at `evidently.ui.workspace.RemoteWorkspace`. The
+  legacy `evidently.report.Report` + `evidently.metric_preset` paths
+  exist only under `evidently.legacy.*` and write a v1 metadata format
+  the new UI can't parse. The scheduler uses the modern API throughout.
 - **MinIO host port clash.** Sentry self-hosted publishes 9000 on the
   host; Langfuse-MinIO and the LGTM PoC's MinIO both want it too. We
   keep MLflow's MinIO entirely internal — MLflow-server reaches it via

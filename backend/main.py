@@ -41,6 +41,23 @@ except ImportError:
         async def __call__(self, scope, receive, send):
             await self.app(scope, receive, send)
 
+
+# ── MLOps observability bootstrap ─────────────────────────────────────────
+# Companion to _sentry_obs above. Same defensive-import pattern: missing
+# psycopg or unset MLOPS_PREDICTION_LOG_DSN → no-op. See
+# observability/README.md and backend/_mlops_obs.py for the contract.
+try:
+    from _mlops_obs import (  # type: ignore[import-not-found]
+        log_prediction as _mlops_log_prediction,
+        get_stats as _mlops_get_stats,
+    )
+except ImportError:
+    def _mlops_log_prediction(*_a, **_kw):
+        return None
+
+    def _mlops_get_stats():
+        return {"enabled": False}
+
 import collections
 import io
 import base64
@@ -1177,6 +1194,39 @@ def get_performance():
 
 _model_cache = {}
 
+
+def _extract_image_features(img: "Image.Image") -> dict:
+    """Scalar image features for MLOps drift detection.
+
+    Returns a small dict that goes into the prediction-log row. Kept
+    intentionally cheap (single PIL pass, no extra torch ops) so the
+    overhead per request is sub-millisecond. See
+    observability/INTEGRATION-NOTES.md §8 for the full feature contract.
+    """
+    width, height = img.size
+    # Sample at a small fixed size to keep the channel-mean cost flat
+    # regardless of input resolution.
+    small = img.resize((64, 64))
+    pixels = list(small.getdata())  # list of (R, G, B) tuples
+    n = len(pixels) or 1
+    sum_r = sum(p[0] for p in pixels)
+    sum_g = sum(p[1] for p in pixels)
+    sum_b = sum(p[2] for p in pixels)
+    mean_r = sum_r / n
+    mean_g = sum_g / n
+    mean_b = sum_b / n
+    return {
+        "image_width": int(width),
+        "image_height": int(height),
+        "image_aspect_ratio": float(width) / float(height) if height else 0.0,
+        "mean_r": mean_r,
+        "mean_g": mean_g,
+        "mean_b": mean_b,
+        # Standard luminance approximation (ITU-R BT.601).
+        "mean_brightness": 0.299 * mean_r + 0.587 * mean_g + 0.114 * mean_b,
+    }
+
+
 def _get_cached_model(model_arch: str, model_file: str):
     """Load model once and cache it on GPU for fast repeated inference."""
     resolved = os.path.realpath(os.path.join(SAVED_MODELS_DIR, model_file))
@@ -1207,13 +1257,29 @@ _inference_transform = transforms.Compose([
     transforms.ToTensor()
 ])
 
+@app.get("/api/mlops/stats")
+def mlops_stats():
+    """Lightweight read-only stats for the in-app MlopsStatusCard.
+
+    Returns ``{enabled: false}`` when MLOPS_PREDICTION_LOG_DSN is unset
+    so the React UI can render a graceful "stack offline" hint without
+    having to know the env-var name. The full payload shape is
+    documented in observability/INTEGRATION-NOTES.md §9.
+    """
+    return _mlops_get_stats()
+
+
 @app.post("/api/predict", response_model=PredictionResponse)
 def predict(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     model_arch: str = Form("FasterRCNN"),
     model_file: str = Form(...),
     confidence: float = Form(0.5)
 ):
+    import time
+    _t_start = time.perf_counter()
+
     _tag("model", model_arch)
     _tag("dataset", "user-upload")
     _tag("experiment", "predict")
@@ -1265,14 +1331,35 @@ def predict(
         result_img.save(buffered, format="JPEG")
         img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
+    _mlops_log_prediction(
+        background_tasks,
+        endpoint="/api/predict",
+        features={
+            **_extract_image_features(img),
+            "model_arch": model_arch,
+            "model_file": model_file,
+            "confidence_threshold": float(confidence),
+        },
+        predictions={
+            "box_count": int(len(boxes)),
+            "mean_confidence": float(scores.mean().item()) if len(scores) > 0 else None,
+            "max_confidence": float(scores.max().item()) if len(scores) > 0 else None,
+            "inference_latency_ms": int((time.perf_counter() - _t_start) * 1000),
+        },
+    )
+
     return PredictionResponse(boxes=result_boxes, image_base64=img_str)
 
 @app.post("/api/predict/batch")
 def predict_batch(
+    background_tasks: BackgroundTasks,
     model_arch: str = Form("FasterRCNN"),
     model_file: str = Form(...),
     confidence: float = Form(0.5)
 ):
+    import time
+    _t_start = time.perf_counter()
+
     test_img_dir = os.path.join(SRC_DIR, "../data/Test/Images")
     if not os.path.exists(test_img_dir):
         raise HTTPException(status_code=400, detail="Test dataset not found.")
@@ -1344,6 +1431,26 @@ def predict_batch(
             "boxes": result_boxes,
             "image_base64": img_str
         })
+
+        # Log one prediction-log row per image in the batch — gives Evidently
+        # a richer per-image distribution to detect drift on, instead of one
+        # aggregate row per /api/predict/batch call.
+        _mlops_log_prediction(
+            background_tasks,
+            endpoint="/api/predict/batch",
+            features={
+                **_extract_image_features(img),
+                "model_arch": model_arch,
+                "model_file": model_file,
+                "confidence_threshold": float(confidence),
+            },
+            predictions={
+                "box_count": int(len(boxes)),
+                "mean_confidence": float(scores.mean().item()) if len(scores) > 0 else None,
+                "max_confidence": float(scores.max().item()) if len(scores) > 0 else None,
+                "inference_latency_ms": int((time.perf_counter() - _t_start) * 1000),
+            },
+        )
 
     return {"results": results}
 

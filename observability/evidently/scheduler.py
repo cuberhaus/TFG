@@ -3,13 +3,17 @@
 Runs inside the `evidently-scheduler` Compose service. Polls
 `prediction-log-postgres` on a configurable interval, splits rows into a
 reference window (older) and a current window (recent), builds an
-Evidently `Report` with the data-drift preset, and writes the resulting
-snapshot into the same workspace volume the `evidently-ui` service
-serves over port 15001.
+Evidently `Report` with the data-drift preset, and adds the resulting
+run to the same workspace volume the `evidently-ui` service serves over
+port 15001.
 
 When there isn't enough data on either side of the split, the loop just
 sleeps and tries again on the next tick — so the first runs after a
 fresh `make mlops-up` are quietly idempotent until traffic builds up.
+
+Uses the **non-legacy** Evidently 0.7 API throughout (the new UI service
+can't parse legacy v1 workspace metadata; trying that path lights up
+500s in the UI's `/api/projects` endpoint).
 """
 
 from __future__ import annotations
@@ -26,14 +30,18 @@ from typing import Any
 import pandas as pd
 import psycopg
 
+from evidently import Dataset, Report
+from evidently.presets import DataDriftPreset
+from evidently.ui.workspace import RemoteWorkspace
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
 log = logging.getLogger("evidently-scheduler")
 
-# Numeric feature columns Evidently will check for drift. Must match
-# observability/sql/prediction-log-schema.sql.
+# Numeric feature columns Evidently checks for drift. Must match the
+# schema in observability/sql/prediction-log-schema.sql.
 NUMERIC_FEATURES = [
     "image_width",
     "image_height",
@@ -48,31 +56,12 @@ NUMERIC_FEATURES = [
 ]
 
 DSN = os.environ["PREDICTION_LOG_DSN"]
-WORKSPACE_PATH = os.environ.get("EVIDENTLY_WORKSPACE", "/app/workspace")
+EVIDENTLY_REMOTE_URL = os.environ.get("EVIDENTLY_REMOTE_URL", "http://evidently-ui:8000")
 PROJECT_NAME = os.environ.get("EVIDENTLY_PROJECT_NAME", "tfg-polyp-detection")
 REF_WINDOW_HOURS = int(os.environ.get("EVIDENTLY_REFERENCE_WINDOW_HOURS", "72"))
 CUR_WINDOW_HOURS = int(os.environ.get("EVIDENTLY_CURRENT_WINDOW_HOURS", "1"))
 SCAN_INTERVAL = int(os.environ.get("EVIDENTLY_SCAN_INTERVAL_SECONDS", "60"))
 MIN_ROWS = int(os.environ.get("EVIDENTLY_MIN_ROWS_PER_WINDOW", "5"))
-
-
-def _load_evidently() -> tuple[Any, Any, Any]:
-    """Locate the Report / DataDriftPreset / Workspace classes across
-    Evidently versions. 0.7.x ships both legacy and future APIs;
-    we prefer legacy because it has the broadest stability guarantees."""
-    try:
-        # Evidently 0.4+, 0.5+, 0.7+ legacy API
-        from evidently.report import Report  # type: ignore
-        from evidently.metric_preset import DataDriftPreset  # type: ignore
-        from evidently.ui.workspace import Workspace  # type: ignore
-        return Report, DataDriftPreset, Workspace
-    except ImportError as exc:
-        log.error("Could not import Evidently legacy API: %s", exc)
-        log.error("Falling back to evidently.legacy.* shim (0.7+)")
-    from evidently.legacy.report import Report  # type: ignore
-    from evidently.legacy.metric_preset import DataDriftPreset  # type: ignore
-    from evidently.legacy.ui.workspace import Workspace  # type: ignore
-    return Report, DataDriftPreset, Workspace
 
 
 def _fetch_window(
@@ -95,20 +84,18 @@ def _fetch_window(
     return pd.DataFrame(rows, columns=columns)
 
 
-def _get_or_create_project(workspace: Any) -> Any:
+def _get_or_create_project(workspace: RemoteWorkspace) -> Any:
     for project in workspace.list_projects():
         if project.name == PROJECT_NAME:
             return project
-    log.info("Creating Evidently project %r in workspace %s", PROJECT_NAME, WORKSPACE_PATH)
+    log.info("Creating Evidently project %r on %s", PROJECT_NAME, EVIDENTLY_REMOTE_URL)
     return workspace.create_project(PROJECT_NAME)
 
 
 def _run_once(
     conn: psycopg.Connection[Any],
-    workspace: Any,
+    workspace: RemoteWorkspace,
     project: Any,
-    Report: Any,
-    DataDriftPreset: Any,
 ) -> None:
     now = datetime.now(timezone.utc)
     cur_start = now - timedelta(hours=CUR_WINDOW_HOURS)
@@ -134,22 +121,33 @@ def _run_once(
         CUR_WINDOW_HOURS,
     )
 
-    report = Report(metrics=[DataDriftPreset()])
-    report.run(
-        reference_data=ref_df[NUMERIC_FEATURES],
-        current_data=cur_df[NUMERIC_FEATURES],
-    )
+    ref_ds = Dataset.from_pandas(ref_df[NUMERIC_FEATURES])
+    cur_ds = Dataset.from_pandas(cur_df[NUMERIC_FEATURES])
 
-    workspace.add_report(project.id, report)
-    log.info("Drift report committed to workspace project %r", PROJECT_NAME)
+    report = Report([DataDriftPreset()])
+    snapshot = report.run(reference_data=ref_ds, current_data=cur_ds)
+
+    run_name = now.strftime("drift-%Y%m%d-%H%M%S")
+    workspace.add_run(project.id, snapshot, name=run_name)
+    log.info("Drift report %r committed to workspace project %r", run_name, PROJECT_NAME)
+
+
+def _wait_for_ui(workspace: RemoteWorkspace, attempts: int = 30) -> None:
+    """Block until the Evidently UI service responds to list_projects."""
+    for attempt in range(attempts):
+        try:
+            workspace.list_projects()
+            return
+        except Exception:
+            log.info("Waiting for Evidently UI at %s (attempt %d/%d)", EVIDENTLY_REMOTE_URL, attempt + 1, attempts)
+            time.sleep(2)
+    raise RuntimeError(f"Evidently UI at {EVIDENTLY_REMOTE_URL} not reachable after {attempts} attempts")
 
 
 def main() -> int:
-    Report, DataDriftPreset, WorkspaceCls = _load_evidently()
-
-    log.info("Opening workspace at %s", WORKSPACE_PATH)
-    os.makedirs(WORKSPACE_PATH, exist_ok=True)
-    workspace = WorkspaceCls.create(WORKSPACE_PATH)
+    log.info("Connecting to Evidently UI at %s", EVIDENTLY_REMOTE_URL)
+    workspace = RemoteWorkspace(EVIDENTLY_REMOTE_URL)
+    _wait_for_ui(workspace)
     project = _get_or_create_project(workspace)
 
     log.info(
@@ -173,7 +171,7 @@ def main() -> int:
     while not stop:
         try:
             with psycopg.connect(DSN, connect_timeout=5) as conn:
-                _run_once(conn, workspace, project, Report, DataDriftPreset)
+                _run_once(conn, workspace, project)
         except Exception:
             log.exception("Drift scan iteration failed; will retry next interval")
 

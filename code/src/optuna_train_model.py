@@ -18,6 +18,29 @@ def fix_path():
 fix_path()
 from clases.model_utils import train_model, prepare_dataset
 
+try:
+    import mlflow
+
+    if os.environ.get("MLFLOW_TRACKING_URI"):
+        mlflow.set_tracking_uri(os.environ["MLFLOW_TRACKING_URI"])
+    mlflow.set_experiment("polyp-detection-optuna-sweep")
+    mlflow.pytorch.autolog(log_models=False, silent=True)
+    _MLFLOW_OK = True
+except Exception:
+    _MLFLOW_OK = False
+
+
+class _NoopCM:
+    def __enter__(self):
+        return None
+
+    def __exit__(self, *exc):
+        return False
+
+
+def _start_run(run_name: str, nested: bool = False):
+    return mlflow.start_run(run_name=run_name, nested=nested) if _MLFLOW_OK else _NoopCM()
+
 
 def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN',
               debug=False, max_epochs=5, max_samples=None):
@@ -45,12 +68,29 @@ def objective(trial, metric_to_optimize='f1', model_name='FasterRCNN',
     }
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    trained_model, _, _, _, _, metric_value = train_model(train_dataset, params, num_epochs, device, model_name,
-                                                          debug=debug, metric_choice=metric_to_optimize)
-    if device.type == 'cuda':
-        torch.cuda.empty_cache()
 
-    return metric_value
+    with _start_run(run_name=f"trial-{trial.number}", nested=True):
+        if _MLFLOW_OK:
+            mlflow.log_params(params)
+            mlflow.log_params({
+                "trial_number": trial.number,
+                "model_name": model_name,
+                "metric_to_optimize": metric_to_optimize,
+                "debug": debug,
+                "device": device.type,
+            })
+
+        trained_model, _, _, _, _, metric_value = train_model(
+            train_dataset, params, num_epochs, device, model_name,
+            debug=debug, metric_choice=metric_to_optimize,
+        )
+        if device.type == 'cuda':
+            torch.cuda.empty_cache()
+
+        if _MLFLOW_OK:
+            mlflow.log_metric("metric_value", float(metric_value))
+
+        return metric_value
 
 
 def main():
@@ -65,15 +105,34 @@ def main():
 
     args = parser.parse_args()
 
-    study = optuna.create_study(direction='maximize')
-    study.optimize(
-        lambda trial: objective(trial, metric_to_optimize=args.metric, model_name=args.model_name,
-                                debug=args.debug, max_epochs=args.max_epochs, max_samples=args.max_samples),
-        n_trials=args.n_trials)
+    parent_run = _start_run(
+        run_name=f"optuna-sweep-{args.model_name}-n{args.n_trials}",
+        nested=False,
+    )
+    with parent_run:
+        if _MLFLOW_OK:
+            mlflow.log_params({
+                "n_trials": args.n_trials,
+                "max_epochs": args.max_epochs,
+                "max_samples": args.max_samples,
+                "metric_to_optimize": args.metric,
+                "model_name": args.model_name,
+            })
 
-    best_params = study.best_params
-    print("Best hyperparameters: ", best_params)
-    print(f"Best value (F1): {study.best_value}")
+        study = optuna.create_study(direction='maximize')
+        study.optimize(
+            lambda trial: objective(trial, metric_to_optimize=args.metric, model_name=args.model_name,
+                                    debug=args.debug, max_epochs=args.max_epochs, max_samples=args.max_samples),
+            n_trials=args.n_trials)
+
+        best_params = study.best_params
+        print("Best hyperparameters: ", best_params)
+        print(f"Best value (F1): {study.best_value}")
+
+        if _MLFLOW_OK:
+            mlflow.log_metric("best_value", float(study.best_value))
+            for key, value in best_params.items():
+                mlflow.log_param(f"best_{key}", value)
 
     results_dir = os.path.join(os.path.dirname(__file__), '..', 'out')
     os.makedirs(results_dir, exist_ok=True)
