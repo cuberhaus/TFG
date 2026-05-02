@@ -1456,13 +1456,63 @@ def predict_batch(
 
 
 # --- Static file serving (production / Docker) ---
+#
+# Cache strategy for a Vite-built SPA:
+#
+#   - `index.html`      -> no-cache, must-revalidate
+#   - `/assets/*`       -> immutable, 1y    (hashed filenames already encode
+#                                            the version, so safe to pin)
+#   - everything else   -> default (browsers will heuristic-cache)
+#
+# Why this matters: when this app is loaded inside the PersonalPortfolio
+# iframe at http://localhost:8082, browsers happily serve a stale
+# `index.html` from disk cache without revalidating. The cached HTML
+# points at an OLD hashed bundle that's *also* in the disk cache, so the
+# iframe shows yesterday's UI even though `make build` rebuilt the image
+# and `docker compose up -d` recreated the container. Forcing
+# index.html to revalidate breaks that loop — the bundle reference
+# inside is always current, and the immutable-bundle policy means the
+# overall byte cost on revalidation is just one short HTML round-trip.
 FRONTEND_DIST = os.path.join(PROJ_DIR, "frontend", "dist")
 if os.path.isdir(FRONTEND_DIST):
     from fastapi.responses import FileResponse
     from fastapi.staticfiles import StaticFiles
+    from starlette.types import Scope
+
+    _INDEX_HEADERS = {
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
+    }
+    _ASSET_HEADERS = {
+        "Cache-Control": "public, max-age=31536000, immutable",
+    }
 
     @app.get("/")
     async def _serve_index():
-        return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
+        return FileResponse(
+            os.path.join(FRONTEND_DIST, "index.html"),
+            headers=_INDEX_HEADERS,
+        )
 
-    app.mount("/", StaticFiles(directory=FRONTEND_DIST), name="frontend")
+    class _SpaStaticFiles(StaticFiles):
+        """StaticFiles subclass that:
+
+        - serves Vite's `/assets/*` bundles with an `immutable` policy
+          (their filenames are content-hashed, so they're safe to pin),
+        - forces `index.html` to revalidate on every request — covers
+          the case where the SPA root is reached via the catch-all rather
+          than the explicit `/` route above.
+        """
+
+        async def get_response(self, path: str, scope: Scope):
+            response = await super().get_response(path, scope)
+            if path == "index.html" or path == "":
+                for key, value in _INDEX_HEADERS.items():
+                    response.headers[key] = value
+            elif path.startswith("assets/"):
+                for key, value in _ASSET_HEADERS.items():
+                    response.headers[key] = value
+            return response
+
+    app.mount("/", _SpaStaticFiles(directory=FRONTEND_DIST), name="frontend")
