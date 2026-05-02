@@ -12,6 +12,11 @@ services:
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-local-dev}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-1.0}
       SENTRY_RELEASE: ${SENTRY_RELEASE:-local-dev}
+      # MLOps observability (additive — see observability/README.md).
+      # When unset, the FastAPI prediction-log hook no-ops. When set,
+      # it points at prediction-log-postgres started by `make mlops-up`.
+      MLOPS_PREDICTION_LOG_DSN: ${MLOPS_PREDICTION_LOG_DSN:-}
+      MLFLOW_TRACKING_URI: ${MLFLOW_TRACKING_URI:-}
       PYTHONUNBUFFERED: "1"
     extra_hosts:
       # Lets the Sentry SDK inside the container reach Spotlight on the host

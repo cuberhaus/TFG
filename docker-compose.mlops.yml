@@ -1,0 +1,158 @@
+# MLOps observability overlay — adds MLflow + Evidently AI alongside the
+# existing FastAPI app. Opt-in via `make mlops-up`. Coexists with Sentry
+# (which the `app` service already wires through `.env.shared`).
+#
+# Services:
+#   - mlflow-postgres       (internal)  metadata store for MLflow experiments
+#   - mlflow-minio          (internal)  S3-compatible artifact store
+#   - mlflow-server         (host)      MLflow tracking UI
+#   - prediction-log-postgres (host)    inference log Evidently scans
+#   - evidently-ui          (host)      Evidently AI report dashboard
+#   - evidently-scheduler   (internal)  periodically scans prediction-log
+#                                       and writes Evidently snapshots
+#
+# Host ports (chosen to stay clear of LGTM 13000, Langfuse 13100, Coroot 18080,
+# Sentry self-hosted 9000):
+#   MLflow UI   → 15000
+#   Evidently   → 15001
+#   prediction-log Postgres → 15432
+
+services:
+  mlflow-postgres:
+    image: postgres:${MLFLOW_POSTGRES_VERSION:-16-alpine}
+    restart: unless-stopped
+    mem_limit: ${MLFLOW_POSTGRES_MEMORY_LIMIT:-256m}
+    environment:
+      POSTGRES_USER: ${MLFLOW_POSTGRES_USER:-mlflow}
+      POSTGRES_PASSWORD: ${MLFLOW_POSTGRES_PASSWORD:-mlflow}
+      POSTGRES_DB: ${MLFLOW_POSTGRES_DB:-mlflow}
+    volumes:
+      - mlflow-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  mlflow-minio:
+    image: minio/minio:${MLFLOW_MINIO_VERSION:-RELEASE.2025-04-08T15-41-24Z}
+    restart: unless-stopped
+    mem_limit: ${MLFLOW_MINIO_MEMORY_LIMIT:-512m}
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MLFLOW_MINIO_USER:-mlflow}
+      MINIO_ROOT_PASSWORD: ${MLFLOW_MINIO_PASSWORD:-mlflow-secret-pass}
+    volumes:
+      - mlflow-minio-data:/data
+    # No host ports — keeps off 9000 (Sentry self-hosted clash) and off
+    # 9001 (Langfuse-MinIO clash). MLflow server reaches it via the
+    # internal compose network.
+
+  mlflow-minio-init:
+    image: minio/mc:${MLFLOW_MC_VERSION:-RELEASE.2025-04-03T17-07-56Z}
+    depends_on:
+      mlflow-minio:
+        condition: service_started
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        until mc alias set local http://mlflow-minio:9000 \
+          "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" >/dev/null 2>&1; do
+          echo "waiting for mlflow-minio…"; sleep 1;
+        done
+        mc mb -p local/mlflow-artifacts || true
+        echo "mlflow-artifacts bucket ready"
+    environment:
+      MINIO_ROOT_USER: ${MLFLOW_MINIO_USER:-mlflow}
+      MINIO_ROOT_PASSWORD: ${MLFLOW_MINIO_PASSWORD:-mlflow-secret-pass}
+    restart: "no"
+
+  mlflow-server:
+    image: ghcr.io/mlflow/mlflow:${MLFLOW_VERSION:-v2.18.0}
+    restart: unless-stopped
+    mem_limit: ${MLFLOW_SERVER_MEMORY_LIMIT:-512m}
+    depends_on:
+      mlflow-postgres:
+        condition: service_healthy
+      mlflow-minio-init:
+        condition: service_completed_successfully
+    ports:
+      - "${MLFLOW_HOST_PORT:-15000}:5000"
+    environment:
+      MLFLOW_S3_ENDPOINT_URL: http://mlflow-minio:9000
+      AWS_ACCESS_KEY_ID: ${MLFLOW_MINIO_USER:-mlflow}
+      AWS_SECRET_ACCESS_KEY: ${MLFLOW_MINIO_PASSWORD:-mlflow-secret-pass}
+    command:
+      - sh
+      - -c
+      - |
+        pip install --no-cache-dir psycopg2-binary boto3 >/dev/null && \
+        mlflow server \
+          --host 0.0.0.0 \
+          --port 5000 \
+          --backend-store-uri postgresql://${MLFLOW_POSTGRES_USER:-mlflow}:${MLFLOW_POSTGRES_PASSWORD:-mlflow}@mlflow-postgres:5432/${MLFLOW_POSTGRES_DB:-mlflow} \
+          --default-artifact-root s3://mlflow-artifacts \
+          --serve-artifacts
+
+  prediction-log-postgres:
+    image: postgres:${PREDICTION_LOG_POSTGRES_VERSION:-16-alpine}
+    restart: unless-stopped
+    mem_limit: ${PREDICTION_LOG_POSTGRES_MEMORY_LIMIT:-256m}
+    environment:
+      POSTGRES_USER: ${PREDICTION_LOG_USER:-mlops}
+      POSTGRES_PASSWORD: ${PREDICTION_LOG_PASSWORD:-mlops}
+      POSTGRES_DB: ${PREDICTION_LOG_DB:-prediction_log}
+    volumes:
+      - prediction-log-data:/var/lib/postgresql/data
+      - ./observability/sql/prediction-log-schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    ports:
+      # Published so a host-running FastAPI app can hit it directly. The
+      # FastAPI container can also reach it via host.docker.internal as
+      # long as the user adds it to extra_hosts in docker-compose.yml.
+      - "${PREDICTION_LOG_HOST_PORT:-15432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  evidently-ui:
+    image: evidently/evidently-service:${EVIDENTLY_VERSION:-0.7.21}
+    restart: unless-stopped
+    mem_limit: ${EVIDENTLY_UI_MEMORY_LIMIT:-768m}
+    ports:
+      - "${EVIDENTLY_HOST_PORT:-15001}:8000"
+    volumes:
+      - evidently-workspace:/app/workspace
+    environment:
+      # Workspace path (Evidently OSS UI loads projects from this dir)
+      EVIDENTLY_WORKSPACE: /app/workspace
+
+  evidently-scheduler:
+    build:
+      context: ./observability/evidently
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    mem_limit: ${EVIDENTLY_SCHEDULER_MEMORY_LIMIT:-512m}
+    depends_on:
+      prediction-log-postgres:
+        condition: service_healthy
+      evidently-ui:
+        condition: service_started
+    volumes:
+      - evidently-workspace:/app/workspace
+    environment:
+      EVIDENTLY_WORKSPACE: /app/workspace
+      EVIDENTLY_PROJECT_NAME: ${EVIDENTLY_PROJECT_NAME:-tfg-polyp-detection}
+      PREDICTION_LOG_DSN: postgresql://${PREDICTION_LOG_USER:-mlops}:${PREDICTION_LOG_PASSWORD:-mlops}@prediction-log-postgres:5432/${PREDICTION_LOG_DB:-prediction_log}
+      EVIDENTLY_REFERENCE_WINDOW_HOURS: ${EVIDENTLY_REFERENCE_WINDOW_HOURS:-72}
+      EVIDENTLY_CURRENT_WINDOW_HOURS: ${EVIDENTLY_CURRENT_WINDOW_HOURS:-1}
+      EVIDENTLY_SCAN_INTERVAL_SECONDS: ${EVIDENTLY_SCAN_INTERVAL_SECONDS:-60}
+
+volumes:
+  mlflow-postgres-data:
+  mlflow-minio-data:
+  prediction-log-data:
+  evidently-workspace:

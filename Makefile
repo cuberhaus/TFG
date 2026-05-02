@@ -1,4 +1,16 @@
-.PHONY: all run backend frontend install clean help
+.PHONY: all run backend frontend install clean help mlops-up mlops-down mlops-logs
+
+# ── MLOps overlay (MLflow + Evidently) ─────────────────────────────────
+# Auto-source the .env.mlops file when present so the host ports /
+# image pins / credentials defined there flow into docker-compose.
+MLOPS_ENV_FILE := observability/.env.mlops
+MLOPS_COMPOSE := -f docker-compose.yml -f docker-compose.mlops.yml
+ifneq ($(wildcard $(MLOPS_ENV_FILE)),)
+  MLOPS_COMPOSE_ENV := --env-file $(MLOPS_ENV_FILE)
+else
+  MLOPS_COMPOSE_ENV :=
+endif
+
 
 # Default target
 all: run
@@ -53,6 +65,28 @@ clean:
 	-fuser -k 5173/tcp
 	@echo "Cleaned up."
 
+mlops-up:
+	docker compose $(MLOPS_COMPOSE_ENV) $(MLOPS_COMPOSE) up -d \
+		mlflow-postgres mlflow-minio mlflow-minio-init mlflow-server \
+		prediction-log-postgres evidently-ui evidently-scheduler
+	@echo ""
+	@echo "  MLOps observability stack is running:"
+	@echo "    MLflow tracking UI  →  http://localhost:15000"
+	@echo "    Evidently dashboard →  http://localhost:15001"
+	@echo "    prediction-log DB   →  postgresql://mlops:mlops@localhost:15432/prediction_log"
+	@echo ""
+	@echo "  Enable prediction logging on the host-running FastAPI app:"
+	@echo "    export MLOPS_PREDICTION_LOG_DSN=postgresql://mlops:mlops@localhost:15432/prediction_log"
+	@echo "  Or for a Docker app, use host.docker.internal:15432 instead of localhost."
+	@echo ""
+
+mlops-down:
+	docker compose $(MLOPS_COMPOSE_ENV) $(MLOPS_COMPOSE) down
+
+mlops-logs:
+	docker compose $(MLOPS_COMPOSE_ENV) $(MLOPS_COMPOSE) logs -f \
+		mlflow-server evidently-ui evidently-scheduler
+
 help:
 	@echo "Usage:"
 	@echo "  make run            Start backend (:8082) and frontend (:5173) concurrently"
@@ -64,3 +98,8 @@ help:
 	@echo "  make docker-down    Stop Docker container"
 	@echo "  make docker-logs    Tail Docker container logs"
 	@echo "  make clean          Stop running dev processes"
+	@echo ""
+	@echo "  MLOps observability (additive, opt-in):"
+	@echo "  make mlops-up       Start MLflow + Evidently (:15000, :15001, :15432)"
+	@echo "  make mlops-down     Stop MLOps stack (preserves volumes)"
+	@echo "  make mlops-logs     Tail MLflow + Evidently logs"

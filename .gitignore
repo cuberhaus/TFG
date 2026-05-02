@@ -28,6 +28,11 @@ runs/
 .DS_Store
 Pipfile.lock
 
+# MLflow local fallback (when MLFLOW_TRACKING_URI is unset)
+mlruns/
+code/mlruns/
+
+
 # Ignore temporary lock files
 *~lock*
 
