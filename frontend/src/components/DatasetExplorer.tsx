@@ -1,6 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { api } from '../api';
-import { ChevronLeft, ChevronRight, RefreshCw, FolderSearch, Upload, CheckCircle, XCircle } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  FolderSearch,
+  Upload,
+  CheckCircle,
+  XCircle,
+  X,
+  Image as ImageIcon,
+  Maximize2,
+  Ruler,
+  Layers,
+} from 'lucide-react';
 
 interface DatasetImage {
   id: string;
@@ -86,6 +99,22 @@ export default function DatasetExplorer() {
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
   const dragCounter = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [selectedImage, setSelectedImage] = useState<DatasetImage | null>(null);
+
+  useEffect(() => {
+    if (!selectedImage) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedImage(null);
+    };
+    window.addEventListener('keydown', onKey);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [selectedImage]);
 
   const limit = 12;
 
@@ -500,19 +529,25 @@ export default function DatasetExplorer() {
 
           <div className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 transition-opacity duration-300 ${loading ? 'opacity-50' : 'opacity-100'}`}>
             {data?.images.map((item) => (
-              <div key={item.id} className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden shadow-lg group flex flex-col">
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setSelectedImage(item)}
+                className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden shadow-lg group flex flex-col text-left hover:border-blue-600 hover:shadow-blue-900/30 hover:shadow-xl transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                title="Click to view larger image and details"
+              >
                 <div className="relative bg-gray-900 flex-1 flex items-center justify-center p-2 min-h-[200px]">
                   <div className="relative inline-block max-w-full">
-                    <img 
-                      src={item.image} 
-                      alt={item.filename} 
+                    <img
+                      src={item.image}
+                      alt={item.filename}
                       className="max-w-full max-h-[250px] object-contain rounded"
                     />
-                    
+
                     {showBoxes && item.boxes.map((box, idx) => {
                       const [xmin, ymin, xmax, ymax] = box;
                       return (
-                        <div 
+                        <div
                           key={idx}
                           className="absolute border-2 border-green-500 bg-green-500/20"
                           style={{
@@ -529,8 +564,13 @@ export default function DatasetExplorer() {
                       );
                     })}
                   </div>
+
+                  {/* Hover affordance: small zoom badge in the corner. */}
+                  <div className="absolute top-2 right-2 bg-gray-900/80 backdrop-blur-sm border border-gray-700 rounded-md p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Maximize2 className="w-3.5 h-3.5 text-blue-300" />
+                  </div>
                 </div>
-                
+
                 <div className="p-3 border-t border-gray-700 bg-gray-800">
                   <div className="flex justify-between items-start mb-1">
                     <span className="text-sm font-medium text-gray-200 truncate" title={item.filename}>
@@ -550,7 +590,7 @@ export default function DatasetExplorer() {
                     </span>
                   </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
           
@@ -596,6 +636,254 @@ export default function DatasetExplorer() {
           )}
         </div>
       )}
+
+      {selectedImage && (
+        <DatasetImageModal
+          image={selectedImage}
+          showBoxes={showBoxes}
+          split={split}
+          onClose={() => setSelectedImage(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+interface DatasetImageModalProps {
+  image: DatasetImage;
+  showBoxes: boolean;
+  split: 'train' | 'test';
+  onClose: () => void;
+}
+
+function DatasetImageModal({ image, showBoxes, split, onClose }: DatasetImageModalProps) {
+  const [localShowBoxes, setLocalShowBoxes] = useState(showBoxes);
+
+  const aspectRatio = image.original_width / image.original_height;
+  const totalPixels = image.original_width * image.original_height;
+
+  const polypCount = image.original_boxes.length;
+  const totalBoxArea = image.original_boxes.reduce((sum, [xmin, ymin, xmax, ymax]) => {
+    return sum + (xmax - xmin) * (ymax - ymin);
+  }, 0);
+  const coverage = totalPixels > 0 ? (totalBoxArea / totalPixels) * 100 : 0;
+
+  return (
+    <div
+      className="fixed inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 sm:p-8"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dataset-modal-title"
+    >
+      <div
+        className="bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-6xl max-h-full flex flex-col overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-700 bg-gray-800 flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <ImageIcon className="w-5 h-5 text-blue-400 flex-shrink-0" />
+            <div className="min-w-0">
+              <h2
+                id="dataset-modal-title"
+                className="text-base font-semibold text-gray-100 truncate"
+                title={image.filename}
+              >
+                {image.filename}
+              </h2>
+              <p className="text-xs text-gray-500 truncate" title={image.subdir}>
+                {split === 'train' ? 'Train / Valid' : 'Test'} · {image.subdir}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 transition-colors flex-shrink-0"
+            aria-label="Close (Esc)"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Body — image left, metadata right (stacked on small screens) */}
+        <div className="flex flex-col md:flex-row min-h-0 flex-1 overflow-hidden">
+          <div className="flex-1 bg-black flex items-center justify-center p-4 overflow-auto min-h-[300px]">
+            <div className="relative inline-block max-w-full">
+              <img
+                src={image.image}
+                alt={image.filename}
+                className="max-w-full max-h-[75vh] object-contain rounded"
+              />
+
+              {localShowBoxes && image.boxes.map((box, idx) => {
+                const [xmin, ymin, xmax, ymax] = box;
+                return (
+                  <div
+                    key={idx}
+                    className="absolute border-2 border-green-500 bg-green-500/15 pointer-events-none"
+                    style={{
+                      left: `${(xmin / image.width) * 100}%`,
+                      top: `${(ymin / image.height) * 100}%`,
+                      width: `${((xmax - xmin) / image.width) * 100}%`,
+                      height: `${((ymax - ymin) / image.height) * 100}%`,
+                    }}
+                  >
+                    <span className="absolute -top-5 left-0 bg-green-500 text-black text-[10px] font-bold px-1 rounded-sm whitespace-nowrap">
+                      Polyp #{idx + 1}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Metadata panel */}
+          <div className="md:w-80 md:flex-shrink-0 border-t md:border-t-0 md:border-l border-gray-700 bg-gray-800/60 overflow-y-auto">
+            <div className="p-5 space-y-5">
+              <ModalSection title="Overview" icon={ImageIcon}>
+                <ModalStat label="Polyps" value={String(polypCount)} accent />
+                <ModalStat
+                  label="Coverage"
+                  value={polypCount > 0 ? `${coverage.toFixed(2)}%` : '—'}
+                  hint={polypCount > 0 ? 'Total bbox area / image area' : undefined}
+                />
+                <ModalStat label="Subdir" value={image.subdir} mono />
+                <ModalStat label="Source" value={split === 'train' ? 'Train / Valid' : 'Test'} />
+              </ModalSection>
+
+              <ModalSection title="Dimensions" icon={Ruler}>
+                <ModalStat
+                  label="Original"
+                  value={`${image.original_width} × ${image.original_height}`}
+                  mono
+                />
+                <ModalStat
+                  label="Aspect ratio"
+                  value={aspectRatio.toFixed(3)}
+                  mono
+                  hint={aspectRatio > 1 ? 'Landscape' : aspectRatio < 1 ? 'Portrait' : 'Square'}
+                />
+                <ModalStat
+                  label="Total pixels"
+                  value={totalPixels.toLocaleString()}
+                  mono
+                />
+              </ModalSection>
+
+              <ModalSection title={`Bounding boxes (${polypCount})`} icon={Layers}>
+                {polypCount === 0 ? (
+                  <p className="text-xs text-gray-500 italic">
+                    No polyp annotations on this image.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {image.original_boxes.map((box, idx) => {
+                      const [xmin, ymin, xmax, ymax] = box;
+                      const width = xmax - xmin;
+                      const height = ymax - ymin;
+                      const area = width * height;
+                      const pct = totalPixels > 0 ? (area / totalPixels) * 100 : 0;
+                      return (
+                        <li
+                          key={idx}
+                          className="bg-gray-900/60 border border-gray-700 rounded-lg p-2.5 text-[11px]"
+                        >
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-gray-300 font-medium">
+                              Polyp #{idx + 1}
+                            </span>
+                            <span className="text-green-400 font-mono">
+                              {pct.toFixed(2)}%
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-gray-400 font-mono">
+                            <span>x: {Math.round(xmin)}–{Math.round(xmax)}</span>
+                            <span>y: {Math.round(ymin)}–{Math.round(ymax)}</span>
+                            <span>w: {Math.round(width)}px</span>
+                            <span>h: {Math.round(height)}px</span>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </ModalSection>
+
+              {/* Per-modal toggle so the user can flip boxes off here
+                  without losing their grid-level setting. Initialized
+                  from the parent's setting. */}
+              <label className="flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={localShowBoxes}
+                  onChange={(e) => setLocalShowBoxes(e.target.checked)}
+                  className="rounded border-gray-600 bg-gray-900 text-blue-500 focus:ring-blue-600 focus:ring-offset-gray-800"
+                />
+                Show bounding boxes in this view
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-2.5 border-t border-gray-700 bg-gray-800/80 text-[11px] text-gray-500 flex items-center justify-between flex-shrink-0">
+          <span>Click outside or press <kbd className="px-1 py-0.5 bg-gray-900 border border-gray-700 rounded font-mono">Esc</kbd> to close</span>
+          <span className="font-mono truncate ml-4">id: {image.id}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ModalSection({
+  title,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  icon: typeof ImageIcon;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <h3 className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-gray-500 mb-2">
+        <Icon className="w-3 h-3" />
+        {title}
+      </h3>
+      <div className="space-y-1.5">{children}</div>
+    </div>
+  );
+}
+
+function ModalStat({
+  label,
+  value,
+  hint,
+  mono,
+  accent,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  mono?: boolean;
+  accent?: boolean;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <span className="text-xs text-gray-400 flex-shrink-0">{label}</span>
+      <span className="text-right min-w-0">
+        <span
+          className={`text-sm ${mono ? 'font-mono' : ''} ${
+            accent ? 'text-blue-300 font-semibold' : 'text-gray-100'
+          } truncate block`}
+          title={value}
+        >
+          {value}
+        </span>
+        {hint && <span className="text-[10px] text-gray-500 block">{hint}</span>}
+      </span>
     </div>
   );
 }
