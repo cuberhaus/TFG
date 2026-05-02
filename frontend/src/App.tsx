@@ -5,7 +5,7 @@ import InferenceUI from './components/InferenceUI';
 import ModelTraining from './components/ModelTraining';
 import TrainingLossViewer from './components/TrainingLossViewer';
 import ModelEvaluation from './components/ModelEvaluation';
-import GenerativeAugmentation, { GenerativeView } from './components/GenerativeAugmentation';
+import GenerativeAugmentation, { type GenerativeView } from './components/GenerativeAugmentation';
 import HyperparameterTuning from './components/HyperparameterTuning';
 import DatasetExplorer from './components/DatasetExplorer';
 import MlopsStatusCard from './components/MlopsStatusCard';
