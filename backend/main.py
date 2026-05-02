@@ -5,6 +5,19 @@ import sys
 os.environ["MKL_THREADING_LAYER"] = "GNU"
 os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
 
+# ── Phase 14 (Option A) — observability bootstrap (Sentry + JSON stdout) ──
+# Drops in `_sentry_obs.py` (canonical copy:
+# PersonalPortfolio/scripts/sentry-snippets/_sentry_obs.py). No-op when
+# SENTRY_DSN env var is unset OR when sentry_sdk isn't installed, so this
+# stays safe across local-dev, CI, and prod builds.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    from _sentry_obs import init_observability  # type: ignore[import-not-found]
+
+    init_observability(service="tfg-polyps")
+except ImportError:
+    pass
+
 import collections
 import io
 import base64

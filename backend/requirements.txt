@@ -10,3 +10,4 @@ optuna==4.8.0
 dominate==2.9.1
 wandb==0.25.1
 opencv-python-headless==4.13.0.92
+sentry-sdk[fastapi]==2.18.0
