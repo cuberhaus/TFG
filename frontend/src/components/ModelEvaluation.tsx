@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
-import { Play, AlertTriangle, CheckCircle2, Square, X, Terminal } from 'lucide-react';
+import { Play, AlertTriangle, CheckCircle2, Square, X, Terminal, ClipboardList } from 'lucide-react';
 
 interface EvaluationStatus {
   is_evaluating: boolean;
@@ -72,10 +72,10 @@ export default function ModelEvaluation() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-6 pt-2">
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 pt-2">
       <div>
         <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
-          <Terminal className="w-6 h-6 text-blue-400" />
+          <ClipboardList className="w-6 h-6 text-green-400" />
           Model Evaluation
         </h2>
         <p className="text-gray-400">

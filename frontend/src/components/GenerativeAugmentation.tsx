@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../api';
-import { Play, Square, X, Sparkles, CheckCircle, AlertCircle, RefreshCw, Image as ImageIcon, Wand2, ArrowRight, FolderTree, Info } from 'lucide-react';
+import { Play, Square, X, Sparkles, CheckCircle, AlertCircle, RefreshCw, Image as ImageIcon, Wand2, ArrowRight, FolderTree, Info, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface GenStatus {
   is_running: boolean;
@@ -288,7 +288,7 @@ export default function GenerativeAugmentation({
   };
 
   return (
-    <div className="max-w-6xl mx-auto flex flex-col gap-6 pt-2">
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 pt-2">
       {/* Header — title only. The "View results" entry points used to
           live here as buttons in the top-right, but that placement
           confused users (they look like header chrome, not navigation).
@@ -871,6 +871,17 @@ interface PrepareDatasetCardProps {
 // card breaks that down: it explains in plain English that we (1) turn
 // bounding-box .txt files into binary mask PNGs and (2) restage everything
 // into the layout the trainer scripts expect, with a small visual diagram.
+//
+// Two display modes:
+//
+// - **Not ready / source-missing / running**: full explanatory card. Users
+//   land here once and need the diagram + readiness panel to know what's
+//   about to happen (and why the train buttons below are disabled).
+// - **Ready**: collapses to a one-line status pill. Once data is staged the
+//   step becomes background context — the user wants the screen real
+//   estate for picking experiments and looking at galleries below. The
+//   pill keeps the Re-run button reachable and an expand chevron for
+//   users who want to revisit the diagram (e.g. after a regen failure).
 function PrepareDatasetCard({
   prepStatus,
   prepError,
@@ -894,6 +905,61 @@ function PrepareDatasetCard({
     polyp.trainA !== polyp.trainB || polyp.testA !== polyp.testB;
   const spadeMismatch =
     spade.trainA !== spade.trainB || spade.testA !== spade.testB;
+
+  // Manual "show me the diagram again" toggle. Only meaningful in the
+  // collapsible state (ready + idle). Defaults closed: once a user has
+  // staged data they shouldn't have to keep looking at the explanation
+  // every time they revisit this tab.
+  const [expanded, setExpanded] = useState(false);
+
+  // Collapsible iff the step is genuinely "done" and quiet. While running
+  // we always show the full card so the spinner button + status sit in a
+  // recognisable place. While source is missing or unstaged, the full
+  // card is what helps the user understand what to do next.
+  const collapsible = isReady && !isRunning;
+  const showFull = !collapsible || expanded;
+
+  // ---- Collapsed pill (ready + not expanded) ----------------------------
+  if (!showFull) {
+    return (
+      <div className="rounded-xl border border-emerald-800/50 bg-gradient-to-r from-emerald-900/15 to-gray-800/40 px-4 py-2.5 flex items-center justify-between gap-3 shadow-sm">
+        <button
+          onClick={() => setExpanded(true)}
+          className="flex items-center gap-2.5 min-w-0 flex-1 text-left hover:opacity-80 transition-opacity"
+          title="Show the prep step details and folder layout diagram"
+        >
+          <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+          <span className="text-sm font-medium text-emerald-200 flex-shrink-0">
+            Data staged for the generators
+          </span>
+          <span className="text-xs text-gray-400 truncate">
+            {trainPairs.toLocaleString()} train · {testPairs.toLocaleString()} test pairs
+            {(polypMismatch || spadeMismatch) && (
+              <span className="text-amber-400 ml-2">⚠ mismatch — re-run prep</span>
+            )}
+          </span>
+        </button>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button
+            onClick={onStart}
+            disabled={isRunning}
+            title="Re-run prep to refresh masks (idempotent)"
+            className="flex items-center gap-1.5 text-xs text-gray-300 hover:text-white hover:bg-gray-700/60 px-2.5 py-1 rounded-md transition-colors"
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Re-run prep
+          </button>
+          <button
+            onClick={() => setExpanded(true)}
+            title="Show details"
+            aria-label="Show prep step details"
+            className="p-1 text-gray-500 hover:text-gray-200 transition-colors"
+          >
+            <ChevronDown className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const accent = isReady
     ? 'border-emerald-800/40 from-emerald-900/10'
@@ -942,32 +1008,44 @@ function PrepareDatasetCard({
             </p>
           </div>
         </div>
-        <button
-          onClick={onStart}
-          disabled={isRunning || sourceMissing === true}
-          title={
-            sourceMissing
-              ? 'Upload a TrainValid / Test dataset in the Dataset Explorer tab first'
-              : isReady
-              ? 'Re-run to refresh masks (idempotent)'
-              : 'Generate masks and stage files for training'
-          }
-          className="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:bg-gray-700 disabled:cursor-not-allowed disabled:text-gray-500 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shadow-lg"
-        >
-          {isRunning ? (
-            <>
-              <RefreshCw className="w-4 h-4 animate-spin" /> Preparing…
-            </>
-          ) : isReady ? (
-            <>
-              <RefreshCw className="w-4 h-4" /> Re-run prep
-            </>
-          ) : (
-            <>
-              <Wand2 className="w-4 h-4" /> Prepare dataset
-            </>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={onStart}
+            disabled={isRunning || sourceMissing === true}
+            title={
+              sourceMissing
+                ? 'Upload a TrainValid / Test dataset in the Dataset Explorer tab first'
+                : isReady
+                ? 'Re-run to refresh masks (idempotent)'
+                : 'Generate masks and stage files for training'
+            }
+            className="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:bg-gray-700 disabled:cursor-not-allowed disabled:text-gray-500 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap shadow-lg"
+          >
+            {isRunning ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" /> Preparing…
+              </>
+            ) : isReady ? (
+              <>
+                <RefreshCw className="w-4 h-4" /> Re-run prep
+              </>
+            ) : (
+              <>
+                <Wand2 className="w-4 h-4" /> Prepare dataset
+              </>
+            )}
+          </button>
+          {collapsible && (
+            <button
+              onClick={() => setExpanded(false)}
+              title="Collapse this section"
+              aria-label="Collapse prep step details"
+              className="p-2 text-gray-500 hover:text-gray-200 hover:bg-gray-700/40 rounded-md transition-colors"
+            >
+              <ChevronUp className="w-4 h-4" />
+            </button>
           )}
-        </button>
+        </div>
       </div>
 
       {prepError && (

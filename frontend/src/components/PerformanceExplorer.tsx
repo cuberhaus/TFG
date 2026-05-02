@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { BarChart3 } from 'lucide-react';
+import { BarChart as BarChartIcon } from 'lucide-react';
 
 interface PerformanceRow {
   Model: string;
@@ -58,18 +58,16 @@ export default function PerformanceExplorer() {
   const bestModel = [...data].sort((a, b) => (b.F1 || 0) - (a.F1 || 0))[0];
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col gap-8 pt-2">
-      <div className="flex justify-between items-start">
-        <div>
-          <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
-            <BarChart3 className="w-6 h-6 text-indigo-400" />
-            Performance Explorer
-          </h2>
-          <p className="text-gray-400">
-            Compare COCO detection metrics across all evaluated models.
-            {sourcePath && <span className="ml-2 text-xs text-gray-500">Source: <code className="text-gray-400">{sourcePath}</code></span>}
-          </p>
-        </div>
+    <div className="max-w-7xl mx-auto flex flex-col gap-6 pt-2">
+      <div>
+        <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
+          <BarChartIcon className="w-6 h-6 text-indigo-400" />
+          Performance Explorer
+        </h2>
+        <p className="text-gray-400">
+          Compare COCO detection metrics across all evaluated models.
+          {sourcePath && <span className="ml-2 text-xs text-gray-500">Source: <code className="text-gray-400">{sourcePath}</code></span>}
+        </p>
       </div>
 
       {/* KPI Cards */}
@@ -92,26 +90,36 @@ export default function PerformanceExplorer() {
         </div>
       </div>
 
-      {/* Chart */}
-      <div className="h-96 w-full mt-2 bg-gray-800 p-4 rounded-xl border border-gray-700">
-        <h3 className="text-lg font-medium mb-4 text-center">Detection Metrics by Configuration</h3>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={[...data].sort((a, b) => (b.F1 || 0) - (a.F1 || 0)).slice(0, 10)}
-            margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#4b5563" />
-            <XAxis dataKey="Config" stroke="#9ca3af" tick={{fontSize: 12}} hide />
-            <YAxis stroke="#9ca3af" />
-            <Tooltip contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151' }} />
-            <Legend />
-            <Bar dataKey="F1" fill="#3b82f6" name="F1 Score" />
-            <Bar dataKey="AP_50_all" fill="#10b981" name="AP@50" />
-            <Bar dataKey="AP_75_all" fill="#8b5cf6" name="AP@75" />
-          </BarChart>
-        </ResponsiveContainer>
+      {/* Chart. Flex-column layout so the title and caption claim their
+          natural height while the ResponsiveContainer expands to fill the
+          rest. Previously the container was a plain `h-96` block, which
+          made ResponsiveContainer think it had the full 384px even though
+          the title was eating ~40px above it — pushing the Legend out of
+          the box and forcing the caption to be pulled back in with a
+          `-mt-4` hack that ended up overlapping the legend instead. */}
+      <div className="h-96 w-full mt-2 bg-gray-800 p-4 rounded-xl border border-gray-700 flex flex-col">
+        <h3 className="text-lg font-medium text-center flex-shrink-0">Detection Metrics by Configuration</h3>
+        <div className="flex-1 min-h-0 mt-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={[...data].sort((a, b) => (b.F1 || 0) - (a.F1 || 0)).slice(0, 10)}
+              margin={{ top: 10, right: 30, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#4b5563" />
+              <XAxis dataKey="Config" stroke="#9ca3af" tick={{fontSize: 12}} hide />
+              <YAxis stroke="#9ca3af" />
+              <Tooltip contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151' }} />
+              <Legend wrapperStyle={{ paddingTop: 8 }} />
+              <Bar dataKey="F1" fill="#3b82f6" name="F1 Score" />
+              <Bar dataKey="AP_50_all" fill="#10b981" name="AP@50" />
+              <Bar dataKey="AP_75_all" fill="#8b5cf6" name="AP@75" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <p className="text-xs text-gray-500 text-center pt-2 flex-shrink-0">
+          Hover over bars for details. Showing top models.
+        </p>
       </div>
-      <p className="text-xs text-gray-400 text-center -mt-4">Hover over bars for details. Showing top models.</p>
 
       {/* Table */}
       <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">

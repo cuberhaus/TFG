@@ -191,15 +191,26 @@ export default function DatasetExplorer() {
 
   // After a cross-page navigation, attach the modal to the right end of the
   // freshly-loaded page so ←/→ continues to feel uninterrupted.
+  //
+  // Subtle but important: React batches `setPendingSelection(...)` together
+  // with `setPage(p ± 1)` from goToAdjacent, so this effect re-runs on the
+  // very next render — *before* the new page's fetch resolves and `data`
+  // updates. If we acted on that render we'd read images[0] / images[-1]
+  // from the **old** page, snapping the modal backwards instead of forwards
+  // (this is the bug behind "error when reaching the end with arrows": at
+  // the last image of page 2 you'd jump to image 0097 rather than 0193).
+  // Guard with `data.page === page` so we only attach the modal once the
+  // backend has confirmed the data we hold matches the page we asked for.
   useEffect(() => {
     if (!data || !pendingSelection) return;
+    if (data.page !== page) return;
     const target =
       pendingSelection === 'first'
         ? data.images[0]
         : data.images[data.images.length - 1];
     if (target) setSelectedImage(target);
     setPendingSelection(null);
-  }, [data, pendingSelection]);
+  }, [data, pendingSelection, page]);
 
   // Modal-scoped keyboard handlers: Esc to close, ←/→ to navigate. Mounted
   // here (not inside the modal) because the modal unmounts/remounts on every
@@ -230,6 +241,42 @@ export default function DatasetExplorer() {
       document.body.style.overflow = previousOverflow;
     };
   }, [selectedImage, goToAdjacent]);
+
+  // Grid-scoped keyboard handlers: ←/→ flip pages when the modal is closed.
+  // Skipped while a form input is focused so users can still type into the
+  // showBoxes label, the upload Dismiss button, etc., without the page
+  // shifting underneath them.
+  useEffect(() => {
+    if (selectedImage || !data || (data.total_pages ?? 1) <= 1) return;
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.tagName === 'SELECT' ||
+        target?.isContentEditable
+      ) {
+        return;
+      }
+      if (loading) return;
+
+      if (e.key === 'ArrowLeft' && page > 1) {
+        e.preventDefault();
+        setPage((p) => p - 1);
+      } else if (e.key === 'ArrowRight' && page < (data.total_pages || 1)) {
+        e.preventDefault();
+        setPage((p) => p + 1);
+      } else if (e.key === 'Home' && page !== 1) {
+        e.preventDefault();
+        setPage(1);
+      } else if (e.key === 'End' && page !== (data.total_pages || 1)) {
+        e.preventDefault();
+        setPage(data.total_pages || 1);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedImage, data, page, loading]);
 
   const handleSplitChange = (newSplit: 'train' | 'test') => {
     setSplit(newSplit);
@@ -726,6 +773,7 @@ export default function DatasetExplorer() {
                     <button
                       disabled={page === 1 || loading}
                       onClick={() => setPage(1)}
+                      title="First page (Home)"
                       className="px-3 py-1.5 rounded-md text-sm text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       First
@@ -733,6 +781,7 @@ export default function DatasetExplorer() {
                     <button
                       disabled={page === 1 || loading}
                       onClick={() => setPage((p) => p - 1)}
+                      title="Previous page (←)"
                       className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <ChevronLeft className="w-5 h-5" />
@@ -745,6 +794,7 @@ export default function DatasetExplorer() {
                     <button
                       disabled={page === data.total_pages || loading}
                       onClick={() => setPage((p) => p + 1)}
+                      title="Next page (→)"
                       className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <ChevronRight className="w-5 h-5" />
@@ -752,10 +802,17 @@ export default function DatasetExplorer() {
                     <button
                       disabled={page === data.total_pages || loading}
                       onClick={() => setPage(data.total_pages)}
+                      title="Last page (End)"
                       className="px-3 py-1.5 rounded-md text-sm text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Last
                     </button>
+
+                    <div className="hidden md:flex items-center gap-1.5 pl-3 ml-1 border-l border-gray-700 text-[11px] text-gray-500 select-none">
+                      <kbd className="px-1 py-0.5 bg-gray-900 border border-gray-700 rounded font-mono">←</kbd>
+                      <kbd className="px-1 py-0.5 bg-gray-900 border border-gray-700 rounded font-mono">→</kbd>
+                      <span>navigate</span>
+                    </div>
                   </>
                 )}
               </div>
