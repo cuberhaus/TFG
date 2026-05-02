@@ -12,11 +12,26 @@ os.environ["MKL_SERVICE_FORCE_INTEL"] = "1"
 # stays safe across local-dev, CI, and prod builds.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
-    from _sentry_obs import init_observability  # type: ignore[import-not-found]
+    from _sentry_obs import (  # type: ignore[import-not-found]
+        init_observability,
+        breadcrumb as _crumb,
+        span as _span,
+        tag as _tag,
+    )
 
     init_observability(service="tfg-polyps")
 except ImportError:
-    pass
+    from contextlib import contextmanager
+
+    def _tag(*_a, **_kw):
+        return None
+
+    def _crumb(*_a, **_kw):
+        return None
+
+    @contextmanager
+    def _span(*_a, **_kw):
+        yield None
 
 import collections
 import io
@@ -63,34 +78,55 @@ def _run_subprocess(cmd: list, state: dict, task_label: str,
     try:
         env = os.environ.copy()
         env["PYTHONUNBUFFERED"] = "1"
-        process = subprocess.Popen(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True,
-            start_new_session=True,
-            env=env,
-        )
-        state["pid"] = process.pid
+        # Span wraps the entire subprocess lifetime so each long-running
+        # task (train / evaluate / hpo / generate) shows up as a single
+        # operation in the trace waterfall instead of vanishing inside
+        # the FastAPI BackgroundTasks scheduler.
+        with _span(
+            "subprocess.run",
+            description=task_label,
+            argv=" ".join(cmd[:3]) + (" …" if len(cmd) > 3 else ""),
+            argc=len(cmd),
+        ):
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                start_new_session=True,
+                env=env,
+            )
+            state["pid"] = process.pid
+            _crumb(
+                "subprocess",
+                f"{task_label} pid={process.pid} started",
+                argc=len(cmd),
+            )
 
-        output_lines = collections.deque(maxlen=max_lines)
-        for line in process.stdout:
-            output_lines.append(line.strip())
-            state["message"] = '\n'.join(output_lines)
+            output_lines = collections.deque(maxlen=max_lines)
+            for line in process.stdout:
+                output_lines.append(line.strip())
+                state["message"] = '\n'.join(output_lines)
 
-        process.wait()
+            process.wait()
 
-        last_lines = '\n'.join(output_lines)
-        _error_keywords = ("error", "exception", "traceback", "failed", "assert", "segfault", "fatal")
-        has_error_output = any(kw in last_lines.lower() for kw in _error_keywords)
+            last_lines = '\n'.join(output_lines)
+            _error_keywords = ("error", "exception", "traceback", "failed", "assert", "segfault", "fatal")
+            has_error_output = any(kw in last_lines.lower() for kw in _error_keywords)
 
-        if process.returncode < 0:
-            state["message"] = f"{task_label} cancelled."
-        elif process.returncode != 0 or has_error_output:
-            label = "completed with errors" if process.returncode == 0 else f"failed (code {process.returncode})"
-            state["message"] = f"{task_label} {label}:\n{last_lines}"
-        else:
-            state["message"] = f"{task_label} completed successfully.\n\n{last_lines}"
+            if process.returncode < 0:
+                state["message"] = f"{task_label} cancelled."
+                _tag("outcome", "cancelled")
+                _crumb("subprocess", f"{task_label} cancelled", returncode=process.returncode)
+            elif process.returncode != 0 or has_error_output:
+                label = "completed with errors" if process.returncode == 0 else f"failed (code {process.returncode})"
+                state["message"] = f"{task_label} {label}:\n{last_lines}"
+                _tag("outcome", "error")
+                _crumb("subprocess", f"{task_label} {label}", level="error", returncode=process.returncode)
+            else:
+                state["message"] = f"{task_label} completed successfully.\n\n{last_lines}"
+                _tag("outcome", "ok")
+                _crumb("subprocess", f"{task_label} completed", returncode=process.returncode)
     except Exception as e:
         state["message"] = f"Error during {task_label}: {traceback.format_exc()}"
     finally:
@@ -722,7 +758,24 @@ def get_generate_status():
 def start_generation(req: GenRequest, background_tasks: BackgroundTasks):
     if gen_state["is_running"]:
         raise HTTPException(status_code=400, detail=f"Task {gen_state['current_task']} is already running.")
-    background_tasks.add_task(run_generative_script, req)
+    _tag("experiment", req.task_type)
+    _tag(
+        "model",
+        "cyclegan" if "cyclegan" in req.task_type else "spade",
+    )
+    _crumb(
+        "pipeline", "generate start",
+        task_type=req.task_type,
+        experiment_name=req.experiment_name,
+        epoch=req.epoch,
+    )
+    with _span(
+        "pipeline.generate",
+        description=req.task_type,
+        experiment=req.experiment_name,
+        epoch=req.epoch,
+    ):
+        background_tasks.add_task(run_generative_script, req)
     return {"message": "Generation task started."}
 
 @app.post("/api/generate/cancel")
@@ -780,6 +833,14 @@ def get_hpo_status():
 def start_hpo(req: HPORequest, background_tasks: BackgroundTasks):
     if hpo_state["is_tuning"]:
         raise HTTPException(status_code=400, detail=f"A tuning job is already running for {hpo_state['current_model']}.")
+    _tag("model", req.model_name)
+    _tag("experiment", "hpo")
+    _crumb(
+        "hpo", "tuning start",
+        model=req.model_name,
+        num_trials=req.num_trials,
+        max_epochs=req.max_epochs,
+    )
     background_tasks.add_task(run_hpo_script, req)
     return {"message": "Hyperparameter tuning started."}
 
@@ -936,6 +997,12 @@ async def upload_dataset_files(
     saved = 0
     skipped = 0
 
+    _crumb(
+        "dataset", "upload received",
+        files=len(files),
+        first_path=paths[0] if paths else None,
+    )
+
     for upload_file, rel_path in zip(files, paths):
         top_folder = rel_path.split('/')[0]
         if top_folder not in ALLOWED_DATA_PREFIXES:
@@ -972,6 +1039,7 @@ class LossDataRequest(BaseModel):
 
 @app.post("/api/losses/data")
 def get_loss_data(req: LossDataRequest):
+    _crumb("losses", "loss upload", n_files=len(req.files))
     data = []
     MAX_POINTS = 500  # Downsample to a maximum number of points to prevent frontend lag
     
@@ -1028,7 +1096,10 @@ def get_evaluation_status():
 def start_evaluation(req: EvalRequest, background_tasks: BackgroundTasks):
     if evaluation_state["is_evaluating"]:
         raise HTTPException(status_code=400, detail="Model evaluation is already in progress.")
-    background_tasks.add_task(run_evaluation_script, req.debug)
+    _tag("experiment", "evaluate")
+    _crumb("pipeline", "evaluate start", debug=req.debug)
+    with _span("pipeline.evaluate", description="evaluate all models", debug=req.debug):
+        background_tasks.add_task(run_evaluation_script, req.debug)
     return {"message": "Evaluation started."}
 
 @app.post("/api/evaluate/cancel")
@@ -1050,11 +1121,21 @@ def get_training_status():
 def start_training(req: TrainingRequest, background_tasks: BackgroundTasks):
     if training_state["is_training"]:
         raise HTTPException(status_code=400, detail="A model is already being trained.")
+    _tag("model", req.model_name)
+    _tag("experiment", "train")
+    _crumb(
+        "training", "train start",
+        model=req.model_name,
+        batch_size=req.batch_size,
+        lr=req.lr,
+        num_epochs=req.num_epochs,
+    )
     background_tasks.add_task(run_training_script, req)
     return {"message": "Training started."}
 
 @app.post("/api/train/cancel")
 def cancel_training():
+    _crumb("training", "train cancel", model=training_state.get("current_model"))
     return _cancel_process(training_state, "Training")
 
 @app.get("/api/performance")
@@ -1124,44 +1205,56 @@ def predict(
     model_file: str = Form(...),
     confidence: float = Form(0.5)
 ):
+    _tag("model", model_arch)
+    _tag("dataset", "user-upload")
+    _tag("experiment", "predict")
+    _crumb(
+        "ml", "predict received",
+        model_arch=model_arch,
+        model_file=model_file,
+        confidence=confidence,
+    )
     try:
         contents = file.file.read()
         img = Image.open(io.BytesIO(contents)).convert("RGB")
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid or corrupt image file.")
 
-    model, device = _get_cached_model(model_arch, model_file)
+    with _span("ml.load", description=f"{model_arch}/{model_file}", model_arch=model_arch):
+        model, device = _get_cached_model(model_arch, model_file)
     use_amp = device.type == 'cuda'
     img_tensor = _inference_transform(img).unsqueeze(0).to(device, non_blocking=True)
 
-    with torch.no_grad(), torch.amp.autocast('cuda', enabled=use_amp):
-        output = model(img_tensor)[0]
+    with _span("ml.infer", description=model_arch, device=device.type, amp=use_amp):
+        with torch.no_grad(), torch.amp.autocast('cuda', enabled=use_amp):
+            output = model(img_tensor)[0]
 
     keep = output["scores"] >= confidence
     boxes = output["boxes"][keep].cpu()
     scores = output["scores"][keep].cpu()
 
     result_boxes = []
-    if len(boxes) > 0:
-        for i in range(len(boxes)):
-            result_boxes.append(DetectionBox(
-                score=scores[i].item(),
-                x_min=boxes[i][0].item(),
-                y_min=boxes[i][1].item(),
-                x_max=boxes[i][2].item(),
-                y_max=boxes[i][3].item()
-            ))
+    with _span("image.encode", description="JPEG bbox overlay", n_boxes=int(len(boxes))):
+        if len(boxes) > 0:
+            for i in range(len(boxes)):
+                result_boxes.append(DetectionBox(
+                    score=scores[i].item(),
+                    x_min=boxes[i][0].item(),
+                    y_min=boxes[i][1].item(),
+                    x_max=boxes[i][2].item(),
+                    y_max=boxes[i][3].item()
+                ))
 
-        img_byte = _inference_transform(img).mul(255).byte()
-        label_strings = [f"polyp {s:.2f}" for s in scores.tolist()]
-        drawn = draw_bounding_boxes(img_byte, boxes, labels=label_strings, colors="red", width=2)
-        result_img = to_pil_image(drawn)
-    else:
-        result_img = img.resize((480, 560))
+            img_byte = _inference_transform(img).mul(255).byte()
+            label_strings = [f"polyp {s:.2f}" for s in scores.tolist()]
+            drawn = draw_bounding_boxes(img_byte, boxes, labels=label_strings, colors="red", width=2)
+            result_img = to_pil_image(drawn)
+        else:
+            result_img = img.resize((480, 560))
 
-    buffered = io.BytesIO()
-    result_img.save(buffered, format="JPEG")
-    img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+        buffered = io.BytesIO()
+        result_img.save(buffered, format="JPEG")
+        img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
     return PredictionResponse(boxes=result_boxes, image_base64=img_str)
 
