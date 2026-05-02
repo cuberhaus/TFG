@@ -13,7 +13,6 @@ import {
   Copy,
   Check,
   Info,
-  X,
 } from 'lucide-react';
 import { api, getOrCreateSessionId } from '../api';
 
@@ -41,10 +40,6 @@ const DRIFT_BADGE: Record<DriftStatus, { label: string; bg: string; text: string
 };
 
 const POLL_INTERVAL_MS = 30_000;
-// We persist "user dismissed the pill" in sessionStorage (not localStorage)
-// so it comes back on the next browser session — the pill's purpose is
-// to surface drift, and silencing it forever risks burying a real signal.
-const DISMISS_KEY = 'mlops-status-dismissed';
 
 export default function MlopsStatusCard() {
   const [stats, setStats] = useState<MlopsStats | null>(null);
@@ -55,19 +50,6 @@ export default function MlopsStatusCard() {
   const [showHelp, setShowHelp] = useState(false);
   const [copied, setCopied] = useState(false);
   const [sessionId] = useState(() => getOrCreateSessionId());
-  const [dismissed, setDismissed] = useState(() => {
-    try {
-      return window.sessionStorage.getItem(DISMISS_KEY) === '1';
-    } catch {
-      return false;
-    }
-  });
-
-  const handleDismiss = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setDismissed(true);
-    try { window.sessionStorage.setItem(DISMISS_KEY, '1'); } catch { /* sessionStorage may be blocked */ }
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -101,7 +83,7 @@ export default function MlopsStatusCard() {
     }
   };
 
-  if (!stats || dismissed) {
+  if (!stats) {
     return null;
   }
 
@@ -109,19 +91,9 @@ export default function MlopsStatusCard() {
     return (
       <div className="fixed bottom-4 right-4 z-30 max-w-xs">
         <div className="bg-gray-800/95 border border-gray-700 rounded-lg shadow-xl p-3 text-xs">
-          <div className="flex items-start justify-between gap-2 text-gray-400">
-            <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4" />
-              <span className="font-medium">MLOps observability offline</span>
-            </div>
-            <button
-              onClick={handleDismiss}
-              className="text-gray-500 hover:text-gray-300 transition-colors flex-shrink-0 -mt-0.5 -mr-0.5"
-              title="Hide for this session"
-              aria-label="Dismiss"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
+          <div className="flex items-center gap-2 text-gray-400">
+            <Activity className="w-4 h-4" />
+            <span className="font-medium">MLOps observability offline</span>
           </div>
           <div className="text-gray-500 mt-1.5 leading-relaxed">
             Run{' '}
@@ -180,24 +152,14 @@ export default function MlopsStatusCard() {
               {drift.label}
             </span>
           </button>
-          <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-            <button
-              onClick={() => setCollapsed(true)}
-              className="text-gray-500 hover:text-gray-300 transition-colors p-0.5"
-              title="Minimise"
-              aria-label="Minimise"
-            >
-              <ChevronDown className="w-4 h-4" />
-            </button>
-            <button
-              onClick={handleDismiss}
-              className="text-gray-500 hover:text-gray-300 transition-colors p-0.5"
-              title="Hide for this session"
-              aria-label="Dismiss"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          <button
+            onClick={() => setCollapsed(true)}
+            className="text-gray-500 hover:text-gray-300 transition-colors p-0.5 flex-shrink-0 ml-2"
+            title="Minimise"
+            aria-label="Minimise"
+          >
+            <ChevronDown className="w-4 h-4" />
+          </button>
         </div>
 
         <div className="p-3 space-y-3 text-xs text-gray-300">
