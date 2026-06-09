@@ -1,4 +1,4 @@
-.PHONY: all run backend frontend install clean help mlops-up mlops-down mlops-logs
+.PHONY: all run backend frontend install clean help mlops-up mlops-down mlops-logs skills-list skills-update skills-restore
 
 # ── MLOps overlay (MLflow + Evidently) ─────────────────────────────────
 # Auto-source the .env.mlops file when present so the host ports /
@@ -96,6 +96,18 @@ mlops-logs:
 	docker compose $(MLOPS_COMPOSE_ENV) $(MLOPS_COMPOSE) logs -f \
 		mlflow-server evidently-ui evidently-scheduler
 
+skills-list:
+	@npx skills list -p
+
+skills-update:
+	@npx skills update -p -y
+	@echo ""
+	@echo "Changed skill files:"
+	@git diff --name-only -- .agents/skills skills-lock.json || true
+
+skills-restore:
+	@npx skills experimental_install
+
 help:
 	@echo "Usage:"
 	@echo "  make run            Start backend (:8082) and frontend (:5173) concurrently"
@@ -112,3 +124,8 @@ help:
 	@echo "  make mlops-up       Start MLflow + Evidently (:15000, :15001, :15432)"
 	@echo "  make mlops-down     Stop MLOps stack (preserves volumes)"
 	@echo "  make mlops-logs     Tail MLflow + Evidently logs"
+	@echo ""
+	@echo "  Agent skills:"
+	@echo "  make skills-list    List installed agent skills"
+	@echo "  make skills-update  Update skills and show diff"
+	@echo "  make skills-restore Restore pinned skills from skills-lock.json"

@@ -139,3 +139,7 @@ opt.txt
 # HPO output (legacy CWD location)
 backend/best_hyperparameters.csv
 
+
+# Agent skills (installed by `npx skills` — restore via `make skills-restore`)
+.agents/skills/
+
