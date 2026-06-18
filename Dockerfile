@@ -1,5 +1,5 @@
 # Stage 1: Build React frontend
-FROM node:22-slim AS frontend
+FROM node:26-slim AS frontend
 
 WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json ./
@@ -10,7 +10,7 @@ ENV VITE_API_URL=
 RUN npm run build
 
 # Stage 2: Python runtime with FastAPI + PyTorch
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 libglib2.0-0 \
