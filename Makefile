@@ -129,3 +129,9 @@ help:
 	@echo "  make skills-list    List installed agent skills"
 	@echo "  make skills-update  Update skills and show diff"
 	@echo "  make skills-restore Restore pinned skills from skills-lock.json"
+
+##@ Understand (knowledge graph)
+
+.PHONY: understand-dashboard
+understand-dashboard: ## Launch the Understand Anything knowledge-graph dashboard (graph dir = repo root)
+	@node -e "require(require('os').homedir()+'/.understand-anything/repo/understand-anything-plugin/packages/dashboard/launch.cjs')"
