@@ -24,7 +24,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install fastapi uvicorn python-multipart pandas Pillow pytest httpx
+          pip install fastapi uvicorn python-multipart pandas Pillow pytest httpx pycocotools
           pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu || true
 
       - name: Run tests
