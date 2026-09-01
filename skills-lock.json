@@ -17,7 +17,7 @@
       "source": "affaan-m/everything-claude-code",
       "sourceType": "github",
       "skillPath": "skills/pytorch-patterns/SKILL.md",
-      "computedHash": "05b98870477148924e3d5478d94acd61a246587eabf4a884aa2af8816ffbc5c2"
+      "computedHash": "eb170710a86bc3bc292ad27fddbdf15e46f707eab139e192bad59099cb47586a"
     },
     "vercel-react-best-practices": {
       "source": "vercel-labs/agent-skills",
