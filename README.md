@@ -11,7 +11,7 @@ This project investigates generative deep learning models for image-to-image tra
 ## Prerequisites
 
 | Requirement | Version |
-|---|---|
+| --- | --- |
 | Python | 3.11+ |
 | CUDA (optional, for GPU training) | 11.8+ |
 | conda or pip | latest |
@@ -32,11 +32,21 @@ cd backend && pip install -r requirements.txt
 cd ../frontend && npm install
 ```
 
+## Tests
+
+Run the fast backend endpoint suite without models, datasets, or frontend dependencies:
+
+```bash
+make test-backend
+```
+
+CI installs the pinned test-only dependency contract in `backend/requirements-ci.txt`; the application dependency files remain `backend/requirements.txt` and `code/requirements.txt`.
+
 ## Dataset Setup
 
 The project uses the [LDPolypVideo](https://github.com/dashishi/LDPolypVideo-Benchmark) dataset. Download and place it under `code/data/`:
 
-```
+```text
 code/data/
 ├── TrainValid/
 │   └── TrainValid/
@@ -67,7 +77,7 @@ make frontend  # Vite dev server on http://localhost:5173
 The dashboard provides:
 
 | Tab | Description |
-|---|---|
+| --- | --- |
 | **Dataset Explorer** | Browse & upload datasets with drag-and-drop |
 | **Model Training** | Train detection models with configurable parameters |
 | **Model Evaluation** | Evaluate saved models (COCO metrics) |
@@ -150,7 +160,7 @@ streamlit run src/app.py
 
 ## Project Structure
 
-```
+```text
 TFG/
 ├── Makefile                              # run/install/clean targets for full stack
 ├── frontend/                             # React 19 + Vite + Tailwind UI
@@ -188,7 +198,7 @@ TFG/
 ## Key Scripts Reference
 
 | Script | Purpose | Key Arguments |
-|---|---|---|
+| --- | --- | --- |
 | `train_and_save_model.py` | Train one model | `MODEL_NAME PARAMS_JSON [--debug]` |
 | `train_models.py` | Batch training | `CONFIG_JSON [--debug]` |
 | `optuna_train_model.py` | Optuna HPO | `[MODEL_NAME] [--debug]` |
@@ -203,7 +213,7 @@ TFG/
 ## Detection Models
 
 | Model | Backbone | Notes |
-|---|---|---|
+| --- | --- | --- |
 | **Faster R-CNN** | ResNet-50 FPN | Primary detector; best overall results |
 | **RetinaNet** | ResNet-50 FPN v2 | Single-stage anchor-based alternative |
 | **SSD Lite** | MobileNet V3 Large | Lightweight / mobile-friendly |
@@ -211,14 +221,14 @@ TFG/
 ## Generative Models
 
 | Model | Task |
-|---|---|
+| --- | --- |
 | **CycleGAN** | Unpaired mask ↔ polyp image translation |
 | **SPADE** | Spatially-adaptive mask → polyp synthesis |
 
 ## Tech Stack
 
 | Layer | Technologies |
-|---|---|
+| --- | --- |
 | **Frontend** | React 19, TypeScript, Vite, Tailwind CSS, Recharts, Lucide React |
 | **Backend** | FastAPI, Uvicorn, Pydantic |
 | **ML** | PyTorch + torchvision, pycocotools (COCO metrics), OpenCV, Pillow |
