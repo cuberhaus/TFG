@@ -16,9 +16,9 @@ make install     # backend pip + code pip + frontend npm
 make run         # backend on :8082 and Vite dev server on :5173 in parallel
 make backend     # FastAPI only (cd backend && ./run.sh)
 make frontend    # Vite only (cd frontend && npm run dev)
+make test-backend # fast model-independent FastAPI endpoint tests
 
 cd frontend && npm run build && npm run lint
-cd backend && pytest test_main.py
 ```
 
 CLI training entry points live under `code/src/` (see [README.md](README.md) for the full list).
@@ -27,7 +27,7 @@ CLI training entry points live under `code/src/` (see [README.md](README.md) for
 
 - **Backend**: FastAPI with Pydantic models and dependency injection; run blocking ML inference in thread pools, not the event loop. Wrap existing PyTorch code in `clases.model_utils` rather than reimplementing it. Endpoints accept image uploads and return JSON (bounding boxes, scores) or annotated images.
 - **Frontend**: React functional components + Hooks, Tailwind for styling, the shared axios instance in `frontend/src/api.ts` (honors `VITE_API_URL`). One component per dashboard tab under `frontend/src/components/`.
-- **Python**: 3.11+; dependencies in `backend/requirements.txt` and `code/requirements.txt` (kept separate on purpose).
+- **Python**: 3.11+; application dependencies in `backend/requirements.txt` and `code/requirements.txt` (kept separate on purpose). CI-only endpoint-test dependencies are pinned in `backend/requirements-ci.txt`, including CPU-only PyTorch wheels.
 
 ## Agent skills
 

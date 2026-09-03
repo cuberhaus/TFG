@@ -3,8 +3,26 @@ name: Tests
 on:
   push:
     branches: [main]
+    paths:
+      - "backend/**"
+      - "code/src/**"
+      - "code/requirements.txt"
+      - "backend/requirements-ci.txt"
+      - "Makefile"
+      - ".github/workflows/test.yml"
   pull_request:
     branches: [main]
+    paths:
+      - "backend/**"
+      - "code/src/**"
+      - "code/requirements.txt"
+      - "backend/requirements-ci.txt"
+      - "Makefile"
+      - ".github/workflows/test.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -20,12 +38,10 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: backend/requirements.txt
+          cache-dependency-path: backend/requirements-ci.txt
 
       - name: Install dependencies
-        run: |
-          pip install fastapi uvicorn python-multipart pandas Pillow pytest httpx pycocotools
-          pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu || true
+        run: pip install -r requirements-ci.txt
 
       - name: Run tests
         run: python -m pytest test_main.py -v

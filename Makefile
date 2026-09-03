@@ -1,4 +1,4 @@
-.PHONY: all run backend frontend install clean help mlops-up mlops-down mlops-logs skills-list skills-update skills-restore
+.PHONY: all run backend frontend install test-backend clean help mlops-up mlops-down mlops-logs skills-list skills-update skills-restore
 
 # ── MLOps overlay (MLflow + Evidently) ─────────────────────────────────
 # Auto-source the .env.mlops file when present so the host ports /
@@ -47,6 +47,10 @@ install:
 	cd code && pip install -r requirements.txt
 	@echo "Installing frontend dependencies..."
 	cd frontend && npm install
+
+# Run FastAPI endpoint tests without models, datasets, or frontend dependencies.
+test-backend:
+	cd backend && python -m pytest test_main.py -v
 
 # Docker
 .PHONY: docker-build docker-up docker-down docker-logs
@@ -114,6 +118,7 @@ help:
 	@echo "  make backend        Start FastAPI backend only"
 	@echo "  make frontend       Start React/Vite frontend only"
 	@echo "  make install        Install all dependencies (backend + ML + frontend)"
+	@echo "  make test-backend   Run fast model-independent FastAPI endpoint tests"
 	@echo "  make docker-build   Build Docker image"
 	@echo "  make docker-up      Start Docker container on :8082"
 	@echo "  make docker-down    Stop Docker container"
