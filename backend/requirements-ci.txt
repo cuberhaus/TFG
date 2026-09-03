@@ -8,5 +8,5 @@ pillow==12.2.0
 pycocotools==2.0.11
 python-multipart==0.0.27
 pytest==9.0.2
-torch==2.11.0+cpu
+torch==2.12.1+cpu
 torchvision==0.26.0+cpu
