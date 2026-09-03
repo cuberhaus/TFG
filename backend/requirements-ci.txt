@@ -4,7 +4,7 @@
 fastapi==0.135.3
 httpx==0.28.1
 pandas==3.0.2
-pillow==12.2.0
+pillow==12.3.0
 pycocotools==2.0.11
 python-multipart==0.0.27
 pytest==9.0.2
