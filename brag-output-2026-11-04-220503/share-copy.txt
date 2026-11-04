@@ -1,0 +1,1 @@
+My bachelor's thesis drew stripes instead of polyps, so I went back to it: Stable Diffusion inpainting + a 30-minute LoRA now paints polyps that a detector trained only on real ones finds 87.3% of the time (real frames: 85.0%). github.com/cuberhaus/TFG

@@ -1,0 +1,186 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      font-family: var(--font-display), Inter, system-ui, sans-serif;
+    }
+    #pf-content {
+      position: absolute;
+      inset: 0;
+    }
+    #pf-kicker {
+      position: absolute;
+      left: 160px;
+      top: 118px;
+      width: 1400px;
+      font-size: 62px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      color: #ffffff;
+      opacity: 0;
+    }
+    #pf-kicker .em {
+      color: #34d399;
+    }
+    .pf-row {
+      position: absolute;
+      left: 0;
+      width: 1920px;
+      height: 120px;
+    }
+    .pf-label {
+      position: absolute;
+      left: 160px;
+      top: 0;
+      width: 520px;
+      height: 120px;
+      line-height: 120px;
+      text-align: right;
+      font-size: 38px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: #d1d5db;
+      white-space: nowrap;
+      opacity: 0;
+    }
+    .pf-rail {
+      position: absolute;
+      left: 710px;
+      top: 28px;
+      width: 860px;
+      height: 64px;
+      border-radius: 14px;
+      background: #1f2937;
+      opacity: 0;
+    }
+    .pf-bar {
+      position: absolute;
+      left: 710px;
+      top: 28px;
+      height: 64px;
+      border-radius: 14px;
+      transform-origin: 0% 50%;
+      opacity: 0;
+    }
+    .pf-value {
+      position: absolute;
+      left: 1590px;
+      top: 0;
+      width: 234px;
+      height: 120px;
+      line-height: 120px;
+      text-align: right;
+      font-size: 72px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      white-space: nowrap;
+      opacity: 0;
+    }
+    #pf-foot {
+      position: absolute;
+      left: 160px;
+      top: 876px;
+      font-size: 32px;
+      font-weight: 400;
+      color: #9ca3af;
+      opacity: 0;
+    }
+    .w {
+      display: inline-block;
+      margin-right: 0.24em;
+      opacity: 0;
+    }
+    .w:last-child {
+      margin-right: 0;
+    }
+  </style>
+
+  <div id="root" data-composition-id="proof" data-width="1920" data-height="1080">
+    <div id="pf-content">
+      <div id="pf-kicker">
+        <span class="w" data-layout-allow-overlap>Found</span><span class="w" data-layout-allow-overlap>by</span><span class="w" data-layout-allow-overlap>a</span><span class="w" data-layout-allow-overlap>detector</span><br />
+        <span class="w" data-layout-allow-overlap>trained</span><span class="w" data-layout-allow-overlap>on</span><span class="w" data-layout-allow-overlap>real</span><span class="w em" data-layout-allow-overlap>polyps</span><span class="w" data-layout-allow-overlap>only</span>
+      </div>
+
+      <div id="pf-r1" class="pf-row" style="top: 372px">
+        <div class="pf-label" id="pf-l1">Stock Stable Diffusion</div>
+        <div class="pf-rail" id="pf-rail1"></div>
+        <div class="pf-bar" id="pf-bar1" style="width: 55px; background: #f87171"></div>
+        <div class="pf-value" id="pf-v1" style="color: #f87171">6.4%</div>
+      </div>
+      <div id="pf-r2" class="pf-row" style="top: 532px">
+        <div class="pf-label" id="pf-l2">Real polyps</div>
+        <div class="pf-rail" id="pf-rail2"></div>
+        <div class="pf-bar" id="pf-bar2" style="width: 731px; background: #9ca3af"></div>
+        <div class="pf-value" id="pf-v2" style="color: #d1d5db">85.0%</div>
+      </div>
+      <div id="pf-r3" class="pf-row" style="top: 692px">
+        <div class="pf-label" id="pf-l3" style="color: #ffffff; font-weight: 900">Fine-tuned (LoRA)</div>
+        <div class="pf-rail" id="pf-rail3"></div>
+        <div class="pf-bar" id="pf-bar3" style="width: 751px; background: #34d399"></div>
+        <div class="pf-value" id="pf-v3" style="color: #34d399">87.3%</div>
+      </div>
+
+      <div id="pf-foot">160 held-out frames</div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    // local time = global - 15.29 s
+
+    tl.fromTo(
+      "#pf-kicker",
+      { opacity: 0 },
+      { opacity: 1, duration: 0.05, ease: "none" },
+      0.15,
+    );
+    tl.fromTo(
+      "#pf-kicker .w",
+      { opacity: 0, filter: "blur(8px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power3.out", stagger: 0.07 },
+      0.15,
+    );
+
+    // Count-up helper: a pure function of timeline time (a tween on a plain object, text written on update).
+    function row(n, target, start, dur) {
+      const obj = { v: 0 };
+      const el = document.getElementById("pf-v" + n);
+      tl.fromTo("#pf-l" + n, { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out" }, start - 0.12);
+      tl.fromTo("#pf-rail" + n, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, start - 0.12);
+      tl.fromTo("#pf-bar" + n, { opacity: 1, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: dur, ease: "power3.out" }, start);
+      tl.fromTo("#pf-v" + n, { opacity: 0 }, { opacity: 1, duration: 0.15, ease: "none" }, start);
+      // obj starts at 0, so a plain `to` is deterministic on every seek.
+      tl.to(
+        obj,
+        {
+          v: target,
+          duration: dur,
+          ease: "power3.out",
+          onUpdate: function () {
+            el.textContent = obj.v.toFixed(1) + "%";
+          },
+        },
+        start,
+      );
+    }
+
+    // beat-grid (every second beat, text labels): 16.38, 17.47 (strong cue), 18.56 (strong cue) -> local 1.09, 2.18, 3.27
+    row(1, 6.4, 1.09, 0.6);
+    row(2, 85.0, 2.18, 0.85);
+    row(3, 87.3, 3.27, 0.95);
+
+    // The hero bar gets presence as it fills.
+    tl.fromTo("#pf-bar3", { boxShadow: "0 0 0px rgba(52,211,153,0)" }, { boxShadow: "0 0 46px rgba(52,211,153,0.55)", duration: 0.9, ease: "power2.out" }, 3.27);
+
+    tl.fromTo("#pf-foot", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.35, ease: "power3.out" }, 3.9);
+
+    // Blur-swap out into the outro (global 20.37-20.72 s).
+    tl.to("#pf-content", { opacity: 0, filter: "blur(10px)", duration: 0.35, ease: "power3.in" }, 5.08);
+
+    window.__timelines["proof"] = tl;
+  </script>
+</template>

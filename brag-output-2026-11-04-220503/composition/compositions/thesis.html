@@ -1,0 +1,147 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      font-family: var(--font-display), Inter, system-ui, sans-serif;
+    }
+    #th-content {
+      position: absolute;
+      inset: 0;
+    }
+    #th-kicker {
+      position: absolute;
+      left: 0;
+      top: 78px;
+      width: 1920px;
+      text-align: center;
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: #9ca3af;
+    }
+    .th-panel {
+      position: absolute;
+      top: 170px;
+      width: 560px;
+      height: 560px;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 2px solid #374151;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+    }
+    .th-panel img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    #th-panel-l {
+      left: 300px;
+    }
+    #th-panel-r {
+      left: 1060px;
+      border-color: #7f3a3a;
+    }
+    #th-arrow {
+      position: absolute;
+      left: 880px;
+      top: 410px;
+      width: 160px;
+      height: 80px;
+    }
+    .th-line {
+      position: absolute;
+      top: 776px;
+      width: 760px;
+      text-align: center;
+      font-size: 84px;
+      font-weight: 900;
+      letter-spacing: -0.035em;
+      line-height: 1.05;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+    #th-line-l {
+      left: 200px;
+    }
+    #th-line-r {
+      left: 960px;
+      color: #f87171;
+    }
+    .w {
+      display: inline-block;
+      margin-right: 0.24em;
+      opacity: 0;
+    }
+    .w:last-child {
+      margin-right: 0;
+    }
+  </style>
+
+  <div id="root" data-composition-id="thesis" data-width="1920" data-height="1080">
+    <div id="th-content">
+      <div id="th-kicker">Bachelor's thesis · CycleGAN</div>
+
+      <div id="th-panel-l" class="th-panel">
+        <img src="assets/img/thesis-rect.jpg" alt="Thesis figure real_A: the white rectangle mask the CycleGAN was given" />
+      </div>
+      <svg id="th-arrow" data-layout-ignore viewBox="0 0 160 80" fill="none" stroke="#9ca3af" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+        <path id="th-arrow-line" d="M10 40 H138" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1" />
+        <path id="th-arrow-head" d="M112 14 L142 40 L112 66" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1" />
+      </svg>
+      <div id="th-panel-r" class="th-panel">
+        <img src="assets/img/thesis-stripes.jpg" alt="Thesis figure fake_B: what the CycleGAN drew from that rectangle" />
+      </div>
+
+      <div id="th-line-l" class="th-line">
+        <span class="w" data-layout-allow-overlap>Rectangle</span><span class="w" data-layout-allow-overlap>in.</span>
+      </div>
+      <div id="th-line-r" class="th-line">
+        <span class="w" data-layout-allow-overlap>Stripes</span><span class="w" data-layout-allow-overlap>out.</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    // Kicker + left panel + first line: the setup.
+    tl.fromTo("#th-kicker", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.4, ease: "power3.out" }, 0.1);
+    tl.fromTo(
+      "#th-panel-l",
+      { opacity: 0, filter: "blur(10px)", scale: 1.03 },
+      { opacity: 1, filter: "blur(0px)", scale: 1, duration: 0.5, ease: "power3.out" },
+      0.2,
+    );
+    tl.fromTo(
+      "#th-line-l .w",
+      { opacity: 0, filter: "blur(8px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power3.out", stagger: 0.1 },
+      0.3,
+    );
+
+    // beat-grid: the stripes land on the 1.64 s beat (global = local, scene starts at 0)
+    tl.fromTo("#th-arrow-line", { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.3, ease: "power2.out" }, 1.25);
+    tl.fromTo("#th-arrow-head", { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.2, ease: "power2.out" }, 1.5);
+    tl.fromTo(
+      "#th-panel-r",
+      { opacity: 0, filter: "blur(10px)", scale: 1.03 },
+      { opacity: 1, filter: "blur(0px)", scale: 1, duration: 0.5, ease: "power3.out" },
+      1.62,
+    );
+    tl.fromTo(
+      "#th-line-r .w",
+      { opacity: 0, filter: "blur(8px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power3.out", stagger: 0.1 },
+      1.64,
+    );
+
+    // Exit as one: the next scene blur-swaps in from 3.27 s.
+    tl.to("#th-content", { opacity: 0, filter: "blur(10px)", duration: 0.32, ease: "power3.in" }, 3.0);
+
+    window.__timelines["thesis"] = tl;
+  </script>
+</template>

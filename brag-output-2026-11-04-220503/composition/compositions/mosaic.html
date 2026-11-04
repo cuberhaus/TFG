@@ -1,0 +1,155 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      font-family: var(--font-display), Inter, system-ui, sans-serif;
+    }
+    #mz-content {
+      position: absolute;
+      inset: 0;
+    }
+    .mz-slot,
+    .mz-cell {
+      position: absolute;
+      width: 560px;
+      height: 315px;
+      border-radius: 14px;
+    }
+    .mz-slot {
+      background: #1f2937;
+      border: 2px dashed #374151;
+      opacity: 0;
+    }
+    .mz-cell {
+      overflow: hidden;
+      border: 2px solid #374151;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+      opacity: 0;
+    }
+    .mz-cell img {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .mz-cell svg {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .mz-cell rect {
+      fill: none;
+      stroke: #34d399;
+      stroke-width: 3.6;
+      stroke-dasharray: 1 1;
+      stroke-dashoffset: 1;
+    }
+    #mz-caption {
+      position: absolute;
+      left: 0;
+      top: 828px;
+      width: 1920px;
+      text-align: center;
+      font-size: 68px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+    #mz-caption .em {
+      color: #34d399;
+    }
+    .w {
+      display: inline-block;
+      margin-right: 0.24em;
+      opacity: 0;
+    }
+    .w:last-child {
+      margin-right: 0;
+    }
+  </style>
+
+  <div id="root" data-composition-id="mosaic" data-width="1920" data-height="1080">
+    <div id="mz-content">
+      <!-- slots: the empty frames the polyps arrive into -->
+      <div class="mz-slot" id="mz-s1" style="left: 96px; top: 130px"></div>
+      <div class="mz-slot" id="mz-s2" style="left: 680px; top: 130px"></div>
+      <div class="mz-slot" id="mz-s3" style="left: 1264px; top: 130px"></div>
+      <div class="mz-slot" id="mz-s4" style="left: 96px; top: 469px"></div>
+      <div class="mz-slot" id="mz-s5" style="left: 680px; top: 469px"></div>
+      <div class="mz-slot" id="mz-s6" style="left: 1264px; top: 469px"></div>
+
+      <div class="mz-cell" id="mz-c1" style="left: 96px; top: 130px">
+        <img src="assets/img/mosaic-00027.jpg" alt="Synthetic polyp 1" />
+        <svg viewBox="0 0 633 356"><rect id="mz-b1" x="297" y="142" width="215" height="184" rx="3" pathLength="1" /></svg>
+      </div>
+      <div class="mz-cell" id="mz-c2" style="left: 680px; top: 130px">
+        <img src="assets/img/mosaic-00067.jpg" alt="Synthetic polyp 2" />
+        <svg viewBox="0 0 633 356"><rect id="mz-b2" x="308" y="102" width="222" height="153" rx="3" pathLength="1" /></svg>
+      </div>
+      <div class="mz-cell" id="mz-c3" style="left: 1264px; top: 130px">
+        <img src="assets/img/mosaic-00221.jpg" alt="Synthetic polyp 3" />
+        <svg viewBox="0 0 633 356"><rect id="mz-b3" x="246" y="220" width="116" height="106" rx="3" pathLength="1" /></svg>
+      </div>
+      <div class="mz-cell" id="mz-c4" style="left: 96px; top: 469px">
+        <img src="assets/img/mosaic-00174.jpg" alt="Synthetic polyp 4" />
+        <svg viewBox="0 0 633 356"><rect id="mz-b4" x="307" y="12" width="218" height="317" rx="3" pathLength="1" /></svg>
+      </div>
+      <div class="mz-cell" id="mz-c5" style="left: 680px; top: 469px">
+        <img src="assets/img/mosaic-00132.jpg" alt="Synthetic polyp 5" />
+        <svg viewBox="0 0 633 356"><rect id="mz-b5" x="194" y="87" width="163" height="182" rx="3" pathLength="1" /></svg>
+      </div>
+      <div class="mz-cell" id="mz-c6" style="left: 1264px; top: 469px">
+        <img src="assets/img/mosaic-00099.jpg" alt="Synthetic polyp 6" />
+        <svg viewBox="0 0 633 356"><rect id="mz-b6" x="351" y="107" width="144" height="142" rx="3" pathLength="1" /></svg>
+      </div>
+
+      <div id="mz-caption">
+        <span class="w" data-layout-allow-overlap>Every</span><span class="w" data-layout-allow-overlap>polyp</span><span class="w" data-layout-allow-overlap>here</span><span class="w" data-layout-allow-overlap>is</span><span class="w em" data-layout-allow-overlap>synthetic.</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    // local time = global - 10.37 s
+
+    // Empty slots first, so the stage is never bare after the whip.
+    tl.fromTo(".mz-slot", { opacity: 0 }, { opacity: 0.55, duration: 0.4, ease: "power2.out", stagger: 0.04 }, 0.0);
+
+    // Caption lands first and stays (5 words, ~4.5 s on screen).
+    tl.fromTo(
+      "#mz-caption .w",
+      { opacity: 0, filter: "blur(8px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power3.out", stagger: 0.08 },
+      0.12,
+    );
+
+    // beat-grid: items at global 10.93, 11.46, 12.02, 12.55, 13.11 (strong), 13.64 -> local 0.56 ... 3.27
+    const T = [0.56, 1.09, 1.65, 2.18, 2.74, 3.27];
+    T.forEach(function (t, i) {
+      const n = i + 1;
+      tl.fromTo(
+        "#mz-c" + n,
+        { opacity: 0, scale: 1.05, filter: "blur(10px)" },
+        { opacity: 1, scale: 1, filter: "blur(0px)", duration: 0.4, ease: "power3.out" },
+        t,
+      );
+      tl.to("#mz-s" + n, { opacity: 0, duration: 0.2, ease: "none" }, t + 0.25);
+      tl.fromTo("#mz-b" + n, { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.4, ease: "power2.out" }, t + 0.2);
+    });
+
+    // Zoom-away into the proof scene (global 14.97-15.32 s).
+    tl.to("#mz-content", { scale: 0.96, opacity: 0, filter: "blur(12px)", duration: 0.35, ease: "power3.in" }, 4.6);
+
+    window.__timelines["mosaic"] = tl;
+  </script>
+</template>

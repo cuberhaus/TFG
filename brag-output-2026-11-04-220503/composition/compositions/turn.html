@@ -1,0 +1,172 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      font-family: var(--font-display), Inter, system-ui, sans-serif;
+    }
+    #tn-content {
+      position: absolute;
+      inset: 0;
+    }
+    #tn-lines {
+      position: absolute;
+      left: 120px;
+      top: 365px;
+      width: 860px;
+    }
+    .tn-line {
+      height: 110px;
+      font-size: 66px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 110px;
+      color: #ffffff;
+      white-space: nowrap;
+      opacity: 0;
+    }
+    .tn-line .em {
+      color: #34d399;
+    }
+    #tn-frame {
+      position: absolute;
+      left: 1010px;
+      top: 204px;
+      width: 800px;
+      height: 672px;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 2px solid #374151;
+      box-shadow: 0 34px 90px rgba(0, 0, 0, 0.5);
+      opacity: 0;
+    }
+    #tn-zoom {
+      position: absolute;
+      inset: 0;
+      transform-origin: 72% 77%;
+    }
+    #tn-zoom img {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 800px;
+      height: 672px;
+      display: block;
+    }
+    #tn-after {
+      clip-path: circle(0px at 579px 518px);
+    }
+    #tn-svg {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 800px;
+      height: 672px;
+    }
+    #tn-chip {
+      position: absolute;
+      left: 432px;
+      top: 334px;
+      padding: 8px 18px 9px;
+      border-radius: 8px;
+      background: #34d399;
+      color: #022c22;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      opacity: 0;
+    }
+  </style>
+
+  <div id="root" data-composition-id="turn" data-width="1920" data-height="1080">
+    <div id="tn-content">
+      <div id="tn-lines">
+        <div id="tn-l1" class="tn-line">So I went back.</div>
+        <div id="tn-l2" class="tn-line">Keep the real colon.</div>
+        <div id="tn-l3" class="tn-line">Paint only the <span class="em">polyp.</span></div>
+      </div>
+
+      <div id="tn-frame">
+        <div id="tn-zoom" data-layout-allow-overflow>
+          <img id="tn-before" src="assets/img/hero-before.jpg" alt="Real polyp-free colonoscopy frame" />
+          <img id="tn-after" src="assets/img/hero-after.jpg" alt="The same frame with a synthetic polyp painted into the mask" />
+          <svg id="tn-svg" viewBox="0 0 633 532" fill="none">
+            <path id="tn-fill" d="M460,309 L459,311 L434,317 L429,321 L383,334 L378,339 L367,345 L356,356 L342,365 L347,396 L348,416 L351,417 L359,439 L368,449 L380,468 L390,477 L390,479 L400,489 L424,506 L454,514 L460,513 L464,515 L470,514 L480,516 L509,506 L512,502 L523,498 L538,481 L548,459 L549,452 L562,433 L564,423 L569,412 L567,408 L567,386 L563,370 L559,367 L539,335 L532,334 L509,325 L507,326 L484,316 Z" fill="#34d399" fill-opacity="0" />
+            <path
+              id="tn-outline"
+              d="M460,309 L459,311 L434,317 L429,321 L383,334 L378,339 L367,345 L356,356 L342,365 L347,396 L348,416 L351,417 L359,439 L368,449 L380,468 L390,477 L390,479 L400,489 L424,506 L454,514 L460,513 L464,515 L470,514 L480,516 L509,506 L512,502 L523,498 L538,481 L548,459 L549,452 L562,433 L564,423 L569,412 L567,408 L567,386 L563,370 L559,367 L539,335 L532,334 L509,325 L507,326 L484,316 Z"
+              pathLength="1"
+              stroke="#34d399"
+              stroke-width="2.6"
+              stroke-linejoin="round"
+              stroke-dasharray="1 1"
+              stroke-dashoffset="1"
+            />
+            <rect
+              id="tn-box"
+              x="342"
+              y="309"
+              width="228"
+              height="208"
+              rx="3"
+              pathLength="1"
+              stroke="#34d399"
+              stroke-width="3.2"
+              stroke-dasharray="1 1"
+              stroke-dashoffset="1"
+            />
+          </svg>
+          <div id="tn-chip">Label comes free</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    // local time = global - 3.27 s
+
+    // The real frame blur-swaps in as the thesis scene leaves.
+    tl.fromTo(
+      "#tn-frame",
+      { opacity: 0, filter: "blur(12px)", scale: 1.02 },
+      { opacity: 1, filter: "blur(0px)", scale: 1, duration: 0.5, ease: "power3.out" },
+      0.0,
+    );
+
+    // Three short lines stack; each earlier line dims once the next lands (every line gets >= 1.5 s at full strength).
+    tl.fromTo("#tn-l1", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.25, ease: "power3.out" }, 0.55);
+    tl.fromTo("#tn-l2", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.25, ease: "power3.out" }, 2.07);
+    tl.to("#tn-l1", { opacity: 0.5, duration: 0.3, ease: "power2.out" }, 2.1);
+    tl.fromTo("#tn-l3", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.25, ease: "power3.out" }, 3.82);
+    tl.to("#tn-l2", { opacity: 0.5, duration: 0.3, ease: "power2.out" }, 3.85);
+
+    // The real mask is traced as an outline right after "Keep the real colon." (global 5.72-7.02 s).
+    tl.fromTo("#tn-outline", { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 1.3, ease: "power2.inOut" }, 2.45);
+    tl.fromTo("#tn-fill", { fillOpacity: 0 }, { fillOpacity: 0.16, duration: 0.4, ease: "power2.out" }, 3.5);
+
+    // beat-locked: paint starts at global 8.62 s, 0.12 s ahead of the 8.74 s strong cue (inside +-0.15 s), so the cue lands as the polyp becomes visible.
+    // The polyp paints itself in from the centre of the mask over ~0.8 s;
+    // outside the mask the two images are the same pixels, so only the polyp appears.
+    tl.fromTo(
+      "#tn-after",
+      { clipPath: "circle(0px at 579px 518px)" },
+      { clipPath: "circle(190px at 579px 518px)", duration: 1.0, ease: "power2.out" },
+      5.35,
+    );
+    tl.to("#tn-outline", { opacity: 0, duration: 0.4, ease: "power2.out" }, 5.35);
+    tl.to("#tn-fill", { opacity: 0, duration: 0.4, ease: "power2.out" }, 5.35);
+    tl.to("#tn-zoom", { scale: 1.055, duration: 0.9, ease: "power2.out" }, 5.35);
+
+    // The box comes free: it is the mask we chose. Box + chip land right after the polyp, chip holds ~1.2 s before the whip.
+    tl.fromTo("#tn-box", { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.45, ease: "power2.out" }, 5.83);
+    tl.fromTo("#tn-chip", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.25, ease: "power3.out" }, 5.95);
+
+    // Whip out to the left (global 10.34-10.60 s); the mosaic slots arrive at 10.37 s.
+    tl.to("#tn-content", { x: -260, opacity: 0, filter: "blur(16px)", duration: 0.26, ease: "power3.in" }, 7.07);
+
+    window.__timelines["turn"] = tl;
+  </script>
+</template>

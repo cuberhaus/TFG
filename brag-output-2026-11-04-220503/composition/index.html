@@ -1,0 +1,238 @@
+<!doctype html>
+<html
+  lang="en"
+  data-resolution="landscape"
+  data-composition-variables='[
+    {"id":"color-ground","type":"color","label":"Background","default":"#111827"},
+    {"id":"color-ink","type":"color","label":"Text","default":"#ffffff"},
+    {"id":"color-accent","type":"color","label":"Accent (synthetic / found)","default":"#34d399"},
+    {"id":"color-fail","type":"color","label":"Accent (failure)","default":"#f87171"},
+    {"id":"font-display","type":"string","label":"Display font","default":"Inter"}
+  ]'
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="assets/vendor/gsap.min.js"></script>
+    <style>
+      :root {
+        --color-ground: #111827; /* Tailwind gray-900 (body in frontend/src/index.css) */
+        --color-ink: #ffffff;
+        --color-accent: #34d399; /* emerald-400: synthetic / found, the box colour in the generator's contact sheets */
+        --color-fail: #f87171; /* red-400: the stripes, the untuned model */
+        --font-display: Inter;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--color-ground);
+      }
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--color-ground);
+        font-family: var(--font-display), Inter, system-ui, sans-serif;
+      }
+      /* Persistent stage: two radial glows (no linear gradients: they band under H.264). */
+      #glow-stage {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 1080px;
+        z-index: 0;
+      }
+      .glow {
+        position: absolute;
+        opacity: 0;
+      }
+      #glow-red {
+        left: 690px;
+        top: -30px;
+        width: 1300px;
+        height: 1100px;
+        background: radial-gradient(closest-side, rgba(248, 113, 113, 0.22), rgba(248, 113, 113, 0) 72%);
+      }
+      #glow-em {
+        left: 260px;
+        top: -80px;
+        width: 1400px;
+        height: 1240px;
+        background: radial-gradient(closest-side, rgba(52, 211, 153, 0.2), rgba(52, 211, 153, 0) 70%);
+      }
+      #vignette {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 1080px;
+        z-index: 5;
+        pointer-events: none;
+        background: radial-gradient(ellipse 75% 75% at 50% 50%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.38) 100%);
+      }
+      .scene-host {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 1080px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="24"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div id="glow-stage" data-layout-ignore>
+        <div id="glow-red" class="glow"></div>
+        <div id="glow-em" class="glow"></div>
+      </div>
+
+      <!-- Scenes sit on beat boundaries of the music (109.96 BPM): 3.27 | 10.37 | 15.29 | 20.45(+0.3 title at 20.75) -->
+      <div
+        id="thesis"
+        class="scene-host"
+        data-composition-id="thesis"
+        data-composition-src="compositions/thesis.html"
+        data-start="0"
+        data-duration="3.7"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 1"
+      ></div>
+      <div
+        id="turn"
+        class="scene-host"
+        data-composition-id="turn"
+        data-composition-src="compositions/turn.html"
+        data-start="3.27"
+        data-duration="7.5"
+        data-track-index="2"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 2"
+      ></div>
+      <div
+        id="mosaic"
+        class="scene-host"
+        data-composition-id="mosaic"
+        data-composition-src="compositions/mosaic.html"
+        data-start="10.37"
+        data-duration="5.1"
+        data-track-index="3"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 3"
+      ></div>
+      <div
+        id="proof"
+        class="scene-host"
+        data-composition-id="proof"
+        data-composition-src="compositions/proof.html"
+        data-start="15.29"
+        data-duration="5.5"
+        data-track-index="4"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 4"
+      ></div>
+      <div
+        id="outro"
+        class="scene-host"
+        data-composition-id="outro"
+        data-composition-src="compositions/outro.html"
+        data-start="20.45"
+        data-duration="3.55"
+        data-track-index="5"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 4"
+      ></div>
+
+      <div id="vignette" data-layout-ignore></div>
+
+      <!-- Music bed: happy-beats-business-moves-vol-12 (109.96 BPM), steady and clean. Fade in, fade out under the last line. -->
+      <audio
+        id="bgm"
+        data-start="0"
+        data-duration="24"
+        data-track-index="10"
+        data-volume="0.34"
+        data-fade-in="0.6"
+        data-fade-out="1.6"
+        src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3"
+      ></audio>
+
+      <!-- S1: panel lands, then the stripes land -->
+      <audio id="sfx-rect" data-start="0.27" data-duration="0.11" data-track-index="11" data-volume="0.55" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-stripes" data-start="1.6" data-duration="0.18" data-track-index="12" data-volume="0.8" src="assets/sfx/impact/impactSoft_medium_001.ogg"></audio>
+
+      <!-- S2: polyp starts painting in at 8.62 s so the 8.74 s strong cue lands as it appears (bell); box locks on after -->
+      <audio id="sfx-paint" data-start="8.6" data-duration="1.48" data-track-index="13" data-volume="0.72" src="assets/sfx/impact/impactBell_heavy_000.ogg"></audio>
+      <audio id="sfx-box" data-start="9.08" data-duration="0.19" data-track-index="14" data-volume="0.5" src="assets/sfx/interface/drop_003.ogg"></audio>
+      <audio id="sfx-whip" data-start="10.32" data-duration="0.6" data-track-index="15" data-volume="0.34" src="assets/sfx/casino/card-slide-1.ogg"></audio>
+
+      <!-- S3: six arrivals, one per beat (beat-grid: 10.93, 11.46, 12.02, 12.55, 13.11, 13.64) -->
+      <audio id="sfx-m1" data-start="10.91" data-duration="0.11" data-track-index="16" data-volume="0.5" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-m2" data-start="11.44" data-duration="0.19" data-track-index="16" data-volume="0.5" src="assets/sfx/interface/drop_002.ogg"></audio>
+      <audio id="sfx-m3" data-start="12.0" data-duration="0.19" data-track-index="16" data-volume="0.5" src="assets/sfx/interface/drop_003.ogg"></audio>
+      <audio id="sfx-m4" data-start="12.53" data-duration="0.11" data-track-index="16" data-volume="0.5" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-m5" data-start="13.09" data-duration="0.19" data-track-index="16" data-volume="0.5" src="assets/sfx/interface/drop_002.ogg"></audio>
+      <audio id="sfx-m6" data-start="13.62" data-duration="0.19" data-track-index="16" data-volume="0.5" src="assets/sfx/interface/drop_003.ogg"></audio>
+
+      <!-- S4: bars land on 16.38, 17.47 (strong), 18.56 (strong); bell on the hero number -->
+      <audio id="sfx-bar1" data-start="16.36" data-duration="0.11" data-track-index="17" data-volume="0.45" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-bar2" data-start="17.45" data-duration="0.19" data-track-index="17" data-volume="0.5" src="assets/sfx/interface/drop_002.ogg"></audio>
+      <audio id="sfx-bar3" data-start="18.53" data-duration="0.66" data-track-index="18" data-volume="0.7" src="assets/sfx/impact/impactBell_heavy_003.ogg"></audio>
+
+      <!-- S5: title lands on the 20.75 s beat -->
+      <audio id="sfx-title" data-start="20.72" data-duration="0.14" data-track-index="19" data-volume="0.8" src="assets/sfx/impact/impactSoft_medium_002.ogg"></audio>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // Real music energy: bass bands of vol-12, 10 samples/s, normalised 0..1 (extract-audio-data.py, 8 bands, 30 fps).
+      // Baked into tweens at build time (no per-frame callbacks). Drives only glow presence, never text.
+      const BASS = [0.58,0.46,0.22,0.09,0.09,0.07,0.05,0.09,0.20,0.21,0.13,0.08,0.06,0.06,0.06,0.06,0.04,0.03,0.02,0.02,0.03,0.05,0.07,0.08,0.06,0.04,0.03,0.03,0.02,0.16,0.39,0.36,0.12,0.03,0.03,0.04,0.05,0.04,0.03,0.02,0.01,0.01,0.12,0.38,0.52,0.38,0.18,0.10,0.07,0.05,0.06,0.13,0.21,0.20,0.12,0.07,0.06,0.06,0.06,0.05,0.03,0.03,0.03,0.02,0.03,0.06,0.07,0.06,0.05,0.05,0.04,0.03,0.11,0.33,0.44,0.27,0.08,0.04,0.03,0.04,0.05,0.04,0.02,0.01,0.01,0.01,0.25,0.66,0.71,0.55,0.52,0.58,0.74,0.79,0.61,0.48,0.48,0.60,0.74,0.66,0.54,0.51,0.53,0.68,0.74,0.55,0.43,0.47,0.62,0.73,0.60,0.49,0.49,0.55,0.71,0.71,0.59,0.64,0.68,0.70,0.76,0.64,0.55,0.55,0.64,0.82,0.79,0.57,0.50,0.52,0.62,0.69,0.58,0.51,0.54,0.67,0.84,0.78,0.58,0.50,0.55,0.74,0.78,0.56,0.44,0.45,0.57,0.75,0.70,0.53,0.49,0.56,0.71,0.79,0.66,0.55,0.52,0.62,0.76,0.67,0.60,0.71,0.75,0.79,0.81,0.67,0.58,0.57,0.60,0.69,0.56,0.23,0.04,0.21,0.65,0.94,0.79,0.41,0.21,0.40,0.63,0.43,0.18,0.16,0.35,0.74,0.71,0.40,0.46,0.60,0.71,0.79,0.68,0.71,0.83,0.86,0.87,0.79,0.68,0.48,0.36,0.63,0.71,0.54,0.73,0.94,0.95,0.91,0.69,0.55,0.70,0.86,0.92,0.89,0.81,0.82,0.87,0.90,0.89,0.80,0.73,0.53,0.43,0.72,0.73,0.34,0.23,0.24,0.36,0.61,0.50,0.40,0.60,0.73,0.81,0.88];
+
+      // Colour of the glow follows the story: red while the thesis fails, emerald once it works.
+      tl.fromTo("#glow-red", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power2.out" }, 1.55);
+      tl.to("#glow-red", { opacity: 0, duration: 0.8, ease: "power2.inOut" }, 3.2);
+      tl.fromTo("#glow-em", { opacity: 0 }, { opacity: 1, duration: 1.0, ease: "power2.inOut" }, 3.3);
+
+      // Audio-reactive: the glow stage breathes with the bass (scale +0..5%, presence 0.8..1).
+      BASS.forEach(function (v, i) {
+        if (i < 2) return;
+        tl.to(
+          "#glow-stage",
+          { scale: 1 + 0.05 * v, opacity: 0.8 + 0.2 * v, duration: 0.1, ease: "none" },
+          i * 0.1,
+        );
+      });
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
