@@ -149,6 +149,34 @@ python src/python_scripts/create_masks.py                       # Bounding boxes
 python src/python_scripts/copy_files_to_cyclegan_structure.py   # Reorganize for CycleGAN
 ```
 
+### Diffusion-based polyp synthesis (`code/src/polyp_synth/`)
+
+The CycleGAN experiment (bounding-box mask → whole colonoscopy frame) could not work: a filled rectangle says nothing about the colon, and CycleGAN is designed for *unpaired* data while mask/image pairs are paired. `polyp_synth` instead keeps the real surrounding tissue and paints **only the polyp** inside a mask, using Stable Diffusion 1.5 inpainting fine-tuned with LoRA. The polyp's bounding box is known exactly (we chose the mask), so the label comes for free, in the same `Images/` + `Annotations/` format as LDPolypVideo.
+
+It uses its own virtualenv (the legacy `requirements.txt` pins torch 2.1, which has no kernels for RTX 50xx GPUs); see `code/requirements-synth.txt`. All commands from `code/src`:
+
+```bash
+python -m polyp_synth.download_data                                   # Kvasir-SEG, CVC-ClinicDB, HyperKvasir polyp-free frames
+python -m polyp_synth.train --run-name v1 --steps 4000 --no-grad-ckpt  # ~30 min on an RTX 5090 laptop GPU
+python -m polyp_synth.generate --lora ../out/polyp_synth/runs/v1/final \
+    --frames ../data/polyp_synth/raw/negatives/cecum --n 300 --save-before --out ../out/polyp_synth/synth_v1
+python -m polyp_synth.detector_check train                            # real-data detector used as a realism / label check
+python -m polyp_synth.detector_check score --dir ../out/polyp_synth/synth_v1   # keep only polyps the detector finds
+python -m polyp_synth.evaluate --name v1 --lora ../out/polyp_synth/runs/v1/final   # FID / KID on held-out polyps
+python -m pytest polyp_synth/tests -q                                 # CPU-only unit tests
+```
+
+Held-out validation results (160 polyps never seen in training; polyp is blanked and repainted from its true mask):
+
+| | Patch KID ↓ | Real polyps found by a real-data detector |
+| --- | --- | --- |
+| Untuned SD inpainting | 0.0234 | 6.4% |
+| Fine-tuned, DPM++ 30 steps | 0.0107 | 86.7% |
+| **Fine-tuned, Euler 16 steps** | **0.0058** | **87.3%** |
+| Real vs. real (floor) | 0.0025 | 85.0% (real frames) |
+
+Caveats: trained on Kvasir-SEG + CVC-ClinicDB (LDPolypVideo is not bundled; its boxes are converted to ellipse masks if you add it), very large masks (covering a big part of the frame) are still weak, so `generate` limits polyp area to 1-20% of the crop by default, and the detector check shows polyps *look like polyps to a detector*, not that they are free of artifacts a clinician would notice. Whether adding these images improves detection accuracy has not been tested yet.
+
 ## Streamlit Dashboard (legacy)
 
 A legacy Streamlit app is also available for quick exploration:
@@ -224,6 +252,7 @@ TFG/
 | --- | --- |
 | **CycleGAN** | Unpaired mask ↔ polyp image translation |
 | **SPADE** | Spatially-adaptive mask → polyp synthesis |
+| **SD inpainting + LoRA** | Paints a polyp inside a real mask on a real frame (`polyp_synth`, see above) |
 
 ## Tech Stack
 
