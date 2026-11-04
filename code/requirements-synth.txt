@@ -1,0 +1,23 @@
+# Dependencies for code/src/polyp_synth (diffusion-based polyp synthesis).
+#
+# Kept separate from requirements.txt on purpose: that file pins the legacy
+# torch 2.1 stack used for the detection experiments, which has no kernels for
+# Blackwell GPUs (RTX 50xx). Install in its own virtualenv:
+#
+#   uv venv ~/.venvs/tfg-gen --python 3.12
+#   VIRTUAL_ENV=~/.venvs/tfg-gen uv pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+#   VIRTUAL_ENV=~/.venvs/tfg-gen uv pip install -r requirements-synth.txt
+diffusers>=0.30
+transformers>=4.44
+accelerate
+peft>=0.12
+safetensors
+huggingface_hub
+pillow
+numpy
+opencv-python-headless
+scipy
+tqdm
+matplotlib
+torchmetrics
+torch-fidelity
