@@ -1,0 +1,9 @@
+# Wheelhouse contents for the BSC virtualenv (see bsc.sh build).
+# torch/torchvision are added separately from config.sh (TORCH_SPEC) so the CUDA build is pinned.
+-r ../../requirements-synth.txt
+
+# legacy detection experiments (train_models.py / optuna_train_model.py)
+optuna
+scikit-learn
+pandas
+pycocotools

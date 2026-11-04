@@ -143,3 +143,9 @@ backend/best_hyperparameters.csv
 # Agent skills (installed by `npx skills` — restore via `make skills-restore`)
 .agents/skills/
 
+
+# BSC HPC scripts: personal cluster config, staged wheels/weights, job logs, generated remote env
+code/hpc/bsc/config.sh
+code/hpc/bsc/.stage/
+code/hpc/bsc/logs/
+code/hpc/bsc/remote.env
