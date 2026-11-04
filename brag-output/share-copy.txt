@@ -1,0 +1,1 @@
+Not enough polyps. So we taught a GAN to draw more. My bachelor's thesis shipped as a ten-tab dashboard: CycleGAN data augmentation, Faster R-CNN detection, and an Inference tab that boxes the polyp. github.com/cuberhaus/TFG

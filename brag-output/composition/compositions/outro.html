@@ -1,0 +1,195 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      font-family: var(--font-display), Inter, system-ui, sans-serif;
+    }
+    #ot-halo {
+      position: absolute;
+      left: 260px;
+      top: 150px;
+      width: 1400px;
+      height: 520px;
+      background: radial-gradient(closest-side, rgba(96, 165, 250, 0.22), rgba(96, 165, 250, 0) 72%);
+      opacity: 0;
+    }
+    #ot-stack {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+    }
+    #ot-title-row {
+      position: absolute;
+      left: 0;
+      top: 262px;
+      width: 1920px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 26px;
+    }
+    #ot-icon {
+      width: 84px;
+      height: 84px;
+      color: #60a5fa;
+      flex: none;
+    }
+    #ot-title {
+      font-size: 98px;
+      font-weight: 700;
+      letter-spacing: -0.035em;
+      line-height: 1.05;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+    #ot-tag {
+      position: absolute;
+      left: 0;
+      top: 408px;
+      width: 1920px;
+      text-align: center;
+      font-size: 31px;
+      font-weight: 400;
+      letter-spacing: -0.005em;
+      color: #9ca3af;
+    }
+    #ot-joke {
+      position: absolute;
+      left: 0;
+      top: 560px;
+      width: 1920px;
+      text-align: center;
+    }
+    .ot-j1 {
+      font-size: 64px;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+      line-height: 1.12;
+      color: #ffffff;
+    }
+    .ot-j2 {
+      margin-top: 6px;
+      font-size: 64px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      line-height: 1.12;
+      color: #60a5fa;
+    }
+    #ot-foot {
+      position: absolute;
+      left: 0;
+      top: 862px;
+      width: 1920px;
+      text-align: center;
+      font-size: 28px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      color: #9ca3af;
+    }
+    .w {
+      display: inline-block;
+      margin-right: 0.25em;
+      opacity: 0;
+    }
+    .w:last-child {
+      margin-right: 0;
+    }
+  </style>
+
+  <div data-hf-id="hf-x7nm" id="root" data-composition-id="outro" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-ucjf" id="ot-halo"></div>
+    <div data-hf-id="hf-oe3j" id="ot-stack">
+      <div data-hf-id="hf-fk42" id="ot-title-row">
+        <svg data-hf-id="hf-zdhp"
+          id="ot-icon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path data-hf-id="hf-hayf"
+            id="ot-icon-path"
+            d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"
+          />
+        </svg>
+        <div data-hf-id="hf-haa1" id="ot-title">
+          <span data-hf-id="hf-oama" class="w">Polyp</span><span data-hf-id="hf-5odf" class="w">Detection</span><span data-hf-id="hf-eyu4" class="w">Dashboard</span>
+        </div>
+      </div>
+      <div data-hf-id="hf-wz6a" id="ot-tag">Deep Learning Polyp Detection with Generative Data Augmentation</div>
+      <div data-hf-id="hf-hrqw" id="ot-joke">
+        <div data-hf-id="hf-it75" class="ot-j1" id="ot-j1">Most theses end as a PDF.</div>
+        <div data-hf-id="hf-wnpv" class="ot-j2" id="ot-j2">This one has ten tabs.</div>
+      </div>
+      <div data-hf-id="hf-jdxd" id="ot-foot">FIB-UPC Bachelor&rsquo;s Thesis &nbsp;&middot;&nbsp; github.com/cuberhaus/TFG</div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    // Music bass/RMS (vol-9, 10 fps, sampled from 16.1 s) → subtle halo presence.
+    const BASS = [0.18,0.11,0.15,0.15,0.09,0.17,0.14,0.29,0.49,0.39,0.34,0.32,0.3,0.58,0.31,0.29,0.28,0.34,0.55,0.38,0.33,0.37,0.34,0.49,0.44,0.39,0.33,0.35,0.4,0.46,0.42,0.44,0.55,0.5,0.63,0.43,0.43,0.61,0.6,0.66,0.49,0.59,0.58,0.53,0.61,0.38,0.38,0.54,0.64,0.63,0.67,0.62];
+
+    // Soft handover from the dashboard (its content is blurring out until ~16.5 s).
+    tl.fromTo("#ot-halo", { opacity: 0 }, { opacity: 0.55, duration: 0.7, ease: "power2.out" }, 0.2);
+    BASS.forEach(function (v, i) {
+      if (i < 9) return;
+      tl.to("#ot-halo", { opacity: 0.4 + 0.5 * v, duration: 0.1, ease: "none" }, i * 0.1);
+    });
+
+    // Title lands on the 16.34 s beat (local 0.25 s): icon strokes in, words blur sharp.
+    // beat-locked: 16.34s
+    tl.fromTo(
+      "#ot-icon-path",
+      { strokeDasharray: 60, strokeDashoffset: 60 },
+      { strokeDashoffset: 0, duration: 0.55, ease: "power2.out" },
+      0.25
+    );
+    tl.fromTo(
+      "#ot-title .w",
+      { opacity: 0, filter: "blur(10px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power3.out", stagger: 0.1 },
+      0.25
+    );
+
+    // Tagline (the app's own header copy).
+    tl.fromTo(
+      "#ot-tag",
+      { opacity: 0, filter: "blur(8px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.28, ease: "power3.out" },
+      0.9
+    );
+
+    // The dry line — beat-grid: line 1 at 17.91 s, line 2 at 18.44 s (local 1.81 / 2.34).
+    // beat-grid: j1 17.91s, j2 18.44s
+    tl.fromTo(
+      "#ot-j1",
+      { opacity: 0, filter: "blur(8px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.28, ease: "power3.out" },
+      1.81
+    );
+    tl.fromTo(
+      "#ot-j2",
+      { opacity: 0, filter: "blur(8px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.28, ease: "power3.out" },
+      2.34
+    );
+
+    // Footer.
+    tl.fromTo(
+      "#ot-foot",
+      { opacity: 0, filter: "blur(6px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out" },
+      2.7
+    );
+
+    window.__timelines["outro"] = tl;
+  </script>
+</template>

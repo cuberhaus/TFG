@@ -1,0 +1,1383 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      font-family: var(--font-display), Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+      color: #ffffff;
+    }
+    #root * {
+      box-sizing: border-box;
+    }
+    #db-stage {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    /* Logical viewport of the real app (1372x772) scaled by the camera to fill 1920x1080 */
+    #db-cam {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1372px;
+      height: 772px;
+      transform-origin: 0 0;
+      background: #111827;
+      overflow: hidden;
+      border-radius: 0;
+    }
+    .ic {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      flex: none;
+      display: block;
+    }
+    .mono {
+      font-family: "JetBrains Mono", "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    }
+
+    /* ---------- header ---------- */
+    #db-header {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1372px;
+      height: 74px;
+      background: #1f2937;
+      border-bottom: 1px solid #374151;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      z-index: 3;
+    }
+    #db-menu {
+      padding: 8px;
+      background: #374151;
+      border-radius: 6px;
+      color: #d1d5db;
+    }
+    #db-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    #db-brand .ic {
+      width: 28px;
+      height: 28px;
+      color: #60a5fa;
+    }
+    #db-title {
+      font-size: 20px;
+      line-height: 25px;
+      font-weight: 700;
+      color: #fff;
+    }
+    #db-sub {
+      font-size: 12px;
+      line-height: 16px;
+      color: #9ca3af;
+    }
+
+    /* ---------- sidebar ---------- */
+    #db-sidebar {
+      position: absolute;
+      left: 0;
+      top: 74px;
+      width: 256px;
+      height: 698px;
+      background: #1f2937;
+      border-right: 1px solid #374151;
+      z-index: 2;
+    }
+    #db-nav {
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .nav-group h3 {
+      padding: 0 12px;
+      margin: 0 0 8px;
+      font-size: 12px;
+      line-height: 16px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #8b95a5;
+    }
+    .nav-items {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .nav-item {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      height: 42px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      font-size: 14px;
+      line-height: 20px;
+      font-weight: 500;
+    }
+    .nav-item .nav-bg {
+      position: absolute;
+      inset: -1px;
+      border-radius: 8px;
+      background: #374151;
+      border: 1px solid #4b5563;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+      opacity: 0;
+    }
+    .nav-item .nav-ic,
+    .nav-item .nav-tx {
+      position: relative;
+    }
+    .nav-item .nav-ic {
+      color: #6b7280;
+    }
+    .nav-item .nav-tx {
+      color: #9ca3af;
+      white-space: nowrap;
+    }
+    #db-side-foot {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 66px;
+      border-top: 1px solid #374151;
+      padding: 16px;
+      font-size: 12px;
+      line-height: 16px;
+      color: #8b95a5;
+      text-align: center;
+    }
+
+    /* ---------- main + card ---------- */
+    #db-main {
+      position: absolute;
+      left: 256px;
+      top: 74px;
+      width: 1116px;
+      height: 698px;
+      background: #111827;
+      padding: 24px;
+    }
+    #db-card {
+      position: relative;
+      width: 1068px;
+      height: 650px;
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.35);
+    }
+    .pg {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1066px;
+      padding: 24px;
+    }
+    .pg h2 {
+      margin: 0 0 8px;
+      font-size: 24px;
+      line-height: 32px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pg h2 .ic {
+      width: 24px;
+      height: 24px;
+    }
+    .pg .lead {
+      margin: 0;
+      font-size: 16px;
+      line-height: 24px;
+      color: #9ca3af;
+    }
+
+    /* ---------- page A: generative data augmentation ---------- */
+    #db-prep {
+      margin-top: 24px;
+      border-radius: 12px;
+      border: 1px solid rgba(146, 64, 14, 0.4);
+      background: linear-gradient(to bottom right, rgba(120, 53, 15, 0.1), #1f2937);
+      padding: 24px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    }
+    .prep-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .prep-left {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      flex: 1;
+      min-width: 0;
+    }
+    .step-badge {
+      flex: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      background: rgba(245, 158, 11, 0.15);
+      color: #fcd34d;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .prep-title {
+      margin: 0;
+      font-size: 16px;
+      line-height: 24px;
+      font-weight: 600;
+      color: #f3f4f6;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .prep-title .ic {
+      width: 16px;
+      height: 16px;
+      color: #fbbf24;
+    }
+    #db-done {
+      font-size: 11px;
+      line-height: 16px;
+      font-weight: 400;
+      color: #6ee7b7;
+      background: rgba(6, 78, 59, 0.4);
+      border: 1px solid rgba(4, 120, 87, 0.6);
+      padding: 2px 8px;
+      border-radius: 9999px;
+      opacity: 0;
+    }
+    .prep-p {
+      margin: 6px 0 0;
+      max-width: 672px;
+      font-size: 14px;
+      line-height: 22.75px;
+      color: #9ca3af;
+    }
+    .prep-p strong {
+      color: #e5e7eb;
+      font-weight: 600;
+    }
+    .prep-p code {
+      color: #d1d5db;
+      background: rgba(17, 24, 39, 0.6);
+      padding: 0 4px;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+    #db-prepbtn {
+      position: relative;
+      flex: none;
+      width: 178px;
+      height: 40px;
+      border-radius: 8px;
+      background: #d97706;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.35);
+    }
+    #db-prepbtn .state {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+    #db-prepbtn .ic {
+      width: 16px;
+      height: 16px;
+    }
+    #db-prepbtn .st-run,
+    #db-prepbtn .st-redo {
+      opacity: 0;
+    }
+    .diagram {
+      margin-top: 20px;
+      background: rgba(17, 24, 39, 0.6);
+      border: 1px solid #374151;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .diagram .cap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      line-height: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #8b95a5;
+      margin-bottom: 12px;
+    }
+    .diagram .cap .ic {
+      width: 12px;
+      height: 12px;
+    }
+    .diagram .grid {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 16px;
+      align-items: center;
+    }
+    .dbox {
+      background: rgba(3, 7, 18, 0.6);
+      border: 1px solid #374151;
+      border-radius: 6px;
+      padding: 12px;
+    }
+    .dbox .lab {
+      font-size: 10px;
+      line-height: 15px;
+      color: #8b95a5;
+      margin-bottom: 6px;
+    }
+    .dbox pre {
+      margin: 0;
+      font-size: 11px;
+      line-height: 15.1px;
+      color: #d1d5db;
+      white-space: pre;
+    }
+    .dbox .b {
+      color: #93c5fd;
+    }
+    .dbox .g {
+      color: #8b95a5;
+    }
+    .dbox .e {
+      color: #6ee7b7;
+    }
+    .darrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: #fbbf24;
+    }
+    .darrow span {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #8b95a5;
+    }
+    .diagram .note {
+      margin: 12px 0 0;
+      font-size: 11px;
+      line-height: 17.9px;
+      color: #8b95a5;
+      display: flex;
+      gap: 6px;
+    }
+    .diagram .note .ic {
+      width: 12px;
+      height: 12px;
+      margin-top: 3px;
+    }
+    .diagram .note strong {
+      color: #9ca3af;
+      font-weight: 600;
+    }
+    .diagram .note em {
+      color: #d1d5db;
+    }
+    #db-tasks {
+      margin-top: 40px;
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+    }
+    .panel {
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+    .panel > .ph {
+      padding: 24px;
+      border-bottom: 1px solid #374151;
+      background: rgba(31, 41, 55, 0.5);
+    }
+    .panel > .ph h3 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 28px;
+      font-weight: 500;
+      color: #e5e7eb;
+    }
+    .panel > .pb {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .task {
+      position: relative;
+      border-radius: 8px;
+      border: 1px solid #374151;
+      background: #1f2937;
+      padding: 16px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    }
+    .task.sel {
+      border-color: #a855f7;
+      background: rgba(88, 28, 135, 0.1);
+    }
+    .task .t1 {
+      font-size: 14px;
+      line-height: 20px;
+      font-weight: 500;
+      color: #f3f4f6;
+    }
+    .task .t2 {
+      margin-top: 4px;
+      font-size: 14px;
+      line-height: 20px;
+      color: #9ca3af;
+      padding-right: 28px;
+    }
+    .task .chk {
+      position: absolute;
+      right: 16px;
+      top: 16px;
+      color: #a855f7;
+    }
+    .fields {
+      margin-top: 16px;
+      border-top: 1px solid #374151;
+      padding-top: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .fields label {
+      display: block;
+      font-size: 12px;
+      line-height: 16px;
+      font-weight: 500;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
+    .fields label span {
+      color: #8b95a5;
+      font-weight: 400;
+    }
+    .inp {
+      width: 100%;
+      height: 32px;
+      background: #111827;
+      border: 1px solid #4b5563;
+      border-radius: 4px;
+      padding: 0 12px;
+      font-size: 14px;
+      line-height: 30px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .inp.ph {
+      color: #8b95a5;
+    }
+    .span2 {
+      grid-column: span 2;
+    }
+    .col-r {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .statuscard {
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    }
+    .statuscard h4 {
+      margin: 0 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #374151;
+      font-size: 16px;
+      line-height: 24px;
+      font-weight: 500;
+      color: #e5e7eb;
+    }
+    .statuscard .idle {
+      padding: 24px 0;
+      text-align: center;
+      font-style: italic;
+      font-size: 14px;
+      line-height: 20px;
+      color: #8b95a5;
+    }
+    .whycard {
+      background: rgba(30, 58, 138, 0.2);
+      border: 1px solid rgba(30, 64, 175, 0.5);
+      border-radius: 12px;
+      padding: 20px;
+      font-size: 14px;
+      line-height: 22.75px;
+      color: #bfdbfe;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    }
+    .whycard h4 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      line-height: 24px;
+      font-weight: 500;
+      color: #93c5fd;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .whycard h4 .ic {
+      width: 16px;
+      height: 16px;
+    }
+    .whycard p {
+      margin: 0;
+    }
+
+    /* ---------- callout (bbox -> mask) ---------- */
+    #db-callout {
+      position: absolute;
+      left: 440px;
+      top: 270px;
+      width: 520px;
+      padding: 16px 20px 14px;
+      background: rgba(17, 24, 39, 0.97);
+      border: 1px solid #4b5563;
+      border-radius: 14px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+      opacity: 0;
+      z-index: 6;
+    }
+    #db-callout .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .thumb {
+      position: relative;
+      width: 150px;
+      height: 165px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #374151;
+      background: #000;
+    }
+    .thumb img {
+      position: absolute;
+      inset: 0;
+      width: 150px;
+      height: 165px;
+      object-fit: cover;
+      display: block;
+    }
+    .thumb svg {
+      position: absolute;
+      inset: 0;
+      width: 150px;
+      height: 165px;
+    }
+    .thumb .maskrect {
+      position: absolute;
+      left: 74.7px;
+      top: 34.4px;
+      width: 34.9px;
+      height: 43.4px;
+      background: #ffffff;
+    }
+    .ccap {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid #374151;
+      text-align: center;
+      font-size: 21px;
+      line-height: 28px;
+      font-weight: 600;
+      color: #ffffff;
+      letter-spacing: -0.01em;
+    }
+    .tcap {
+      margin-top: 8px;
+      font-size: 11px;
+      line-height: 15px;
+      color: #9ca3af;
+      text-align: center;
+    }
+    .tcap b {
+      color: #e5e7eb;
+      font-weight: 600;
+    }
+    .carrow {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      color: #fbbf24;
+      opacity: 0;
+    }
+    .carrow .ic {
+      width: 30px;
+      height: 30px;
+    }
+    .carrow span {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #9ca3af;
+    }
+
+    /* ---------- page B: inference ---------- */
+    #db-pgInf {
+      opacity: 0;
+    }
+    .inf-grid {
+      margin-top: 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+      gap: 24px;
+    }
+    .cfg {
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .cfg h3 {
+      margin: 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #374151;
+      font-size: 18px;
+      line-height: 28px;
+      font-weight: 500;
+      color: #e5e7eb;
+    }
+    .seg {
+      display: flex;
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      padding: 4px;
+    }
+    .seg div {
+      flex: 1;
+      text-align: center;
+      padding: 6px 0;
+      white-space: nowrap;
+      font-size: 13px;
+      line-height: 20px;
+      font-weight: 500;
+      border-radius: 6px;
+      color: #9ca3af;
+    }
+    .seg div.on {
+      background: #0e7490;
+      color: #fff;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    }
+    .cfg label.l {
+      display: block;
+      font-size: 14px;
+      line-height: 20px;
+      font-weight: 500;
+      color: #d1d5db;
+      margin-bottom: 4px;
+    }
+    .sel2 {
+      width: 100%;
+      height: 42px;
+      background: #111827;
+      border: 1px solid #4b5563;
+      border-radius: 8px;
+      padding: 0 12px;
+      font-size: 16px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .sel2 .v {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .sel2 .ic {
+      width: 16px;
+      height: 16px;
+      color: #9ca3af;
+    }
+    .range {
+      position: relative;
+      height: 16px;
+    }
+    .range .trk {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 6px;
+      height: 4px;
+      border-radius: 2px;
+      background: #4b5563;
+    }
+    .range .fill {
+      position: absolute;
+      left: 0;
+      width: 50%;
+      top: 6px;
+      height: 4px;
+      border-radius: 2px;
+      background: #3b82f6;
+    }
+    .range .knob {
+      position: absolute;
+      left: calc(50% - 8px);
+      top: 0;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #3b82f6;
+      border: 2px solid #fff;
+    }
+    .drop {
+      height: 96px;
+      border: 2px dashed #4b5563;
+      border-radius: 12px;
+      background: #111827;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      color: #9ca3af;
+      font-size: 14px;
+    }
+    .drop .ic {
+      width: 32px;
+      height: 32px;
+    }
+    #db-runbtn {
+      position: relative;
+      margin-top: 16px;
+      height: 54px;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 500;
+      overflow: hidden;
+    }
+    #db-runbtn .bg-off,
+    #db-runbtn .bg-on {
+      position: absolute;
+      inset: 0;
+    }
+    #db-runbtn .bg-off {
+      background: #4b5563;
+    }
+    #db-runbtn .bg-on {
+      background: #0e7490;
+      box-shadow: 0 10px 15px -3px rgba(8, 51, 68, 0.4);
+      opacity: 0;
+    }
+    #db-runbtn .lbl {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #db-runbtn .lbl-off {
+      color: #e5e7eb;
+    }
+    #db-runbtn .lbl-on {
+      color: #fff;
+      opacity: 0;
+    }
+    #db-runbtn .lbl-busy {
+      color: #e5e7eb;
+      opacity: 0;
+    }
+    .view {
+      position: relative;
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      padding: 16px;
+      height: 606px;
+    }
+    .view .st {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .view .ph-empty {
+      color: #8b95a5;
+      font-size: 16px;
+    }
+    .view .ph-empty .ic {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 16px;
+      opacity: 0.5;
+    }
+    .view .spin {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 4px solid #3b82f6;
+      border-top-color: transparent;
+      margin-bottom: 16px;
+    }
+    .view .spin-t {
+      color: #60a5fa;
+      font-size: 16px;
+    }
+    #db-result {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .imgwrap {
+      position: relative;
+      width: 364px;
+      height: 398.5px;
+      border: 1px solid #374151;
+      border-radius: 4px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      background: #000;
+    }
+    .imgwrap img {
+      position: absolute;
+      inset: 0;
+      width: 364px;
+      height: 398.5px;
+      display: block;
+    }
+    .bx {
+      position: absolute;
+      border: 2px solid #ff1f1f;
+      opacity: 0;
+    }
+    .bx span {
+      position: absolute;
+      left: 2px;
+      top: 1px;
+      font-size: 8.5px;
+      line-height: 10px;
+      color: #ff1f1f;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    #db-bx1 {
+      left: 168.5px;
+      top: 70.4px;
+      width: 95.9px;
+      height: 147.6px;
+    }
+    #db-bx2 {
+      left: 191.7px;
+      top: 86.1px;
+      width: 57.7px;
+      height: 95.9px;
+    }
+    .res {
+      margin-top: 24px;
+      width: 100%;
+      max-width: 512px;
+    }
+    .res h4 {
+      margin: 0 0 8px;
+      font-size: 16px;
+      line-height: 24px;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .res h4 .badge {
+      font-size: 12px;
+      line-height: 16px;
+      font-weight: 400;
+      color: #93c5fd;
+      background: #1e3a8a;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+    .tbl {
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 4px;
+      overflow: hidden;
+      font-size: 14px;
+    }
+    .tbl .tr {
+      display: flex;
+      align-items: center;
+    }
+    .tbl .th {
+      background: #374151;
+      color: #d1d5db;
+      font-weight: 500;
+    }
+    .tbl .td {
+      border-top: 1px solid #374151;
+    }
+    .tbl .c1 {
+      width: 96px;
+      padding: 8px 16px;
+    }
+    .tbl .c2 {
+      flex: 1;
+      padding: 8px 16px;
+    }
+    .tbl .score {
+      color: #f87171;
+      font-weight: 500;
+    }
+    .tbl .box {
+      color: #9ca3af;
+    }
+
+    /* ---------- cursor ---------- */
+    #db-cursor {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 26px;
+      height: 26px;
+      z-index: 9;
+      opacity: 0;
+      pointer-events: none;
+      transform-origin: 3px 3px;
+      filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.55));
+    }
+  </style>
+
+  <div data-hf-id="hf-o97h" id="root" data-composition-id="dashboard" data-width="1920" data-height="1080">
+    <svg data-hf-id="hf-p3r6" width="0" height="0" style="position: absolute" aria-hidden="true">
+      <symbol data-hf-id="hf-p5zj" id="db-i-menu" viewBox="0 0 24 24"><path data-hf-id="hf-ikrp" d="M4 5h16" /> <path data-hf-id="hf-49sz" d="M4 12h16" /> <path data-hf-id="hf-b216" d="M4 19h16" /></symbol>
+      <symbol data-hf-id="hf-t66t" id="db-i-activity" viewBox="0 0 24 24"><path data-hf-id="hf-as02" d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" /></symbol>
+      <symbol data-hf-id="hf-vhfh" id="db-i-folder-search" viewBox="0 0 24 24"><path data-hf-id="hf-j8o9" d="M10.7 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v4.1" /> <path data-hf-id="hf-n8jj" d="m21 21-1.9-1.9" /> <circle data-hf-id="hf-y2ep" cx="17" cy="17" r="3" /></symbol>
+      <symbol data-hf-id="hf-fr6f" id="db-i-sparkles" viewBox="0 0 24 24"><path data-hf-id="hf-9h9f" d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" /> <path data-hf-id="hf-soll" d="M20 2v4" /> <path data-hf-id="hf-h3p6" d="M22 4h-4" /> <circle data-hf-id="hf-vut6" cx="4" cy="20" r="2" /></symbol>
+      <symbol data-hf-id="hf-3gic" id="db-i-images" viewBox="0 0 24 24"><path data-hf-id="hf-ilxt" d="m22 11-1.296-1.296a2.4 2.4 0 0 0-3.408 0L11 16" /> <path data-hf-id="hf-rfg4" d="M4 8a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2" /> <circle data-hf-id="hf-y6ec" cx="13" cy="7" r="1" fill="currentColor" /> <rect data-hf-id="hf-udkn" x="8" y="2" width="14" height="14" rx="2" /></symbol>
+      <symbol data-hf-id="hf-3zls" id="db-i-layers" viewBox="0 0 24 24"><path data-hf-id="hf-5nzu" d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" /> <path data-hf-id="hf-ovlq" d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" /> <path data-hf-id="hf-z3ci" d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" /></symbol>
+      <symbol data-hf-id="hf-o50q" id="db-i-sliders" viewBox="0 0 24 24"><path data-hf-id="hf-32rw" d="M10 8h4" /> <path data-hf-id="hf-a5lz" d="M12 21v-9" /> <path data-hf-id="hf-5itf" d="M12 8V3" /> <path data-hf-id="hf-4oyw" d="M17 16h4" /> <path data-hf-id="hf-ar43" d="M19 12V3" /> <path data-hf-id="hf-tjlc" d="M19 21v-5" /> <path data-hf-id="hf-ox6x" d="M3 14h4" /> <path data-hf-id="hf-7hia" d="M5 10V3" /> <path data-hf-id="hf-ifrr" d="M5 21v-7" /></symbol>
+      <symbol data-hf-id="hf-ricc" id="db-i-play" viewBox="0 0 24 24"><path data-hf-id="hf-oenj" d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z" /></symbol>
+      <symbol data-hf-id="hf-gtjb" id="db-i-trending-up" viewBox="0 0 24 24"><path data-hf-id="hf-ff33" d="M16 7h6v6" /> <path data-hf-id="hf-nafn" d="m22 7-8.5 8.5-5-5L2 17" /></symbol>
+      <symbol data-hf-id="hf-pwsd" id="db-i-clipboard-list" viewBox="0 0 24 24"><rect data-hf-id="hf-q8ar" width="8" height="4" x="8" y="2" rx="1" ry="1" /> <path data-hf-id="hf-34fh" d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /> <path data-hf-id="hf-2rfo" d="M12 11h4" /> <path data-hf-id="hf-8ucz" d="M12 16h4" /> <path data-hf-id="hf-b91y" d="M8 11h.01" /> <path data-hf-id="hf-2gfl" d="M8 16h.01" /></symbol>
+      <symbol data-hf-id="hf-6gh0" id="db-i-bar-chart" viewBox="0 0 24 24"><path data-hf-id="hf-ehnq" d="M5 21v-6" /> <path data-hf-id="hf-ofji" d="M12 21V9" /> <path data-hf-id="hf-6v55" d="M19 21V3" /></symbol>
+      <symbol data-hf-id="hf-3nxa" id="db-i-search" viewBox="0 0 24 24"><path data-hf-id="hf-zgu7" d="m21 21-4.34-4.34" /> <circle data-hf-id="hf-7tjq" cx="11" cy="11" r="8" /></symbol>
+      <symbol data-hf-id="hf-b8c1" id="db-i-upload-cloud" viewBox="0 0 24 24"><path data-hf-id="hf-r420" d="M12 13v8" /> <path data-hf-id="hf-0m8d" d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" /> <path data-hf-id="hf-82yg" d="m8 17 4-4 4 4" /></symbol>
+      <symbol data-hf-id="hf-fkb3" id="db-i-image" viewBox="0 0 24 24"><rect data-hf-id="hf-pytt" width="18" height="18" x="3" y="3" rx="2" ry="2" /> <circle data-hf-id="hf-ymtw" cx="9" cy="9" r="2" /> <path data-hf-id="hf-w7l1" d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></symbol>
+      <symbol data-hf-id="hf-9z0b" id="db-i-check-circle" viewBox="0 0 24 24"><path data-hf-id="hf-vwbv" d="M21.801 10A10 10 0 1 1 17 3.335" /> <path data-hf-id="hf-nw0a" d="m9 11 3 3L22 4" /></symbol>
+      <symbol data-hf-id="hf-60rs" id="db-i-wand" viewBox="0 0 24 24"><path data-hf-id="hf-njyk" d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72" /> <path data-hf-id="hf-43d7" d="m14 7 3 3" /> <path data-hf-id="hf-g0vw" d="M5 6v4" /> <path data-hf-id="hf-t3wa" d="M19 14v4" /> <path data-hf-id="hf-ob2y" d="M10 2v2" /> <path data-hf-id="hf-r1h9" d="M7 8H3" /> <path data-hf-id="hf-ep24" d="M21 16h-4" /> <path data-hf-id="hf-hdsb" d="M11 3H9" /></symbol>
+      <symbol data-hf-id="hf-mlmt" id="db-i-refresh" viewBox="0 0 24 24"><path data-hf-id="hf-i1j2" d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /> <path data-hf-id="hf-pseq" d="M21 3v5h-5" /> <path data-hf-id="hf-56nx" d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /> <path data-hf-id="hf-8lg6" d="M8 16H3v5" /></symbol>
+      <symbol data-hf-id="hf-q2ly" id="db-i-arrow-right" viewBox="0 0 24 24"><path data-hf-id="hf-8gds" d="M5 12h14" /> <path data-hf-id="hf-bnog" d="m12 5 7 7-7 7" /></symbol>
+      <symbol data-hf-id="hf-eah6" id="db-i-info" viewBox="0 0 24 24"><circle data-hf-id="hf-m1lh" cx="12" cy="12" r="10" /> <path data-hf-id="hf-2fhk" d="M12 16v-4" /> <path data-hf-id="hf-99x9" d="M12 8h.01" /></symbol>
+      <symbol data-hf-id="hf-x9cp" id="db-i-folder-tree" viewBox="0 0 24 24"><path data-hf-id="hf-by20" d="M20 10a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2.5a1 1 0 0 1-.8-.4l-.9-1.2A1 1 0 0 0 15 3h-2a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1Z" /> <path data-hf-id="hf-i9nu" d="M20 21a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1h-2.9a1 1 0 0 1-.88-.55l-.42-.85a1 1 0 0 0-.92-.6H13a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1Z" /> <path data-hf-id="hf-p4f3" d="M3 5a2 2 0 0 0 2 2h3" /> <path data-hf-id="hf-cvyt" d="M3 3v13a2 2 0 0 0 2 2h3" /></symbol>
+      <symbol data-hf-id="hf-towc" id="db-i-chevron-down" viewBox="0 0 24 24"><path data-hf-id="hf-zit5" d="m6 9 6 6 6-6" /></symbol>
+      <symbol data-hf-id="hf-b6rr" id="db-i-chevron-up" viewBox="0 0 24 24"><path data-hf-id="hf-kq2h" d="m18 15-6-6-6 6" /></symbol>
+      <symbol data-hf-id="hf-jpw0" id="db-i-layers2" viewBox="0 0 24 24"><path data-hf-id="hf-9q3i" d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" /> <path data-hf-id="hf-epcy" d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12" /> <path data-hf-id="hf-67au" d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17" /></symbol>
+    </svg>
+
+    <div data-hf-id="hf-flm6" id="db-stage">
+      <div data-hf-id="hf-0nok" id="db-cam" data-layout-allow-overflow>
+        <!-- ===== header (frontend/src/App.tsx) ===== -->
+        <header data-hf-id="hf-rx3s" id="db-header" data-layout-allow-overflow>
+          <div data-hf-id="hf-afw9" id="db-menu"><svg data-hf-id="hf-ypo9" class="ic"><use data-hf-id="hf-fmyk" href="#db-i-menu" /></svg></div>
+          <div data-hf-id="hf-uwp7" id="db-brand">
+            <svg data-hf-id="hf-r971" class="ic"><use data-hf-id="hf-ajla" href="#db-i-activity" /></svg>
+            <div data-hf-id="hf-yeow">
+              <div data-hf-id="hf-nozz" id="db-title">Polyp Detection Dashboard</div>
+              <div data-hf-id="hf-poux" id="db-sub">Deep Learning Polyp Detection with Generative Data Augmentation</div>
+            </div>
+          </div>
+        </header>
+
+        <!-- ===== sidebar ===== -->
+        <aside data-hf-id="hf-ujq4" id="db-sidebar" data-layout-allow-overflow>
+          <nav data-hf-id="hf-isgt" id="db-nav">
+            <div data-hf-id="hf-xdp5" class="nav-group">
+              <h3 data-hf-id="hf-tq0b">Data &amp; Exploration</h3>
+              <div data-hf-id="hf-4w10" class="nav-items">
+                <div data-hf-id="hf-hpe1" class="nav-item" id="db-nav-dataset" data-c="#60a5fa"><div data-hf-id="hf-5xox" class="nav-bg"></div><svg data-hf-id="hf-j423" class="ic nav-ic"><use data-hf-id="hf-4p3u" href="#db-i-folder-search" /></svg><span data-hf-id="hf-xhma" class="nav-tx">Dataset Explorer</span></div>
+                <div data-hf-id="hf-2vbg" class="nav-item" id="db-nav-generative" data-c="#c084fc"><div data-hf-id="hf-qamd" class="nav-bg"></div><svg data-hf-id="hf-1pd7" class="ic nav-ic"><use data-hf-id="hf-plsw" href="#db-i-sparkles" /></svg><span data-hf-id="hf-56oj" class="nav-tx">Data Augmentation</span></div>
+                <div data-hf-id="hf-zwu9" class="nav-item" id="db-nav-cyclegan" data-c="#d8b4fe"><div data-hf-id="hf-rhjg" class="nav-bg"></div><svg data-hf-id="hf-1b26" class="ic nav-ic"><use data-hf-id="hf-xe6b" href="#db-i-images" /></svg><span data-hf-id="hf-tdo3" class="nav-tx">CycleGAN Results</span></div>
+                <div data-hf-id="hf-33hr" class="nav-item" id="db-nav-spade" data-c="#f0abfc"><div data-hf-id="hf-r38f" class="nav-bg"></div><svg data-hf-id="hf-0wr5" class="ic nav-ic"><use data-hf-id="hf-ojzr" href="#db-i-layers" /></svg><span data-hf-id="hf-9ghs" class="nav-tx">SPADE Results</span></div>
+              </div>
+            </div>
+            <div data-hf-id="hf-2ict" class="nav-group">
+              <h3 data-hf-id="hf-uh2l">Training &amp; Optimization</h3>
+              <div data-hf-id="hf-71zw" class="nav-items">
+                <div data-hf-id="hf-xqc5" class="nav-item" id="db-nav-hpo" data-c="#e879f9"><div data-hf-id="hf-sa5i" class="nav-bg"></div><svg data-hf-id="hf-0ig4" class="ic nav-ic"><use data-hf-id="hf-76qp" href="#db-i-sliders" /></svg><span data-hf-id="hf-33nl" class="nav-tx">Hyperparameter Tuning</span></div>
+                <div data-hf-id="hf-nski" class="nav-item" id="db-nav-training" data-c="#2dd4bf"><div data-hf-id="hf-rvuh" class="nav-bg"></div><svg data-hf-id="hf-0453" class="ic nav-ic"><use data-hf-id="hf-gzuj" href="#db-i-play" /></svg><span data-hf-id="hf-i14u" class="nav-tx">Detection Training</span></div>
+                <div data-hf-id="hf-0m0r" class="nav-item" id="db-nav-losses" data-c="#34d399"><div data-hf-id="hf-t2rk" class="nav-bg"></div><svg data-hf-id="hf-zpu2" class="ic nav-ic"><use data-hf-id="hf-pvc4" href="#db-i-trending-up" /></svg><span data-hf-id="hf-35we" class="nav-tx">Training Losses</span></div>
+              </div>
+            </div>
+            <div data-hf-id="hf-3p9w" class="nav-group">
+              <h3 data-hf-id="hf-2lk4">Evaluation &amp; Analytics</h3>
+              <div data-hf-id="hf-5v2t" class="nav-items">
+                <div data-hf-id="hf-fn4k" class="nav-item" id="db-nav-evaluation" data-c="#4ade80"><div data-hf-id="hf-sogj" class="nav-bg"></div><svg data-hf-id="hf-zbj1" class="ic nav-ic"><use data-hf-id="hf-cnh6" href="#db-i-clipboard-list" /></svg><span data-hf-id="hf-a9so" class="nav-tx">Model Evaluation</span></div>
+                <div data-hf-id="hf-g1so" class="nav-item" id="db-nav-performance" data-c="#818cf8"><div data-hf-id="hf-nih6" class="nav-bg"></div><svg data-hf-id="hf-5a4g" class="ic nav-ic"><use data-hf-id="hf-sbpr" href="#db-i-bar-chart" /></svg><span data-hf-id="hf-w1c4" class="nav-tx">Performance Explorer</span></div>
+              </div>
+            </div>
+            <div data-hf-id="hf-3ayv" class="nav-group">
+              <h3 data-hf-id="hf-daud">Inference &amp; Testing</h3>
+              <div data-hf-id="hf-69du" class="nav-items">
+                <div data-hf-id="hf-x4fy" class="nav-item" id="db-nav-inference" data-c="#22d3ee"><div data-hf-id="hf-n465" class="nav-bg"></div><svg data-hf-id="hf-4vtf" class="ic nav-ic"><use data-hf-id="hf-aje9" href="#db-i-search" /></svg><span data-hf-id="hf-fxcw" class="nav-tx">Inference</span></div>
+              </div>
+            </div>
+          </nav>
+          <div data-hf-id="hf-9qiv" id="db-side-foot">TFG Project <br data-hf-id="hf-x5px" />&copy; 2026</div>
+        </aside>
+
+        <!-- ===== main ===== -->
+        <main data-hf-id="hf-h0mj" id="db-main">
+          <div data-hf-id="hf-36da" id="db-card">
+            <!-- Page A: Generative Data Augmentation -->
+            <section data-hf-id="hf-ao2o" class="pg" id="db-pgA">
+              <h2 data-hf-id="hf-op6h"><svg data-hf-id="hf-4poh" class="ic" style="color: #c084fc"><use data-hf-id="hf-t8rc" href="#db-i-sparkles" /></svg>Generative Data Augmentation</h2>
+              <p data-hf-id="hf-5yx1" class="lead" data-layout-ignore>Create synthetic training data using generative AI models to improve polyp detection performance.</p>
+
+              <div data-hf-id="hf-udwt" id="db-prep">
+                <div data-hf-id="hf-0978" class="prep-head">
+                  <div data-hf-id="hf-vl0d" class="prep-left">
+                    <div data-hf-id="hf-uufn" class="step-badge">1</div>
+                    <div data-hf-id="hf-q2fm" style="min-width: 0">
+                      <h3 data-hf-id="hf-9cdr" class="prep-title">
+                        <svg data-hf-id="hf-sg44" class="ic"><use data-hf-id="hf-8ydb" href="#db-i-wand" /></svg>
+                        Stage your data for the generators
+                        <span data-hf-id="hf-95ml" id="db-done">done</span>
+                      </h3>
+                      <p data-hf-id="hf-7gjf" class="prep-p" data-layout-ignore>
+                        CycleGAN and SPADE train on <strong data-hf-id="hf-zaxb">(mask, image) pairs</strong> in a fixed folder layout, but the raw dataset only ships with bounding-box <code data-hf-id="hf-5gc7" class="mono">.txt</code> annotations. This step rasterises the boxes into binary mask PNGs and restages everything into the layout the trainer scripts below expect. Re-running is safe &mdash; it just refreshes any new annotations.
+                      </p>
+                    </div>
+                  </div>
+                  <div data-hf-id="hf-vctz" id="db-prepbtn">
+                    <div data-hf-id="hf-mrty" class="state st-idle"><svg data-hf-id="hf-s1t3" class="ic"><use data-hf-id="hf-0z5r" href="#db-i-wand" /></svg>Prepare dataset</div>
+                    <div data-hf-id="hf-ttny" class="state st-run"><svg data-hf-id="hf-bquy" class="ic" id="db-spin"><use data-hf-id="hf-mdw2" href="#db-i-refresh" /></svg>Preparing&hellip;</div>
+                    <div data-hf-id="hf-8ogn" class="state st-redo"><svg data-hf-id="hf-t8q6" class="ic"><use data-hf-id="hf-cpp2" href="#db-i-refresh" /></svg>Re-run prep</div>
+                  </div>
+                </div>
+
+                <div data-hf-id="hf-02dy" class="diagram" data-layout-ignore>
+                  <div data-hf-id="hf-7px1" class="cap"><svg data-hf-id="hf-suf5" class="ic"><use data-hf-id="hf-opri" href="#db-i-folder-tree" /></svg>What this step transforms</div>
+                  <div data-hf-id="hf-kxq8" class="grid">
+                    <div data-hf-id="hf-4k1j" class="dbox">
+                      <div data-hf-id="hf-qocm" class="lab">Source &middot; what you uploaded</div>
+                      <pre data-hf-id="hf-2us5" class="mono">TrainValid/, Test/
+&#9500;&#9472; <span data-hf-id="hf-ujmk" class="b">Images/</span>           <span data-hf-id="hf-trot" class="g">.jpg frames</span>
+&#9492;&#9472; <span data-hf-id="hf-847u" class="b">Annotations/</span>      <span data-hf-id="hf-5nlb" class="g">.txt boxes</span></pre>
+                    </div>
+                    <div data-hf-id="hf-pqaf" class="darrow"><svg data-hf-id="hf-u1c8" class="ic"><use data-hf-id="hf-mr8p" href="#db-i-arrow-right" /></svg><span data-hf-id="hf-rzo0">prepare</span></div>
+                    <div data-hf-id="hf-uliv" class="dbox">
+                      <div data-hf-id="hf-f9k4" class="lab">Trainer-ready &middot; used by Train CycleGAN / Train SPADE below</div>
+                      <pre data-hf-id="hf-0mp9" class="mono"><span data-hf-id="hf-bph5" class="e">PolypDataset/</span>            <span data-hf-id="hf-084r" class="g">(CycleGAN)</span>
+&#9500;&#9472; trainA/  <span data-hf-id="hf-qv5i" class="g">PNG masks</span>
+&#9500;&#9472; trainB/  <span data-hf-id="hf-z043" class="g">JPG images</span>
+&#9492;&#9472; testA/, testB/  <span data-hf-id="hf-1flh" class="g">(same)</span>
+<span data-hf-id="hf-idcu" class="e">PolypDatasetSPADE/</span>        <span data-hf-id="hf-yq2g" class="g">(SPADE)</span>
+&#9492;&#9472; identical mirror</pre>
+                    </div>
+                  </div>
+                  <p data-hf-id="hf-r7yu" class="note" data-layout-ignore>
+                    <svg data-hf-id="hf-tn17" class="ic"><use data-hf-id="hf-4au5" href="#db-i-info" /></svg>
+                    <span data-hf-id="hf-ityw"><strong data-hf-id="hf-me2q">trainA / trainB</strong> are CycleGAN's &ldquo;input domain&rdquo; and &ldquo;target domain&rdquo;. Here we put masks on the A side and real images on the B side, so the model learns <em data-hf-id="hf-ceky">mask &rarr; realistic polyp image</em>. The two output directories are duplicates because CycleGAN and SPADE training scripts each expect their own copy.</span>
+                  </p>
+                </div>
+              </div>
+
+              <div data-hf-id="hf-ga9u" id="db-tasks">
+                <div data-hf-id="hf-owjm" class="panel">
+                  <div data-hf-id="hf-i8mw" class="ph"><h3 data-hf-id="hf-p0q9">Select Task</h3></div>
+                  <div data-hf-id="hf-vit6" class="pb">
+                    <div data-hf-id="hf-5to7" class="task sel">
+                      <div data-hf-id="hf-wwxn" class="t1">Train CycleGAN</div>
+                      <div data-hf-id="hf-zujq" class="t2" data-layout-ignore>Train an image-to-image translation model to generate realistic polyp images from masks.</div>
+                      <svg data-hf-id="hf-myjl" class="ic chk" style="width: 20px; height: 20px"><use data-hf-id="hf-xq3o" href="#db-i-check-circle" /></svg>
+                      <div data-hf-id="hf-k42n" class="fields">
+                        <div data-hf-id="hf-y7yw"><label data-hf-id="hf-defs">Batch Size</label><div data-hf-id="hf-4xvl" class="inp">4</div></div>
+                        <div data-hf-id="hf-x11t"><label data-hf-id="hf-xz1j">Epochs</label><div data-hf-id="hf-5c6m" class="inp">5</div></div>
+                        <div data-hf-id="hf-xfcu"><label data-hf-id="hf-qkqz">Learning Rate</label><div data-hf-id="hf-t04j" class="inp">0.0002</div></div>
+                        <div data-hf-id="hf-w8fr"><label data-hf-id="hf-gx3e">Generator</label><div data-hf-id="hf-m2f5" class="inp">ResNet 9 blocks<svg data-hf-id="hf-m6rv" class="ic" style="width: 14px; height: 14px; color: #9ca3af"><use data-hf-id="hf-jm63" href="#db-i-chevron-down" /></svg></div></div>
+                        <div data-hf-id="hf-wmqs"><label data-hf-id="hf-0koi">Load Size</label><div data-hf-id="hf-hpcx" class="inp">286</div></div>
+                        <div data-hf-id="hf-vftp"><label data-hf-id="hf-xf44">Crop Size</label><div data-hf-id="hf-fg68" class="inp">256</div></div>
+                        <div data-hf-id="hf-lkdm" class="span2"><label data-hf-id="hf-01ka">Max Dataset Size <span data-hf-id="hf-2oby">(optional &mdash; for quick testing)</span></label><div data-hf-id="hf-4ltg" class="inp ph">All</div></div>
+                      </div>
+                    </div>
+                    <div data-hf-id="hf-9z7j" class="task">
+                      <div data-hf-id="hf-3o01" class="t1">Test CycleGAN (Generate Images)</div>
+                      <div data-hf-id="hf-97qd" class="t2" data-layout-ignore>Run inference using a trained CycleGAN model to generate the augmented dataset.</div>
+                    </div>
+                  </div>
+                </div>
+                <div data-hf-id="hf-377b" class="col-r">
+                  <div data-hf-id="hf-n8ug" class="statuscard">
+                    <h4 data-hf-id="hf-d7bc">Status Output</h4>
+                    <div data-hf-id="hf-feil" class="idle">No recent activity.</div>
+                  </div>
+                  <div data-hf-id="hf-7lag" class="whycard">
+                    <h4 data-hf-id="hf-4p90"><svg data-hf-id="hf-utya" class="ic"><use data-hf-id="hf-s1u9" href="#db-i-sparkles" /></svg>Why Generative Data?</h4>
+                    <p data-hf-id="hf-rvk3" data-layout-ignore>Medical datasets for polyps are often small. By training models like CycleGAN or SPADE, we can synthetically generate thousands of new, realistic polyp images from simple shape masks, dramatically improving the robustness of our detection models.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Page B: Inference (frontend/src/components/InferenceUI.tsx) -->
+            <section data-hf-id="hf-580p" class="pg" id="db-pgInf" data-layout-allow-overflow>
+              <h2 data-hf-id="hf-0xi6"><svg data-hf-id="hf-jwrw" class="ic" style="color: #22d3ee"><use data-hf-id="hf-3351" href="#db-i-search" /></svg>Inference</h2>
+              <p data-hf-id="hf-lyuq" class="lead" data-layout-ignore>Run polyp detection on individual images or batch test with random samples from the dataset.</p>
+
+              <div data-hf-id="hf-0ws6" class="inf-grid">
+                <div data-hf-id="hf-bhgq" class="cfg">
+                  <h3 data-hf-id="hf-p6jy">Configuration</h3>
+                  <div data-hf-id="hf-ta0z" class="seg"><div data-hf-id="hf-pf66" class="on">Single Image</div><div data-hf-id="hf-qwjn">Batch Test (Random 9)</div></div>
+                  <div data-hf-id="hf-vu4q">
+                    <label data-hf-id="hf-s8hz" class="l">Model Architecture</label>
+                    <div data-hf-id="hf-jqsi" class="sel2"><span data-hf-id="hf-ar7j" class="v">FasterRCNN</span><svg data-hf-id="hf-ufn9" class="ic"><use data-hf-id="hf-ll8b" href="#db-i-chevron-down" /></svg></div>
+                  </div>
+                  <div data-hf-id="hf-1043">
+                    <label data-hf-id="hf-db39" class="l">Model Weights</label>
+                    <div data-hf-id="hf-gt3a" class="sel2"><span data-hf-id="hf-uwn1" class="v">FasterRCNN_LR-0.0053_EP-3</span><svg data-hf-id="hf-4n9j" class="ic"><use data-hf-id="hf-l6xa" href="#db-i-chevron-down" /></svg></div>
+                  </div>
+                  <div data-hf-id="hf-1ef4">
+                    <label data-hf-id="hf-kk2a" class="l">Confidence Threshold: 50%</label>
+                    <div data-hf-id="hf-e3av" class="range"><div data-hf-id="hf-l3rt" class="trk"></div><div data-hf-id="hf-4qej" class="fill"></div><div data-hf-id="hf-0pvg" class="knob"></div></div>
+                  </div>
+                  <div data-hf-id="hf-c4s8">
+                    <label data-hf-id="hf-xdkd" class="l" style="margin-bottom: 8px">Upload Image</label>
+                    <div data-hf-id="hf-eote" class="drop" id="db-drop"><svg data-hf-id="hf-51kk" class="ic"><use data-hf-id="hf-inxy" href="#db-i-upload-cloud" /></svg>Click to upload image</div>
+                  </div>
+                  <div data-hf-id="hf-w1ix" id="db-runbtn">
+                    <div data-hf-id="hf-89o5" class="bg-off"></div><div data-hf-id="hf-uyzl" class="bg-on"></div>
+                    <div data-hf-id="hf-rwuy" class="lbl lbl-off">Run Detection</div>
+                    <div data-hf-id="hf-rs30" class="lbl lbl-on">Run Detection</div>
+                    <div data-hf-id="hf-hdru" class="lbl lbl-busy">Running Model...</div>
+                  </div>
+                </div>
+
+                <div data-hf-id="hf-lerj" class="view" id="db-view">
+                  <div data-hf-id="hf-tlgb" class="st" id="db-st-empty"><div data-hf-id="hf-akyn" class="ph-empty" style="text-align: center"><svg data-hf-id="hf-3unh" class="ic"><use data-hf-id="hf-ocnk" href="#db-i-image" /></svg>Upload an image to see results</div></div>
+                  <div data-hf-id="hf-se23" class="st" id="db-st-spin" style="opacity: 0"><div data-hf-id="hf-yiek" class="spin" id="db-spinner"></div><div data-hf-id="hf-ectm" class="spin-t">Processing images through PyTorch...</div></div>
+                  <div data-hf-id="hf-i62i" id="db-result" style="opacity: 0">
+                    <div data-hf-id="hf-4uv1" class="imgwrap">
+                      <img data-hf-id="hf-pwdn" id="db-img" src="assets/img/polyp-frame.jpg" alt="Colonoscopy frame from the thesis (LDPolypVideo)" />
+                      <div data-hf-id="hf-g822" class="bx" id="db-bx1"><span data-hf-id="hf-4stm" class="mono">polyp 0.91</span></div>
+                      <div data-hf-id="hf-c9y1" class="bx" id="db-bx2"><span data-hf-id="hf-7on2" class="mono">polyp 0.64</span></div>
+                    </div>
+                    <div data-hf-id="hf-dmqr" class="res" id="db-res">
+                      <h4 data-hf-id="hf-gu5a" id="db-res-h"><span data-hf-id="hf-j0za">Detection Results</span><span data-hf-id="hf-ty5q" class="badge" id="db-badge">2 found</span></h4>
+                      <div data-hf-id="hf-xg1f" class="tbl" id="db-tbl">
+                        <div data-hf-id="hf-k0e6" class="tr th"><div data-hf-id="hf-qcje" class="c1">Score</div><div data-hf-id="hf-xu91" class="c2">Bounding Box (x1, y1, x2, y2)</div></div>
+                        <div data-hf-id="hf-at7e" class="tr td" id="db-row1"><div data-hf-id="hf-f785" class="c1 score">91.0%</div><div data-hf-id="hf-obal" class="c2 box">[225, 94, 353, 291]</div></div>
+                        <div data-hf-id="hf-0lih" class="tr td" id="db-row2"><div data-hf-id="hf-g88t" class="c1 score">64.0%</div><div data-hf-id="hf-l2mc" class="c2 box">[256, 115, 333, 243]</div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </main>
+
+        <!-- ===== callout: bounding box -> binary mask ===== -->
+        <div data-hf-id="hf-pcmc" id="db-callout" data-layout-allow-overlap>
+          <div data-hf-id="hf-thy4" class="row">
+            <div data-hf-id="hf-bqh7">
+              <div data-hf-id="hf-p2oi" class="thumb" id="db-th1">
+                <img data-hf-id="hf-3m2e" src="assets/img/polyp-thumb.jpg" alt="" />
+                <svg data-hf-id="hf-lgg1" viewBox="0 0 150 165"><rect data-hf-id="hf-ejas" id="db-gtrect" x="74.7" y="34.4" width="34.9" height="43.4" fill="none" stroke="#34d399" stroke-width="2.4" /></svg>
+              </div>
+              <div data-hf-id="hf-it2l" class="tcap"><b data-hf-id="hf-gtzg">Images/</b> + <b data-hf-id="hf-06ay">Annotations/</b></div>
+            </div>
+            <div data-hf-id="hf-37jl" class="carrow" id="db-carrow"><svg data-hf-id="hf-48yi" class="ic"><use data-hf-id="hf-8l0d" href="#db-i-arrow-right" /></svg><span data-hf-id="hf-q4a0">prepare</span></div>
+            <div data-hf-id="hf-bc66">
+              <div data-hf-id="hf-l4kh" class="thumb" id="db-th2"><div data-hf-id="hf-9kkx" class="maskrect" id="db-maskrect"></div></div>
+              <div data-hf-id="hf-jvmq" class="tcap"><b data-hf-id="hf-shud">trainA/</b> &middot; PNG mask</div>
+            </div>
+          </div>
+          <div data-hf-id="hf-fqnz" class="ccap" id="db-ccap">Bounding box &rarr; binary mask</div>
+        </div>
+
+        <!-- ===== cursor ===== -->
+        <svg data-hf-id="hf-shhd" id="db-cursor" viewBox="0 0 26 26" aria-hidden="true">
+          <path data-hf-id="hf-gr8a" d="M3 2.5 L3 20 L7.6 15.9 L10.9 23 L14 21.6 L10.8 14.6 L17 14.4 Z" fill="#ffffff" stroke="#111827" stroke-width="1.6" stroke-linejoin="round" />
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    // ---------- camera: logical 1372x772 app -> 1920x1080 ----------
+    // cam(t, scale, tx, ty, dur): tx in [1920 - s*1372, 0], ty in [1080 - s*772, 0] keeps the app edge-to-edge.
+    function cam(t, s, tx, ty, dur, ease) {
+      tl.to("#db-cam", { scale: s, x: tx, y: ty, duration: dur, ease: ease || "power2.inOut" }, t);
+    }
+    tl.set("#db-cam", { scale: 1.46, x: -42, y: -24 }, 0);
+
+    // ---------- reveal (blur swap with the hook): lands on the 4.23 s strong cue ----------
+    // beat-locked: 4.23s  (dashboard local 0.23s + 4.0s)
+    tl.fromTo("#db-stage", { opacity: 0, filter: "blur(10px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.42, ease: "power3.out" }, 0.15);
+    tl.to("#db-cam", { scale: 1.4, x: 0, y: 0, duration: 0.7, ease: "power3.out" }, 0.1);
+
+    // ---------- sidebar active state ----------
+    function setActive(id, t, on) {
+      const sel = "#db-nav-" + id;
+      const c = document.querySelector(sel).getAttribute("data-c");
+      tl.to(sel + " .nav-bg", { opacity: on ? 1 : 0, duration: 0.12, ease: "power1.out", overwrite: "auto" }, t);
+      tl.to(sel + " .nav-ic", { color: on ? c : "#6b7280", duration: 0.12, overwrite: "auto" }, t);
+      tl.to(sel + " .nav-tx", { color: on ? "#ffffff" : "#9ca3af", duration: 0.12, overwrite: "auto" }, t);
+    }
+    tl.set("#db-nav-generative .nav-bg", { opacity: 1 }, 0);
+    tl.set("#db-nav-generative .nav-ic", { color: "#c084fc" }, 0);
+    tl.set("#db-nav-generative .nav-tx", { color: "#ffffff" }, 0);
+
+    // ---------- cursor path (positions in app px; measured against the live layout) ----------
+    const P = {"start": [1220, 120], "prepare": [1200, 255], "park": [1030, 505], "nav": [150, 669], "drop": [470, 568], "run": [470, 673]};
+    function press(t) {
+      tl.to("#db-cursor", { scale: 0.86, duration: 0.06, ease: "power2.out" }, t);
+      tl.to("#db-cursor", { scale: 1, duration: 0.1, ease: "power2.out" }, t + 0.06);
+    }
+    tl.set("#db-cursor", { x: P.start[0], y: P.start[1] }, 0);
+    tl.to("#db-cursor", { opacity: 1, duration: 0.2 }, 0.35);
+
+    // 1) click "Prepare dataset" — local 1.0 s
+    tl.to("#db-cursor", { x: P.prepare[0], y: P.prepare[1], duration: 0.5, ease: "power2.inOut" }, 0.5);
+    press(1.0);
+    tl.set("#db-prepbtn .st-idle", { opacity: 0 }, 1.04);
+    tl.set("#db-prepbtn .st-run", { opacity: 1 }, 1.04);
+    tl.to("#db-prepbtn", { backgroundColor: "#92400e", duration: 0.15 }, 1.04);
+    tl.to("#db-spin", { rotation: 540, duration: 1.4, ease: "none", transformOrigin: "50% 50%" }, 1.05);
+
+    // callout: (box) -> (mask) pair
+    const UNDER = "#db-prep .prep-p, #db-prep .diagram, #db-prep .note";
+    tl.to(UNDER, { opacity: 0.1, duration: 0.25, ease: "power2.out" }, 1.12);
+    tl.fromTo("#db-callout", { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out" }, 1.12);
+    tl.fromTo("#db-gtrect", { strokeDasharray: 160, strokeDashoffset: 160 }, { strokeDashoffset: 0, duration: 0.5, ease: "power2.out" }, 1.4);
+    tl.fromTo("#db-carrow", { opacity: 0, x: -10 }, { opacity: 1, x: 0, duration: 0.25, ease: "power3.out" }, 1.95);
+    tl.fromTo("#db-maskrect", { scale: 0.15, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, ease: "back.out(1.3)" }, 2.1);
+    tl.to("#db-cursor", { x: P.park[0], y: P.park[1], duration: 0.7, ease: "power2.inOut" }, 1.35);
+
+    // done
+    tl.set("#db-prepbtn .st-run", { opacity: 0 }, 2.5);
+    tl.set("#db-prepbtn .st-redo", { opacity: 1 }, 2.5);
+    tl.to("#db-prepbtn", { backgroundColor: "#d97706", duration: 0.2 }, 2.5);
+    tl.fromTo("#db-done", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.25, ease: "back.out(1.4)", transformOrigin: "0 50%" }, 2.5);
+    tl.to("#db-callout", { opacity: 0, y: 10, duration: 0.25, ease: "power2.in" }, 2.95);
+    tl.to(UNDER, { opacity: 1, duration: 0.3, ease: "power1.out" }, 2.95);
+
+    // camera: settle on the callout, then onto the task cards
+    cam(0.9, 1.5, -90, -60, 0.7, "power2.inOut");
+    tl.to("#db-pgA", { y: -574, duration: 0.6, ease: "power2.inOut" }, 3.0);
+    cam(3.0, 1.55, -190, -30, 0.8, "power2.inOut");
+
+    // 2) go to Inference — click local 5.05 s
+    cam(4.4, 1.4, 0, 0, 0.8, "power2.inOut");
+    tl.to("#db-cursor", { x: P.nav[0], y: P.nav[1], duration: 0.65, ease: "power2.inOut" }, 4.35);
+    press(5.05);
+    setActive("generative", 5.05, false);
+    setActive("inference", 5.05, true);
+    tl.to("#db-pgA", { opacity: 0, duration: 0.1, ease: "power1.in" }, 5.08);
+    tl.fromTo("#db-pgInf", { opacity: 0 }, { opacity: 1, duration: 0.22, ease: "power1.out" }, 5.16);
+    tl.to("#db-pgInf", { y: -64, duration: 0.5, ease: "power2.inOut" }, 5.45);
+
+    // 3) upload — click local 6.0 s
+    tl.to("#db-cursor", { x: P.drop[0], y: P.drop[1], duration: 0.5, ease: "power2.inOut" }, 5.45);
+    press(6.0);
+    tl.to("#db-drop", { borderColor: "#22d3ee", duration: 0.12 }, 6.0);
+    tl.to("#db-st-empty", { opacity: 0, duration: 0.12 }, 6.06);
+    tl.fromTo("#db-result", { opacity: 0 }, { opacity: 1, duration: 0.25, ease: "power2.out" }, 6.1);
+    tl.to("#db-runbtn .bg-on", { opacity: 1, duration: 0.2 }, 6.1);
+    tl.to("#db-runbtn .lbl-off", { opacity: 0, duration: 0.15 }, 6.1);
+    tl.to("#db-runbtn .lbl-on", { opacity: 1, duration: 0.15 }, 6.1);
+
+    // 4) Run Detection — click local 6.8 s
+    tl.to("#db-cursor", { x: P.run[0], y: P.run[1], duration: 0.4, ease: "power2.inOut" }, 6.35);
+    press(6.8);
+    tl.to("#db-runbtn", { scale: 0.98, duration: 0.07 }, 6.8);
+    tl.to("#db-runbtn", { scale: 1, duration: 0.1 }, 6.87);
+    tl.to("#db-runbtn .bg-on", { opacity: 0, duration: 0.1 }, 6.86);
+    tl.to("#db-runbtn .lbl-on", { opacity: 0, duration: 0.1 }, 6.86);
+    tl.to("#db-runbtn .lbl-busy", { opacity: 1, duration: 0.1 }, 6.86);
+    tl.to("#db-result", { opacity: 0, duration: 0.12 }, 6.88);
+    tl.fromTo("#db-st-spin", { opacity: 0 }, { opacity: 1, duration: 0.15, immediateRender: false }, 6.9);
+    tl.to("#db-spinner", { rotation: 720, duration: 1.0, ease: "none", transformOrigin: "50% 50%" }, 6.9);
+    tl.to("#db-cursor", { opacity: 0, duration: 0.25 }, 7.3);
+
+    // 5) Result — boxes land on the 12.65 s strong cue (local 8.65 s)
+    tl.to("#db-st-spin", { opacity: 0, duration: 0.1 }, 7.9);
+    tl.fromTo("#db-result", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power2.out", immediateRender: false }, 7.92);
+    tl.to("#db-runbtn .lbl-busy", { opacity: 0, duration: 0.1 }, 7.92);
+    tl.to("#db-runbtn .bg-on", { opacity: 1, duration: 0.2 }, 7.92);
+    tl.to("#db-runbtn .lbl-on", { opacity: 1, duration: 0.2 }, 7.92);
+    tl.to("#db-pgInf", { y: -112, duration: 0.7, ease: "power2.inOut" }, 7.95);
+    tl.to("#db-pgInf > h2, #db-pgInf > p.lead", { opacity: 0, duration: 0.35, ease: "power1.in" }, 7.95);
+    cam(7.95, 1.6, -275, -100, 0.9, "power2.inOut");
+    // beat-locked: 12.65s  (boxes finish landing at local 8.65s)
+    tl.fromTo("#db-bx1", { opacity: 0, scale: 1.08, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: 0.25, ease: "power3.out" }, 8.15);
+    tl.fromTo("#db-bx2", { opacity: 0, scale: 1.1, transformOrigin: "50% 50%" }, { opacity: 1, scale: 1, duration: 0.25, ease: "power3.out" }, 8.4);
+    tl.fromTo("#db-res-h", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.25, ease: "power3.out" }, 8.7);
+    tl.fromTo("#db-badge", { scale: 0.8 }, { scale: 1, duration: 0.3, ease: "back.out(1.6)", transformOrigin: "100% 50%" }, 8.75);
+    tl.fromTo("#db-tbl", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.25, ease: "power3.out" }, 8.9);
+    tl.fromTo("#db-row1", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power2.out" }, 9.0);
+    tl.fromTo("#db-row2", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "power2.out" }, 9.4);
+
+    // pull back, then blur out into the outro
+    cam(11.3, 1.4, 0, 0, 0.7, "power2.inOut");
+    tl.to("#db-stage", { opacity: 0, filter: "blur(10px)", duration: 0.45, ease: "power3.in" }, 12.0);
+
+    window.__timelines["dashboard"] = tl;
+  </script>
+</template>

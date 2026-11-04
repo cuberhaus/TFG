@@ -1,0 +1,116 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      font-family: var(--font-display), Inter, system-ui, sans-serif;
+    }
+    #hk-content {
+      position: absolute;
+      inset: 0;
+    }
+    #hk-bg {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 987px;
+      height: 1080px;
+      display: block;
+    }
+    #hk-glow {
+      position: absolute;
+      left: 40px;
+      top: 300px;
+      width: 1300px;
+      height: 620px;
+      background: radial-gradient(closest-side, rgba(96, 165, 250, 0.26), rgba(96, 165, 250, 0) 72%);
+    }
+    #hk-text {
+      position: absolute;
+      left: 200px;
+      top: 372px;
+      width: 1500px;
+    }
+    .hk-line1 {
+      font-size: 128px;
+      font-weight: 700;
+      line-height: 1.04;
+      letter-spacing: -0.035em;
+      color: #ffffff;
+    }
+    .hk-line2 {
+      margin-top: 34px;
+      font-size: 62px;
+      font-weight: 500;
+      line-height: 1.15;
+      letter-spacing: -0.015em;
+      color: #d1d5db;
+    }
+    .hk-line2 .gan {
+      color: #60a5fa;
+      font-weight: 700;
+    }
+    .w {
+      display: inline-block;
+      margin-right: 0.26em;
+      opacity: 0;
+    }
+    .w:last-child {
+      margin-right: 0;
+    }
+  </style>
+
+  <div data-hf-id="hf-ktv8" id="root" data-composition-id="hook" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-7w1y" id="hk-content">
+      <img data-hf-id="hf-eczt" id="hk-bg" src="assets/img/hook-bg.jpg" alt="Real colonoscopy frame from the thesis, darkened" />
+      <div data-hf-id="hf-919w" id="hk-glow"></div>
+      <div data-hf-id="hf-4fci" id="hk-text">
+        <div data-hf-id="hf-lyh2" class="hk-line1" id="hk-l1">
+          <span data-hf-id="hf-vfn7" class="w" data-layout-allow-overlap>Not</span><span data-hf-id="hf-s54e" class="w" data-layout-allow-overlap>enough</span><span data-hf-id="hf-m519" class="w" data-layout-allow-overlap>polyps.</span>
+        </div>
+        <div data-hf-id="hf-5v0g" class="hk-line2" id="hk-l2">
+          <span data-hf-id="hf-vjc0" class="w" data-layout-allow-overlap>So</span><span data-hf-id="hf-n1ki" class="w" data-layout-allow-overlap>we</span><span data-hf-id="hf-cj5l" class="w" data-layout-allow-overlap>taught</span><span data-hf-id="hf-73dx" class="w" data-layout-allow-overlap>a</span
+          ><span data-hf-id="hf-93wi" class="w gan" data-layout-allow-overlap>GAN</span><span data-hf-id="hf-b3ff" class="w" data-layout-allow-overlap>to</span><span data-hf-id="hf-3ukw" class="w" data-layout-allow-overlap>draw</span
+          ><span data-hf-id="hf-advv" class="w" data-layout-allow-overlap>more.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+
+    // Real music bass/RMS (vol-9, 10 fps, 0..1) → subtle glow presence. Build-time modulation, no per-frame callbacks.
+    const BASS = [0.64,0.25,0.23,0.28,0.26,0.44,0.26,0.29,0.26,0.2,0.27,0.49,0.15,0.18,0.21,0.15,0.52,0.16,0.15,0.2,0.13,0.41,0.31,0.3,0.32,0.27,0.43,0.32,0.23,0.16,0.15,0.22,0.45,0.11,0.13,0.16,0.09,0.53,0.16,0.12,0.1,0.11,0.44,0.54,0.54,0.54,0.49];
+
+    // Backdrop: the real frame eases in once, then holds still.
+    tl.fromTo("#hk-bg", { opacity: 0.55 }, { opacity: 1, duration: 0.9, ease: "power2.out" }, 0);
+    tl.fromTo("#hk-glow", { opacity: 0 }, { opacity: 0.6, duration: 0.6, ease: "power2.out" }, 0);
+    BASS.forEach(function (v, i) {
+      if (i < 6) return;
+      tl.to("#hk-glow", { opacity: 0.5 + 0.4 * v, duration: 0.1, ease: "none" }, i * 0.1);
+    });
+
+    // Line 1: "Not enough polyps." word by word, blur → sharp, no travel.
+    tl.fromTo(
+      "#hk-l1 .w",
+      { opacity: 0, filter: "blur(10px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power3.out", stagger: 0.11 },
+      0.25
+    );
+
+    // Line 2 arrives after line 1 has been readable for ~1.1 s.
+    tl.fromTo(
+      "#hk-l2 .w",
+      { opacity: 0, filter: "blur(8px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.18, ease: "power3.out", stagger: 0.075 },
+      1.4
+    );
+
+    // Exit as one: the dashboard blur-swaps in underneath at 4.1 s.
+    tl.to("#hk-content", { opacity: 0, filter: "blur(10px)", duration: 0.3, ease: "power3.in" }, 3.9);
+
+    window.__timelines["hook"] = tl;
+  </script>
+</template>
