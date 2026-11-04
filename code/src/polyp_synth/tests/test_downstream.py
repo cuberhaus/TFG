@@ -4,7 +4,8 @@ import pytest
 
 from polyp_synth.data import PolypSample
 from polyp_synth.downstream import (
-    IOUS, average_precision, iou_matrix, match_image, plan_steps, real_subset, summarize, summarize_negatives,
+    IOUS, average_precision, iou_matrix, match_image, plan_steps, real_subset, run_is_done, summarize,
+    summarize_negatives, write_json_atomic,
 )
 
 GT = [[10, 10, 50, 50]]
@@ -81,3 +82,27 @@ def test_real_subset_is_deterministic_and_proper_subset():
     assert a == b and len(a) == 50 and set(a) <= set(train)
     assert real_subset(train, 0.25, seed=4) != a
     assert real_subset(train, 1.0, seed=0) == train
+
+
+def test_run_is_done_rejects_missing_empty_and_partial_results(tmp_path):
+    good = tmp_path / "real_s0.json"
+    write_json_atomic(str(good), {"val": {}, "neg": {}})
+    assert run_is_done(str(good))
+    assert not run_is_done(str(tmp_path / "missing.json"))
+    empty = tmp_path / "real_s1.json"
+    empty.write_text("")  # what a power loss mid-save leaves behind
+    assert not run_is_done(str(empty))
+    partial = tmp_path / "neg_s1.json"
+    partial.write_text('{"val": {"ap50": 0.8')
+    assert not run_is_done(str(partial))
+    wrong_shape = tmp_path / "x_s0.json"
+    wrong_shape.write_text("[1, 2]")
+    assert not run_is_done(str(wrong_shape))
+
+
+def test_write_json_atomic_replaces_in_place_and_leaves_no_temp_file(tmp_path):
+    path = tmp_path / "sub" / "r.json"
+    write_json_atomic(str(path), {"val": 1, "neg": 1})
+    write_json_atomic(str(path), {"val": 2, "neg": 2})
+    assert run_is_done(str(path))
+    assert [p.name for p in path.parent.iterdir()] == ["r.json"]

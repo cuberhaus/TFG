@@ -271,6 +271,31 @@ def load_eval_sets(neg_dir: str):
     return frames, gts, sources, negs
 
 
+def write_json_atomic(path: str, obj) -> None:
+    """Write `obj` so a crash or power loss leaves either the old file or the complete new one.
+
+    A plain open(path, "w") + dump leaves a zero-length file if the machine dies before the
+    page cache is flushed, which a resume-by-exists check would then treat as a finished run.
+    """
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    tmp = f"{path}.tmp"
+    with open(tmp, "w") as f:
+        json.dump(obj, f)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
+
+
+def run_is_done(path: str) -> bool:
+    """True only for a readable result file; empty or truncated leftovers from a crash do not count."""
+    try:
+        with open(path) as f:
+            r = json.load(f)
+    except (OSError, ValueError):
+        return False
+    return isinstance(r, dict) and "val" in r and "neg" in r
+
+
 def run_one(args, arm: str, seed: int, out_path: str, eval_sets):
     train_s, _ = split_samples(index_samples())
     real = real_subset(train_s, args.frac, seed)
@@ -309,8 +334,7 @@ def run_one(args, arm: str, seed: int, out_path: str, eval_sets):
             neg=[dict(scores=s.round(4).tolist()) for _, s in npred],
         ),
     )
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    json.dump(res, open(out_path, "w"))
+    write_json_atomic(out_path, res)
     v, n = res["val"], res["neg"]
     print(f"  -> AP50 {v['ap50']:.3f} AP {v['ap']:.3f} recall {v['recall']:.3f} fp/img {v['fp_per_img']:.2f} | neg fp/img {n['fp_per_img']:.2f} ({train_s_ / 60:.1f} min)", flush=True)
     del det
@@ -323,9 +347,11 @@ def run(args):
     for seed in args.seeds:  # seed-major so partial results stay balanced
         for arm in args.arms:
             path = os.path.join(args.out, f"{arm}_s{seed}.json")
-            if os.path.exists(path):
+            if run_is_done(path):
                 print("skip (done)", path, flush=True)
                 continue
+            if os.path.exists(path):
+                print("redo (unreadable result from an interrupted run)", path, flush=True)
             run_one(args, arm, seed, path, eval_sets)
 
 
@@ -335,7 +361,11 @@ def run(args):
 def _load_runs(d: str):
     runs: dict[str, list[dict]] = {}
     for f in sorted(glob.glob(os.path.join(d, "*_s*.json"))):
-        r = json.load(open(f))
+        if not run_is_done(f):
+            print(f"warning: ignoring unreadable result {f}", flush=True)
+            continue
+        with open(f) as fh:
+            r = json.load(fh)
         runs.setdefault(r["arm"], []).append(r)
     return runs
 
