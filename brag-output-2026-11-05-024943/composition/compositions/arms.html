@@ -1,0 +1,320 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      font-family: var(--font-display), Inter, system-ui, sans-serif;
+    }
+    #ar-title {
+      position: absolute;
+      left: 0;
+      top: 318px;
+      width: 1920px;
+      text-align: center;
+      font-size: 180px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 190px;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+    #ar-title .em {
+      color: #34d399;
+    }
+    #ar-sub {
+      position: absolute;
+      left: 0;
+      top: 560px;
+      width: 1920px;
+      text-align: center;
+      font-size: 46px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: #9ca3af;
+      opacity: 0;
+    }
+    .ar-w {
+      display: inline-block;
+      margin-right: 0.22em;
+      opacity: 0;
+    }
+    .ar-w:last-child {
+      margin-right: 0;
+    }
+    #ar-stage {
+      position: absolute;
+      inset: 0;
+    }
+    .ar-strip {
+      position: absolute;
+      top: 0;
+      width: 640px;
+      height: 820px;
+      opacity: 0;
+    }
+    .ar-strip + .ar-strip {
+      border-left: 4px solid #111827;
+    }
+    #ar-s1 {
+      left: 0;
+      background: #1f2937;
+    }
+    #ar-s2 {
+      left: 640px;
+      background: #2a3441;
+    }
+    #ar-s3 {
+      left: 1280px;
+      background: #0d3a2e;
+    }
+    .ar-rule {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 10px;
+    }
+    .ar-label {
+      position: absolute;
+      left: 56px;
+      top: 48px;
+      font-size: 54px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 60px;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+    .ar-tag {
+      position: absolute;
+      left: 56px;
+      top: 188px;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+    }
+    .ar-num {
+      position: absolute;
+      left: 56px;
+      top: 262px;
+      font-size: 150px;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      line-height: 160px;
+      color: #ffffff;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .ar-cap {
+      position: absolute;
+      left: 60px;
+      top: 430px;
+      font-size: 30px;
+      font-weight: 400;
+      color: #d1d5db;
+      white-space: nowrap;
+    }
+    .ar-pic {
+      position: absolute;
+      left: 56px;
+      top: 500px;
+      width: 357px;
+      height: 300px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 2px solid #374151;
+    }
+    .ar-pic img {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 357px;
+      height: 300px;
+      display: block;
+    }
+    .ar-pic svg {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 357px;
+      height: 300px;
+    }
+    .ar-src {
+      position: absolute;
+      left: 56px;
+      top: 520px;
+      font-size: 44px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      line-height: 58px;
+      color: #ffffff;
+      white-space: nowrap;
+    }
+    .ar-src small {
+      display: block;
+      margin-top: 12px;
+      font-size: 28px;
+      font-weight: 400;
+      letter-spacing: 0;
+      line-height: 34px;
+      color: #9ca3af;
+    }
+    .ar-seeds {
+      position: absolute;
+      left: 453px;
+      top: 500px;
+      width: 130px;
+    }
+    .ar-seeds-h {
+      font-size: 28px;
+      font-weight: 700;
+      color: #9ca3af;
+      line-height: 34px;
+    }
+    .ar-seed {
+      width: 56px;
+      height: 56px;
+      margin-top: 14px;
+      border-radius: 10px;
+      border: 3px solid #4b5563;
+      font-size: 28px;
+      font-weight: 900;
+      line-height: 50px;
+      text-align: center;
+      color: #9ca3af;
+    }
+    #ar-line {
+      position: absolute;
+      left: 0;
+      top: 904px;
+      width: 1920px;
+      text-align: center;
+      font-size: 66px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 76px;
+      color: #ffffff;
+      white-space: nowrap;
+      opacity: 0;
+    }
+  </style>
+
+  <div id="root" data-composition-id="arms" data-width="1920" data-height="1080">
+    <div id="ar-title">
+      <span class="ar-w" data-layout-allow-overlap>Nine</span><span class="ar-w em" data-layout-allow-overlap>detectors.</span>
+    </div>
+    <div id="ar-sub">3 training sets × 3 seeds</div>
+
+    <div id="ar-stage">
+      <div id="ar-s1" class="ar-strip">
+        <div class="ar-rule" style="background: #9ca3af"></div>
+        <div class="ar-label">Real<br />only</div>
+        <div class="ar-tag" style="color: #9ca3af">baseline</div>
+        <div id="ar-n1" class="ar-num">1,422</div>
+        <div class="ar-cap">training frames</div>
+        <div class="ar-src">Kvasir-SEG<br />CVC-ClinicDB<small>real, annotated frames</small></div>
+        <div class="ar-seeds">
+          <div class="ar-seeds-h">seed</div>
+          <div class="ar-seed ar-k0">0</div>
+          <div class="ar-seed ar-k1">1</div>
+          <div class="ar-seed ar-k2">2</div>
+        </div>
+      </div>
+
+      <div id="ar-s2" class="ar-strip">
+        <div class="ar-rule" style="background: #d1d5db"></div>
+        <div class="ar-label">Real + empty<br />frames</div>
+        <div class="ar-tag" style="color: #d1d5db">control: no polyp, no box</div>
+        <div id="ar-n2" class="ar-num">2,844</div>
+        <div class="ar-cap">training frames</div>
+        <div class="ar-pic"><img src="assets/img/hero-before.jpg" alt="A real polyp-free colonoscopy frame, used as an empty training example" /></div>
+        <div class="ar-seeds">
+          <div class="ar-seeds-h">seed</div>
+          <div class="ar-seed ar-k0">0</div>
+          <div class="ar-seed ar-k1">1</div>
+          <div class="ar-seed ar-k2">2</div>
+        </div>
+      </div>
+
+      <div id="ar-s3" class="ar-strip">
+        <div class="ar-rule" style="background: #34d399"></div>
+        <div class="ar-label">Real + fake<br />polyps</div>
+        <div class="ar-tag" style="color: #6ee7b7">the idea being tested</div>
+        <div id="ar-n3" class="ar-num">2,844</div>
+        <div class="ar-cap">training frames</div>
+        <div class="ar-pic">
+          <img src="assets/img/hero-after.jpg" alt="The same frame with a synthetic polyp painted in and its box" />
+          <svg viewBox="0 0 633 532" fill="none"><rect x="342" y="309" width="228" height="208" rx="3" stroke="#34d399" stroke-width="5" /></svg>
+        </div>
+        <div class="ar-seeds">
+          <div class="ar-seeds-h">seed</div>
+          <div class="ar-seed ar-k0">0</div>
+          <div class="ar-seed ar-k1">1</div>
+          <div class="ar-seed ar-k2">2</div>
+        </div>
+      </div>
+
+      <div id="ar-line">Same recipe. Same 2,666 steps.</div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    // local time = global - 6.555 s. Beats (local): drop 2.18, 2.72, 3.28; seeds 5.46, 6.0, 6.55; line 7.09; exit 9.56.
+
+    // Title: per-word blur, then it leaves just before the strips land on the drop.
+    tl.fromTo("#ar-title .ar-w", { opacity: 0, filter: "blur(10px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.25, ease: "power3.out", stagger: 0.2 }, 0.15);
+    tl.fromTo("#ar-sub", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.35, ease: "power3.out" }, 0.4);
+    tl.to("#ar-title", { opacity: 0, filter: "blur(10px)", duration: 0.2, ease: "power3.in" }, 1.95);
+    tl.to("#ar-sub", { opacity: 0, filter: "blur(8px)", duration: 0.2, ease: "power3.in" }, 2.0);
+
+    // Strips whip in from the right, one per beat; the numerals count up as each lands.
+    function strip(id, numId, target, start) {
+      tl.fromTo(
+        "#" + id,
+        { opacity: 0, x: 260, filter: "blur(16px)" },
+        { opacity: 1, x: 0, filter: "blur(0px)", duration: 0.45, ease: "power4.out" },
+        start,
+      );
+      const o = { v: 0 };
+      const el = document.getElementById(numId);
+      tl.to(
+        o,
+        {
+          v: target,
+          duration: 0.9,
+          ease: "power3.out",
+          onUpdate: function () {
+            el.textContent = Math.round(o.v).toLocaleString("en-US");
+          },
+        },
+        start + 0.1,
+      );
+    }
+    strip("ar-s1", "ar-n1", 1422, 2.18);
+    strip("ar-s2", "ar-n2", 2844, 2.72);
+    strip("ar-s3", "ar-n3", 2844, 3.28);
+
+    // Seeds light up on three beats, all three strips together: nine detectors.
+    function seed(k, start) {
+      tl.fromTo(
+        ".ar-k" + k,
+        { backgroundColor: "rgba(52,211,153,0)", borderColor: "#4b5563", color: "#9ca3af" },
+        { backgroundColor: "#34d399", borderColor: "#34d399", color: "#022c22", duration: 0.2, ease: "power2.out" },
+        start,
+      );
+    }
+    seed(0, 5.46);
+    seed(1, 6.0);
+    seed(2, 6.55);
+
+    tl.fromTo("#ar-line", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out" }, 7.09);
+
+    // Whip out to the left; the ground floods to the light world at 9.82 (global 16.375).
+    tl.to("#ar-stage", { x: -260, opacity: 0, filter: "blur(16px)", duration: 0.26, ease: "power3.in" }, 9.56);
+
+    window.__timelines["arms"] = tl;
+  </script>
+</template>

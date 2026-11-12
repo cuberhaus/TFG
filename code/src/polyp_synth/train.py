@@ -21,7 +21,7 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-from polyp_synth.data import PolypInpaintDataset, index_samples, split_samples, CAPTIONS
+from polyp_synth.data import PolypInpaintDataset, add_subset_args, index_samples, split_samples, subset_samples, CAPTIONS
 from polyp_synth.pipeline import BASE_MODEL, composite, grid, inpaint_polyp, make_scheduler, save_jpg
 
 OUT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "out", "polyp_synth", "runs"))
@@ -52,6 +52,7 @@ def parse_args():
     p.add_argument("--no-grad-ckpt", action="store_true")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--data-root", default=None)
+    add_subset_args(p)
     return p.parse_args()
 
 
@@ -97,7 +98,12 @@ def main():
     kw = dict(root=args.data_root) if args.data_root else {}
     samples = index_samples(**kw)
     train_s, val_s = split_samples(samples)
-    print(f"train {len(train_s)}  val {len(val_s)}")
+    train_s = subset_samples(train_s, args.frac, args.subset_seed, args.sources)
+    if args.sources:  # preview grids only make sense for datasets this adapter is allowed to learn
+        val_s = [s for s in val_s if s.source in args.sources]
+    with open(os.path.join(out_dir, "train_uids.txt"), "w") as fh:
+        fh.write("\n".join(s.uid for s in train_s))
+    print(f"train {len(train_s)} (frac={args.frac} subset_seed={args.subset_seed} sources={args.sources})  val {len(val_s)}")
     train_ds = PolypInpaintDataset(
         train_s, size=args.size, train=True, dilate_frac=(args.dilate_min, args.dilate_max),
         p_hull=args.p_hull, zoom_min=args.zoom_min,

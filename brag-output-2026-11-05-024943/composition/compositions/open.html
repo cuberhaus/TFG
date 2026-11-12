@@ -1,0 +1,157 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      font-family: var(--font-display), Inter, system-ui, sans-serif;
+    }
+    #op-content {
+      position: absolute;
+      inset: 0;
+    }
+    #op-frame {
+      position: absolute;
+      left: 110px;
+      top: 212px;
+      width: 780px;
+      height: 655.5px;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 2px solid #374151;
+      box-shadow: 0 34px 90px rgba(0, 0, 0, 0.5);
+    }
+    #op-frame img {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 780px;
+      height: 655.5px;
+      display: block;
+    }
+    #op-svg {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 780px;
+      height: 655.5px;
+    }
+    #op-chip {
+      position: absolute;
+      left: 421px;
+      top: 326px;
+      padding: 8px 18px 9px;
+      border-radius: 8px;
+      background: #34d399;
+      color: #022c22;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      opacity: 0;
+    }
+    .op-line {
+      position: absolute;
+      left: 980px;
+      width: 840px;
+      font-size: 68px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 76px;
+      color: #ffffff;
+      white-space: nowrap;
+      opacity: 0;
+    }
+    .op-line .em {
+      color: #34d399;
+    }
+    #op-l1 {
+      top: 232px;
+    }
+    #op-l2 {
+      top: 432px;
+    }
+    #op-note {
+      position: absolute;
+      left: 980px;
+      top: 596px;
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: #9ca3af;
+      opacity: 0;
+    }
+    #op-l3 {
+      top: 700px;
+    }
+    .op-w {
+      display: inline-block;
+      margin-right: 0.24em;
+    }
+    .op-w:last-child {
+      margin-right: 0;
+    }
+  </style>
+
+  <div id="root" data-composition-id="open" data-width="1920" data-height="1080">
+    <div id="op-content">
+      <div id="op-frame">
+        <img src="assets/img/hero-after.jpg" alt="A real polyp-free colonoscopy frame with a synthetic polyp painted in" />
+        <svg id="op-svg" viewBox="0 0 633 532" fill="none">
+          <rect x="342" y="309" width="228" height="208" rx="3" stroke="#34d399" stroke-width="3.2" />
+        </svg>
+        <div id="op-chip">Synthetic polyp</div>
+      </div>
+
+      <div id="op-l1" class="op-line">
+        <span class="op-w" data-layout-allow-overlap>This</span><span class="op-w" data-layout-allow-overlap>polyp</span><br />
+        <span class="op-w" data-layout-allow-overlap>is</span><span class="op-w em" data-layout-allow-overlap>fake.</span>
+      </div>
+      <div id="op-l2" class="op-line">Real-data detector<br />finds <span class="em">87.3%.</span></div>
+      <div id="op-note">Real polyps: 85.0%</div>
+      <div id="op-l3" class="op-line">
+        <span class="op-w op-l3w" data-layout-allow-overlap>Does</span><span class="op-w op-l3w" data-layout-allow-overlap>training</span><span class="op-w op-l3w" data-layout-allow-overlap>on</span><br />
+        <span class="op-w op-l3w" data-layout-allow-overlap>them</span><span class="op-w op-l3w" data-layout-allow-overlap>help?</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    // local time = global time (this scene starts at 0). Beats: 0.425, 2.195, 4.375; whip out at 6.3.
+
+    // Frame 0 is the thumbnail: the real frame with the box already on it. The label lands on the first beat.
+    tl.fromTo("#op-chip", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.25, ease: "power3.out" }, 0.43);
+
+    // Line 1: per-word blur, words 0.1 s apart.
+    tl.fromTo("#op-l1", { opacity: 0 }, { opacity: 1, duration: 0.05, ease: "none" }, 0.1);
+    tl.fromTo(
+      "#op-l1 .op-w",
+      { opacity: 0, filter: "blur(8px)" },
+      { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power3.out", stagger: 0.1 },
+      0.1,
+    );
+
+    // Line 2 (beat 4): the whole line blurs in; line 1 steps back.
+    tl.fromTo("#op-l2", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.25, ease: "power3.out" }, 2.195);
+    tl.to("#op-l1", { opacity: 0.5, duration: 0.3, ease: "power2.out" }, 2.25);
+    tl.fromTo("#op-note", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out" }, 2.8);
+
+    // Line 3 (beat 8): the question. Words go from grey to ink, no position change.
+    tl.fromTo("#op-l3", { opacity: 1 }, { opacity: 1, duration: 0.01 }, 4.375);
+    tl.fromTo(
+      ".op-l3w",
+      { opacity: 0, color: "#6b7280" },
+      { opacity: 1, color: "#ffffff", duration: 0.22, ease: "power2.out", stagger: 0.09 },
+      4.375,
+    );
+    tl.to("#op-l1", { opacity: 0.35, duration: 0.3, ease: "power2.out" }, 4.4);
+    tl.to("#op-l2", { opacity: 0.45, duration: 0.3, ease: "power2.out" }, 4.4);
+    tl.to("#op-note", { opacity: 0.45, duration: 0.3, ease: "power2.out" }, 4.4);
+
+    // Whip out to the left (6.30-6.555); the next scene's title arrives right after.
+    tl.to("#op-content", { x: -260, opacity: 0, filter: "blur(16px)", duration: 0.26, ease: "power3.in" }, 6.3);
+
+    window.__timelines["open"] = tl;
+  </script>
+</template>

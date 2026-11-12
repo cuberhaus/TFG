@@ -27,7 +27,9 @@ import torch
 from PIL import Image
 
 from polyp_synth.pipeline import DEFAULT_STEPS
-from polyp_synth.data import CAPTIONS, PolypSample, index_samples, load_pair, make_hole, mask_bbox, split_samples
+from polyp_synth.data import (
+    CAPTIONS, PolypSample, add_subset_args, index_samples, load_pair, make_hole, mask_bbox, split_samples, subset_samples,
+)
 
 OUT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "out", "polyp_synth"))
 
@@ -80,8 +82,12 @@ def train(args):
     np.random.seed(0)
     samples = index_samples()
     train_s, _ = split_samples(samples)
+    train_s = subset_samples(train_s, args.frac, args.subset_seed, args.sources)
     ds = RealDet(train_s, True)
     dl = torch.utils.data.DataLoader(ds, batch_size=8, shuffle=True, num_workers=6, collate_fn=lambda b: tuple(zip(*b)), drop_last=True)
+    if args.steps:  # tiny regimes: match the optimiser steps the downstream detectors get
+        args.epochs = max(args.epochs, math.ceil(args.steps / len(dl)))
+    print(f"gate detector: {len(train_s)} real frames, {args.epochs} epochs x {len(dl)} steps", flush=True)
     m = build_detector().cuda()
     params = [p for p in m.parameters() if p.requires_grad]
     opt = torch.optim.SGD(params, lr=0.01, momentum=0.9, weight_decay=1e-4)
@@ -227,6 +233,8 @@ if __name__ == "__main__":
     t = sub.add_parser("train")
     t.add_argument("--out", default=os.path.join(OUT_ROOT, "detector"))
     t.add_argument("--epochs", type=int, default=15)
+    t.add_argument("--steps", type=int, default=None, help="minimum optimiser steps (raises --epochs for small regimes)")
+    add_subset_args(t)
     e = sub.add_parser("eval")
     e.add_argument("--det", default=os.path.join(OUT_ROOT, "detector", "det.pt"))
     e.add_argument("--lora", default=None)
