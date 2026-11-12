@@ -1,0 +1,1 @@
+Do the fake polyps from my thesis actually help a detector? I trained 9 Faster R-CNNs on one RTX 5090 laptop GPU to find out. At full data: no measurable gain (AP50 85.0 vs 85.8). Fewer false alarms, but empty frames alone did that better. github.com/cuberhaus/TFG

@@ -1,0 +1,124 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      font-family: var(--font-display), Inter, system-ui, sans-serif;
+    }
+    #al-content {
+      position: absolute;
+      inset: 0;
+    }
+    #al-title {
+      position: absolute;
+      left: 160px;
+      top: 108px;
+      font-size: 96px;
+      font-weight: 900;
+      letter-spacing: -0.035em;
+      line-height: 104px;
+      color: #111827;
+      white-space: nowrap;
+      opacity: 0;
+    }
+    #al-sub {
+      position: absolute;
+      left: 162px;
+      top: 222px;
+      font-size: 34px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: #4b5563;
+      white-space: nowrap;
+      opacity: 0;
+    }
+    #al-num {
+      position: absolute;
+      left: 150px;
+      top: 270px;
+      font-size: 380px;
+      font-weight: 900;
+      letter-spacing: -0.045em;
+      line-height: 380px;
+      color: #6b7280;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      opacity: 0;
+    }
+    .al-cap {
+      position: absolute;
+      left: 1150px;
+      top: 392px;
+      font-size: 64px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 72px;
+      white-space: nowrap;
+      opacity: 0;
+    }
+    #al-ctrl {
+      position: absolute;
+      left: 160px;
+      top: 790px;
+      font-size: 84px;
+      font-weight: 900;
+      letter-spacing: -0.035em;
+      line-height: 96px;
+      color: #111827;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      opacity: 0;
+    }
+  </style>
+
+  <div id="root" data-composition-id="alarms" data-width="1920" data-height="1080">
+    <div id="al-content">
+      <div id="al-title">Fewer false alarms.</div>
+      <div id="al-sub">per polyp-free frame · 200 held-out frames</div>
+      <div id="al-num">0.24</div>
+      <div id="al-cap1" class="al-cap" style="color: #6b7280">Real<br />only</div>
+      <div id="al-cap2" class="al-cap" style="color: #047857">Real +<br />fake polyps</div>
+      <div id="al-ctrl">Empty frames alone: 0.05.</div>
+    </div>
+  </div>
+
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    // local time = global - 24.015 s. Beats (local): 1.09 (count starts), 3.27 (the control line, with the bell).
+
+    tl.fromTo("#al-title", { opacity: 0, filter: "blur(10px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out" }, 0.2);
+    tl.fromTo("#al-sub", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out" }, 0.5);
+
+    // The real-only number lands, holds, then counts down to the synthetic one.
+    tl.fromTo("#al-num", { opacity: 0, filter: "blur(14px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.4, ease: "power4.out" }, 0.3);
+    tl.fromTo("#al-cap1", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out" }, 0.55);
+
+    const o = { v: 0.24 };
+    const el = document.getElementById("al-num");
+    tl.fromTo(
+      o,
+      { v: 0.24 },
+      {
+        v: 0.1,
+        duration: 1.3,
+        ease: "power3.out",
+        onUpdate: function () {
+          el.textContent = o.v.toFixed(2);
+        },
+      },
+      1.09,
+    );
+    tl.fromTo("#al-num", { color: "#6b7280" }, { color: "#059669", duration: 1.3, ease: "power2.inOut" }, 1.09);
+    tl.to("#al-cap1", { opacity: 0, filter: "blur(6px)", duration: 0.15, ease: "power3.in" }, 2.3);
+    tl.fromTo("#al-cap2", { opacity: 0, filter: "blur(6px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.3, ease: "power3.out" }, 2.4);
+
+    // The turn: the control's number (bell at 27.29 s). Then nothing else moves.
+    tl.fromTo("#al-ctrl", { opacity: 0, filter: "blur(10px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.25, ease: "power3.out" }, 3.27);
+
+    // Whip out to the left; the ground floods dark at 5.45 (global 29.465).
+    tl.to("#al-content", { x: -260, opacity: 0, filter: "blur(16px)", duration: 0.26, ease: "power3.in" }, 5.19);
+
+    window.__timelines["alarms"] = tl;
+  </script>
+</template>

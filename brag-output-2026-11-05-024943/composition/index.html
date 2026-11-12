@@ -1,0 +1,183 @@
+<!doctype html>
+<html
+  lang="en"
+  data-resolution="landscape"
+  data-composition-variables='[
+    {"id":"color-dark","type":"color","label":"Dark ground","default":"#111827"},
+    {"id":"color-light","type":"color","label":"Light ground (lab report)","default":"#f3f4f6"},
+    {"id":"color-accent","type":"color","label":"Accent (synthetic)","default":"#34d399"},
+    {"id":"font-display","type":"string","label":"Display font","default":"Inter"}
+  ]'
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="assets/vendor/gsap.min.js"></script>
+    <style>
+      :root {
+        --color-dark: #111827; /* Tailwind gray-900 (body in frontend/src/index.css) */
+        --color-light: #f3f4f6; /* gray-100: the lab-report world */
+        --color-accent: #34d399; /* emerald-400: the synthetic polyp / the box colour */
+        --font-display: Inter;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #111827;
+      }
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        font-family: var(--font-display), Inter, system-ui, sans-serif;
+      }
+      /* The ground is one flat colour field that floods between the two worlds. */
+      #ground {
+        position: absolute;
+        inset: 0;
+        background: #111827;
+        z-index: 0;
+      }
+      .scene-host {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 1080px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="36.05" data-width="1920" data-height="1080">
+      <div id="ground" data-layout-ignore></div>
+
+      <!-- Scene slots sit on beats of the music (110 BPM): 6.555 | 16.375 | 24.015 | 29.465 -->
+      <div
+        id="open"
+        class="scene-host"
+        data-composition-id="open"
+        data-composition-src="compositions/open.html"
+        data-start="0"
+        data-duration="6.6"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 1"
+      ></div>
+      <div
+        id="arms"
+        class="scene-host"
+        data-composition-id="arms"
+        data-composition-src="compositions/arms.html"
+        data-start="6.555"
+        data-duration="9.9"
+        data-track-index="2"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 2"
+      ></div>
+      <div
+        id="score"
+        class="scene-host"
+        data-composition-id="score"
+        data-composition-src="compositions/score.html"
+        data-start="16.375"
+        data-duration="7.65"
+        data-track-index="3"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 3"
+      ></div>
+      <div
+        id="alarms"
+        class="scene-host"
+        data-composition-id="alarms"
+        data-composition-src="compositions/alarms.html"
+        data-start="24.015"
+        data-duration="5.5"
+        data-track-index="4"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 4"
+      ></div>
+      <div
+        id="outro"
+        class="scene-host"
+        data-composition-id="outro"
+        data-composition-src="compositions/outro.html"
+        data-start="29.465"
+        data-duration="6.585"
+        data-track-index="5"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 5"
+      ></div>
+
+      <!-- Music bed: happy-beats-business-moves-vol-12. The bed ducks to 30% for half a second so the verdict lands on near-silence. -->
+      <audio
+        id="bgm"
+        data-start="0"
+        data-duration="36.05"
+        data-track-index="10"
+        data-volume="0.34"
+        data-fade-in="0.6"
+        data-fade-out="1.6"
+        data-automation='{"version":1,"lanes":[{"target":"volume","points":[{"t":0,"v":1},{"t":20.15,"v":1},{"t":20.35,"v":0.3},{"t":20.85,"v":0.3},{"t":21.35,"v":1}]}]}'
+        src="assets/music/happy-beats-business-moves-vol-12-by-ende-dot-app.mp3"
+      ></audio>
+
+      <!-- S1: box locks on the first beat; two line arrivals on beats 4 and 8 -->
+      <audio id="sfx-box" data-start="0.43" data-duration="0.11" data-track-index="11" data-volume="0.5" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-l2" data-start="2.2" data-duration="0.19" data-track-index="11" data-volume="0.5" src="assets/sfx/interface/drop_002.ogg"></audio>
+      <audio id="sfx-l3" data-start="4.38" data-duration="0.19" data-track-index="11" data-volume="0.5" src="assets/sfx/interface/drop_003.ogg"></audio>
+      <audio id="sfx-whip1" data-start="6.3" data-duration="0.6" data-track-index="12" data-volume="0.34" src="assets/sfx/casino/card-slide-1.ogg"></audio>
+
+      <!-- S2: the strips land on the 8.735 s drop and the next two beats; seeds tick on beats 12.015, 12.555, 13.105 -->
+      <audio id="sfx-s1" data-start="8.74" data-duration="0.18" data-track-index="13" data-volume="0.8" src="assets/sfx/impact/impactSoft_medium_001.ogg"></audio>
+      <audio id="sfx-s2" data-start="9.28" data-duration="0.11" data-track-index="14" data-volume="0.5" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-s3" data-start="9.84" data-duration="0.19" data-track-index="14" data-volume="0.5" src="assets/sfx/interface/drop_002.ogg"></audio>
+      <audio id="sfx-seed1" data-start="12.02" data-duration="0.11" data-track-index="15" data-volume="0.45" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-seed2" data-start="12.56" data-duration="0.19" data-track-index="15" data-volume="0.45" src="assets/sfx/interface/drop_002.ogg"></audio>
+      <audio id="sfx-seed3" data-start="13.11" data-duration="0.19" data-track-index="15" data-volume="0.45" src="assets/sfx/interface/drop_003.ogg"></audio>
+      <audio id="sfx-whip2" data-start="16.0" data-duration="0.6" data-track-index="16" data-volume="0.34" src="assets/sfx/casino/card-slide-1.ogg"></audio>
+
+      <!-- S3: bars on 17.465 and 18.555 (the strong cues) and 19.655; the verdict lands on the ducked bed at 20.745 (beat 38) -->
+      <audio id="sfx-bar1" data-start="17.46" data-duration="0.11" data-track-index="17" data-volume="0.45" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-bar2" data-start="18.56" data-duration="0.19" data-track-index="17" data-volume="0.5" src="assets/sfx/interface/drop_002.ogg"></audio>
+      <audio id="sfx-bar3" data-start="19.65" data-duration="0.19" data-track-index="17" data-volume="0.5" src="assets/sfx/interface/drop_003.ogg"></audio>
+      <audio id="sfx-verdict" data-start="20.75" data-duration="0.14" data-track-index="18" data-volume="0.8" src="assets/sfx/impact/impactSoft_medium_002.ogg"></audio>
+
+      <!-- S4: the count starts on 25.105; the bell is the 0.05 turn -->
+      <audio id="sfx-count" data-start="25.11" data-duration="0.11" data-track-index="19" data-volume="0.4" src="assets/sfx/interface/drop_001.ogg"></audio>
+      <audio id="sfx-ctrl" data-start="27.29" data-duration="0.66" data-track-index="20" data-volume="0.7" src="assets/sfx/impact/impactBell_heavy_003.ogg"></audio>
+
+      <!-- S5: whip into the dark world; the title lands on beat 60 (32.745 s) -->
+      <audio id="sfx-whip3" data-start="29.36" data-duration="0.6" data-track-index="21" data-volume="0.3" src="assets/sfx/casino/card-slide-1.ogg"></audio>
+      <audio id="sfx-title" data-start="32.75" data-duration="0.18" data-track-index="22" data-volume="0.8" src="assets/sfx/impact/impactSoft_medium_001.ogg"></audio>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+
+      // Colour flood: the ground changes world in 0.4 s while the hero content hands over (power2.inOut).
+      tl.to("#ground", { backgroundColor: "#f3f4f6", duration: 0.4, ease: "power2.inOut" }, 16.375);
+      tl.to("#ground", { backgroundColor: "#111827", duration: 0.4, ease: "power2.inOut" }, 29.465);
+
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
