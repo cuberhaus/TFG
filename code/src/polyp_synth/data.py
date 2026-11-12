@@ -101,6 +101,33 @@ def split_samples(samples: list[PolypSample], n_val_kvasir: int = 100, cvc_block
     return train, val
 
 
+def subset_samples(train_s: list[PolypSample], frac: float = 1.0, seed: int = 0, sources=None) -> list[PolypSample]:
+    """Deterministic subset of the training frames, shared by every stage of a regime.
+
+    Low-data and cross-dataset experiments must restrict *everything that learns from real
+    polyps* to the same frames: the generator's LoRA, the gate detector, the mask bank used
+    to place synthetic polyps and the downstream detectors. Otherwise the synthetic images
+    carry information from real frames the regime says the detector never saw.
+
+    ``sources`` keeps only those datasets (e.g. ``("kvasir",)``); ``frac`` then draws that
+    fraction of what is left. ``frac >= 1`` keeps everything, in the original order.
+    """
+    pool = [s for s in train_s if sources is None or s.source in sources]
+    if frac >= 1.0:
+        return list(pool)
+    rng = np.random.default_rng(1000 + seed)
+    k = max(1, int(round(frac * len(pool))))
+    return [pool[i] for i in sorted(rng.choice(len(pool), size=k, replace=False).tolist())]
+
+
+def add_subset_args(ap) -> None:
+    """The three flags that define a training regime (same meaning in every script)."""
+    ap.add_argument("--frac", type=float, default=1.0, help="fraction of the real training frames to use")
+    ap.add_argument("--subset-seed", type=int, default=0, help="which random draw of that fraction")
+    ap.add_argument("--sources", nargs="+", default=None, choices=["kvasir", "cvc"],
+                    help="train only on these datasets (cross-dataset tests)")
+
+
 # --------------------------------------------------------------------------
 # Loading / mask helpers
 # --------------------------------------------------------------------------

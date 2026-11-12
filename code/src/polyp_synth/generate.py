@@ -27,7 +27,8 @@ import numpy as np
 from PIL import Image
 
 from polyp_synth.data import (
-    CAPTIONS, PolypInpaintDataset, blank_scope_overlay, fov_mask, index_samples, make_hole, mask_bbox, split_samples,
+    CAPTIONS, PolypInpaintDataset, add_subset_args, blank_scope_overlay, fov_mask, index_samples, make_hole, mask_bbox,
+    split_samples, subset_samples,
 )
 from polyp_synth.pipeline import DEFAULT_PROMPT, DEFAULT_STEPS, composite, grid, inpaint_polyp, load_pipeline, save_jpg
 
@@ -122,12 +123,15 @@ def main():
     ap.add_argument("--max-area", type=float, default=0.20, help="max polyp area as a fraction of the 512 crop")
     ap.add_argument("--save-before", action="store_true", help="also save the original polyp-free frame to Before/synth/")
     ap.add_argument("--sheet", type=int, default=8, help="rows in the before/after contact sheet (0 = skip)")
+    add_subset_args(ap)  # restricts the mask bank to the frames this regime's LoRA was trained on
     args = ap.parse_args()
 
     rng = np.random.default_rng(args.seed)
     files = sorted(sum([glob.glob(os.path.join(d, "*.jpg")) + glob.glob(os.path.join(d, "*.png")) for d in args.frames], []))
     assert files, "no frames found"
     train_s, _ = split_samples(index_samples())
+    train_s = subset_samples(train_s, args.frac, args.subset_seed, args.sources)
+    print(f"mask bank: {len(train_s)} real polyp masks (frac={args.frac} subset_seed={args.subset_seed} sources={args.sources})", flush=True)
     bank = PolypInpaintDataset(train_s, size=SIZE, train=True)  # random crops of real masks -> realistic size distribution
     pipe = load_pipeline(args.lora)
     prompt = CAPTIONS[args.style]

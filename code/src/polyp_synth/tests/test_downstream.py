@@ -1,11 +1,14 @@
 """CPU-only tests for the detection metrics / planning helpers used by the downstream experiment."""
+import argparse
+import json
+
 import numpy as np
 import pytest
 
-from polyp_synth.data import PolypSample
+from polyp_synth.data import PolypSample, subset_samples
 from polyp_synth.downstream import (
-    IOUS, average_precision, iou_matrix, match_image, plan_steps, real_subset, run_is_done, summarize,
-    summarize_negatives, write_json_atomic,
+    IOUS, average_precision, iou_matrix, match_image, plan_steps, real_subset, report, resample_indices, run_is_done,
+    select_external, summarize, summarize_negatives, write_json_atomic,
 )
 
 GT = [[10, 10, 50, 50]]
@@ -106,3 +109,89 @@ def test_write_json_atomic_replaces_in_place_and_leaves_no_temp_file(tmp_path):
     write_json_atomic(str(path), {"val": 2, "neg": 2})
     assert run_is_done(str(path))
     assert [p.name for p in path.parent.iterdir()] == ["r.json"]
+
+
+def _mixed_train():
+    return [PolypSample(f"k{i}.jpg", f"m{i}.png", "kvasir", f"kv_{i}") for i in range(90)] + [
+        PolypSample(f"c{i}.png", f"m{i}.png", "cvc", f"cvc_{i}") for i in range(60)
+    ]
+
+
+def test_subset_samples_is_the_single_source_of_truth_for_every_stage():
+    train = _mixed_train()
+    # the LoRA, the gate, the mask bank and the detectors all call this with the same arguments
+    a = subset_samples(train, 0.1, 2, None)
+    assert a == subset_samples(train, 0.1, 2, None) == real_subset(train, 0.1, 2)
+    assert len(a) == 15 and set(a) <= set(train)
+    assert subset_samples(train, 0.1, 3, None) != a  # a different draw is a different subset
+
+
+def test_subset_samples_can_restrict_to_one_dataset_and_keeps_order_at_full_fraction():
+    train = _mixed_train()
+    kv = subset_samples(train, 1.0, 0, ("kvasir",))
+    assert len(kv) == 90 and {s.source for s in kv} == {"kvasir"} and kv == train[:90]
+    half = subset_samples(train, 0.5, 0, ("kvasir",))
+    assert len(half) == 45 and {s.source for s in half} == {"kvasir"}
+    assert subset_samples(train, 1.0, 0, None) == train
+
+
+def test_external_set_never_overlaps_the_training_sources():
+    samples = _mixed_train()
+    ext = select_external(samples, "cvc", ("kvasir",))
+    assert [s.uid for s in ext] == [f"cvc_{i}" for i in range(60)]  # whole dataset, frame order kept
+    with pytest.raises(ValueError):
+        select_external(samples, "cvc", ("kvasir", "cvc"))
+    assert select_external(samples, "cvc", None)  # no restriction declared -> allowed
+
+
+def test_block_bootstrap_resamples_contiguous_runs_of_frames():
+    rng = np.random.default_rng(0)
+    assert resample_indices(rng, 50, 1).shape == (50,)
+    idx = resample_indices(rng, 60, 20)
+    assert len(idx) == 60 and idx.min() >= 0 and idx.max() < 60
+    # every consecutive pair is either +1 (inside a block) or the start of a new block
+    for k, (a, b) in enumerate(zip(idx[:-1], idx[1:]), start=1):
+        if k % 20:
+            assert b == a + 1
+    short_tail = resample_indices(rng, 50, 20)  # 20 + 20 + 10 frames
+    assert short_tail.max() < 50
+
+
+def test_run_is_done_can_require_the_external_result(tmp_path):
+    p = tmp_path / "real_s0.json"
+    write_json_atomic(str(p), {"val": {}, "neg": {}})
+    assert run_is_done(str(p))
+    assert not run_is_done(str(p), ("val", "neg", "ext"))  # an old in-domain-only file must be redone
+    write_json_atomic(str(p), {"val": {}, "neg": {}, "ext": {}})
+    assert run_is_done(str(p), ("val", "neg", "ext"))
+
+
+def _fake_run(arm: str, seed: int, shift: float):
+    """A result file with just enough predictions for `report` (one box per frame, score shifted per arm)."""
+    gt = [[10.0, 10.0, 50.0, 50.0]]
+    val = [dict(boxes=[[10, 10, 50, 50]], scores=[round(0.9 - shift, 3)]) for _ in range(12)]
+    ext = [dict(boxes=[[10, 10, 50, 50] if (i % 4) else [0, 0, 5, 5]], scores=[round(0.8 - shift, 3)]) for i in range(40)]
+    m = lambda ds, g: summarize([match_image(d["boxes"], d["scores"], g) for d in ds])  # noqa: E731
+    return dict(
+        arm=arm, seed=seed, n_real=100, n_extra=100 if arm != "real" else 0, steps=600, frac=0.1,
+        val=m(val, gt), val_by_source={"kvasir": m(val, gt)}, neg=dict(fp_per_img=0.1, frac_imgs_with_fp=0.1, n=5),
+        ext=m(ext, gt), ext_name="cvc",
+        preds=dict(val=val, gts=[gt] * 12, ext=ext, ext_gts=[gt] * 40, neg=[], sources=["kvasir"] * 12),
+    )
+
+
+def test_report_pools_directories_and_scores_the_external_set(tmp_path):
+    for d, seed in (("a", 0), ("b", 1)):
+        for arm, shift in (("real", 0.0), ("neg", 0.05), ("synth", 0.1)):
+            write_json_atomic(str(tmp_path / d / f"{arm}_s{seed}.json"), _fake_run(arm, seed, shift))
+    md = tmp_path / "pooled_ext.md"
+    args = argparse.Namespace(dir=[str(tmp_path / "a"), str(tmp_path / "b")], boot=30, set="ext", block=20, md=str(md))
+    report(args)
+    text = md.read_text()
+    assert "External dataset: **cvc** (40 frames" in text and "blocks of 20" in text
+    assert "| real | 2 |" in text and "| synth | 2 |" in text  # runs from both directories were pooled
+    assert "synth − real" in text and "neg − real" in text
+    # in-domain mode reads the same files without needing the external keys
+    args_val = argparse.Namespace(dir=[str(tmp_path / "a")], boot=30, set="val", block=20, md=None)
+    report(args_val)
+    assert (tmp_path / "a" / "report.md").exists()

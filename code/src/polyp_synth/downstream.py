@@ -34,7 +34,7 @@ import numpy as np
 import torch
 from PIL import Image
 
-from polyp_synth.data import PolypSample, blank_scope_overlay, index_samples, load_pair, split_samples
+from polyp_synth.data import PolypSample, blank_scope_overlay, index_samples, load_pair, split_samples, subset_samples
 from polyp_synth.detector_check import OUT_ROOT, boxes_from_mask, build_detector
 
 IOUS = [round(0.5 + 0.05 * k, 2) for k in range(10)]  # COCO: 0.50 .. 0.95
@@ -199,12 +199,33 @@ def plan_steps(n_real: int, epochs: int = 15, floor: int = 600) -> int:
     return max(floor, int(round(epochs * n_real / BATCH)))
 
 
-def real_subset(train_s: list[PolypSample], frac: float, seed: int) -> list[PolypSample]:
-    if frac >= 1.0:
-        return list(train_s)
-    rng = np.random.default_rng(1000 + seed)
-    k = max(1, int(round(frac * len(train_s))))
-    return [train_s[i] for i in sorted(rng.choice(len(train_s), size=k, replace=False).tolist())]
+def real_subset(train_s: list[PolypSample], frac: float, seed: int, sources=None) -> list[PolypSample]:
+    """The real frames of one regime (see ``polyp_synth.data.subset_samples``)."""
+    return subset_samples(train_s, frac, seed, sources)
+
+
+def select_external(samples: list[PolypSample], source: str, train_sources) -> list[PolypSample]:
+    """Every frame of a dataset the detectors were never trained on, in frame order.
+
+    Kept in natural order on purpose: consecutive frames of one video are near-duplicates,
+    and the block bootstrap in the report resamples contiguous runs of them.
+    """
+    if train_sources is not None and source in train_sources:
+        raise ValueError(f"external set {source!r} is also a training source {list(train_sources)}")
+    return [s for s in samples if s.source == source]
+
+
+def resample_indices(rng: np.random.Generator, n: int, block: int = 1) -> np.ndarray:
+    """Bootstrap indices over ``n`` frames; ``block`` > 1 resamples contiguous blocks of frames.
+
+    Frames from the same colonoscopy video are strongly correlated, so resampling single frames
+    makes the confidence interval look tighter than the evidence allows.
+    """
+    if block <= 1:
+        return rng.integers(0, n, n)
+    nb = math.ceil(n / block)
+    picks = rng.integers(0, nb, nb)
+    return np.concatenate([np.arange(b * block, min(n, (b + 1) * block)) for b in picks])
 
 
 # --------------------------------------------------------------------------
@@ -258,17 +279,37 @@ def predict(det, imgs: list[np.ndarray]):
     return out
 
 
-def load_eval_sets(neg_dir: str):
-    _, val_s = split_samples(index_samples())
-    frames, gts, sources = [], [], []
+@dataclass
+class EvalSets:
+    frames: list
+    gts: list
+    sources: list
+    negs: list
+    ext_frames: list
+    ext_gts: list
+
+
+def load_eval_sets(neg_dir: str, sources=None, external: str | None = None) -> EvalSets:
+    """Held-out real frames, held-out polyp-free frames and (optionally) a whole unseen dataset."""
+    samples = index_samples()
+    _, val_s = split_samples(samples)
+    if sources:  # cross-dataset regime: the in-domain check only uses datasets that were trained on
+        val_s = [s for s in val_s if s.source in sources]
+    frames, gts, srcs = [], [], []
     for s in val_s:
         img, mask = load_pair(s)
         frames.append(img)
         gts.append(boxes_from_mask(mask))
-        sources.append(s.source)
+        srcs.append(s.source)
+    ext_frames, ext_gts = [], []
+    if external:
+        for s in select_external(samples, external, sources):
+            img, mask = load_pair(s)
+            ext_frames.append(img)
+            ext_gts.append(boxes_from_mask(mask))
     neg_files = sorted(glob.glob(os.path.join(neg_dir, "*.jpg")) + glob.glob(os.path.join(neg_dir, "*.png")))
     negs = [blank_scope_overlay(np.array(Image.open(f).convert("RGB"))) for f in neg_files]
-    return frames, gts, sources, negs
+    return EvalSets(frames, gts, srcs, negs, ext_frames, ext_gts)
 
 
 def write_json_atomic(path: str, obj) -> None:
@@ -286,19 +327,22 @@ def write_json_atomic(path: str, obj) -> None:
     os.replace(tmp, path)
 
 
-def run_is_done(path: str) -> bool:
+def run_is_done(path: str, need=("val", "neg")) -> bool:
     """True only for a readable result file; empty or truncated leftovers from a crash do not count."""
     try:
         with open(path) as f:
             r = json.load(f)
     except (OSError, ValueError):
         return False
-    return isinstance(r, dict) and "val" in r and "neg" in r
+    return isinstance(r, dict) and all(k in r for k in need)
 
 
 def run_one(args, arm: str, seed: int, out_path: str, eval_sets):
     train_s, _ = split_samples(index_samples())
-    real = real_subset(train_s, args.frac, seed)
+    # Legacy runs redraw the subset per training seed. Regimes with a retrained generator must pin it
+    # (--subset-seed) so the detector sees exactly the frames the LoRA and the gate were trained on.
+    subset_seed = args.subset_seed if args.subset_seed is not None else seed
+    real = real_subset(train_s, args.frac, subset_seed, args.sources)
     n_extra = args.n_extra if args.n_extra is not None else len(real)
     names_kept = open(os.path.join(args.synth_dir, "kept.txt")).read().split()
     names_all = sorted(os.path.splitext(os.path.basename(p))[0] for p in glob.glob(os.path.join(args.synth_dir, "Images", "synth", "*.jpg")))
@@ -313,16 +357,18 @@ def run_one(args, arm: str, seed: int, out_path: str, eval_sets):
     elif arm != "real":
         raise ValueError(arm)
     steps = args.steps or plan_steps(len(real))
-    print(f"[{arm} frac={args.frac} seed={seed}] real={len(real)} extra={len(items) - len(real)} steps={steps}", flush=True)
+    print(f"[{arm} frac={args.frac} subset={subset_seed} sources={args.sources} seed={seed}] "
+          f"real={len(real)} extra={len(items) - len(real)} steps={steps}", flush=True)
     t0 = time.time()
     det, log = train_detector(items, steps, seed, args.workers)
     train_s_ = time.time() - t0
-    frames, gts, sources, negs = eval_sets
+    frames, gts, sources, negs = eval_sets.frames, eval_sets.gts, eval_sets.sources, eval_sets.negs
     vp = predict(det, frames)
     npred = predict(det, negs)
     matches = [match_image(b, s, g) for (b, s), g in zip(vp, gts)]
     res = dict(
-        arm=arm, frac=args.frac, seed=seed, n_real=len(real), n_extra=len(items) - len(real), steps=steps,
+        arm=arm, frac=args.frac, seed=seed, subset_seed=subset_seed, sources=args.sources,
+        n_real=len(real), n_extra=len(items) - len(real), steps=steps,
         train_seconds=train_s_, loss_log=log,
         val=summarize(matches),
         val_by_source={src: summarize([m for m, s in zip(matches, sources) if s == src]) for src in sorted(set(sources))},
@@ -334,20 +380,30 @@ def run_one(args, arm: str, seed: int, out_path: str, eval_sets):
             neg=[dict(scores=s.round(4).tolist()) for _, s in npred],
         ),
     )
+    if eval_sets.ext_frames:  # a whole dataset the detector never saw (cross-dataset regime)
+        ep = predict(det, eval_sets.ext_frames)
+        ext_matches = [match_image(b, s, g) for (b, s), g in zip(ep, eval_sets.ext_gts)]
+        res["ext"] = summarize(ext_matches)
+        res["ext_name"] = args.external_eval
+        res["preds"]["ext"] = [dict(boxes=b.round(1).tolist(), scores=s.round(4).tolist()) for b, s in ep]
+        res["preds"]["ext_gts"] = [[list(map(float, g)) for g in gg] for gg in eval_sets.ext_gts]
     write_json_atomic(out_path, res)
     v, n = res["val"], res["neg"]
-    print(f"  -> AP50 {v['ap50']:.3f} AP {v['ap']:.3f} recall {v['recall']:.3f} fp/img {v['fp_per_img']:.2f} | neg fp/img {n['fp_per_img']:.2f} ({train_s_ / 60:.1f} min)", flush=True)
+    ext = f" | {args.external_eval} AP50 {res['ext']['ap50']:.3f}" if "ext" in res else ""
+    print(f"  -> AP50 {v['ap50']:.3f} AP {v['ap']:.3f} recall {v['recall']:.3f} fp/img {v['fp_per_img']:.2f} | neg fp/img {n['fp_per_img']:.2f}{ext} ({train_s_ / 60:.1f} min)", flush=True)
     del det
     torch.cuda.empty_cache()
 
 
 def run(args):
-    eval_sets = load_eval_sets(args.neg_dir)
-    print(f"val frames {len(eval_sets[0])}, held-out polyp-free frames {len(eval_sets[3])}", flush=True)
+    eval_sets = load_eval_sets(args.neg_dir, args.sources, args.external_eval)
+    print(f"val frames {len(eval_sets.frames)}, held-out polyp-free frames {len(eval_sets.negs)}, "
+          f"external ({args.external_eval}) frames {len(eval_sets.ext_frames)}", flush=True)
+    need = ("val", "neg") + (("ext",) if args.external_eval else ())
     for seed in args.seeds:  # seed-major so partial results stay balanced
         for arm in args.arms:
             path = os.path.join(args.out, f"{arm}_s{seed}.json")
-            if run_is_done(path):
+            if run_is_done(path, need):
                 print("skip (done)", path, flush=True)
                 continue
             if os.path.exists(path):
@@ -370,15 +426,19 @@ def _load_runs(d: str):
     return runs
 
 
-def _matches_of(run_):
+def _matches_of(run_, key: str = "val"):
     p = run_["preds"]
-    return [match_image(v["boxes"], v["scores"], g) for v, g in zip(p["val"], p["gts"])]
+    gts = p["gts"] if key == "val" else p["ext_gts"]
+    return [match_image(v["boxes"], v["scores"], g) for v, g in zip(p[key], gts)]
 
 
-def paired_bootstrap(runs_a: list[dict], runs_b: list[dict], metric, B: int = 2000, seed: int = 0):
-    """Mean over seeds of metric(A) - metric(B) with a 95% CI from resampling the evaluation frames."""
-    ma = [_matches_of(r) for r in runs_a]
-    mb = [_matches_of(r) for r in runs_b]
+def paired_bootstrap(runs_a: list[dict], runs_b: list[dict], metric, B: int = 2000, seed: int = 0, key: str = "val", block: int = 1):
+    """Mean over runs of metric(A) - metric(B) with a 95% CI from resampling the evaluation frames.
+
+    ``block`` > 1 resamples contiguous blocks of frames (for video frames that are near-duplicates).
+    """
+    ma = [_matches_of(r, key) for r in runs_a]
+    mb = [_matches_of(r, key) for r in runs_b]
     n = len(ma[0])
     rng = np.random.default_rng(seed)
 
@@ -388,17 +448,33 @@ def paired_bootstrap(runs_a: list[dict], runs_b: list[dict], metric, B: int = 20
     base = score(ma, np.arange(n)) - score(mb, np.arange(n))
     diffs = []
     for _ in range(B):
-        idx = rng.integers(0, n, n)
+        idx = resample_indices(rng, n, block)
         diffs.append(score(ma, idx) - score(mb, idx))
     lo, hi = np.percentile(diffs, [2.5, 97.5])
     return base, float(lo), float(hi)
 
 
 def report(args):
-    runs = _load_runs(args.dir)
+    dirs = args.dir
+    runs: dict[str, list[dict]] = {}
+    for d in dirs:
+        for arm, rs in _load_runs(d).items():
+            runs.setdefault(arm, []).extend(rs)
+    key = args.set  # "val": held-out frames of the training datasets | "ext": a whole unseen dataset
+    if key == "ext":
+        runs = {a: [r for r in rs if "ext" in r] for a, rs in runs.items()}
+        runs = {a: rs for a, rs in runs.items() if rs}
+    if not runs:
+        raise SystemExit(f"no usable runs for --set {key} in {dirs}")
+    block = args.block if key == "ext" else 1
     order = [a for a in ("real", "neg", "synth", "synth_all") if a in runs]
+    n_eval = len(runs[order[0]][0]["preds"][key])
     lines = []
-    lines.append(f"| arm | seeds | real | extra | steps | AP50 | AP50:95 | recall@{SCORE_THR} | FP/img (polyp frames) | FP/img (polyp-free frames) |")
+    if key == "ext":
+        lines.append(f"External dataset: **{runs[order[0]][0]['ext_name']}** ({n_eval} frames, never used for training; "
+                     f"CIs resample blocks of {block} consecutive frames).")
+        lines.append("")
+    lines.append(f"| arm | runs | real | extra | steps | AP50 | AP50:95 | recall@{SCORE_THR} | FP/img (polyp frames) | FP/img (polyp-free frames) |")
     lines.append("|---|---|---|---|---|---|---|---|---|---|")
 
     def ms(rs, getter, pct=True):
@@ -409,16 +485,17 @@ def report(args):
         rs = runs[a]
         lines.append(
             f"| {a} | {len(rs)} | {rs[0]['n_real']} | {rs[0]['n_extra']} | {rs[0]['steps']} | "
-            f"{ms(rs, lambda r: r['val']['ap50'])} | {ms(rs, lambda r: r['val']['ap'])} | {ms(rs, lambda r: r['val']['recall'])} | "
-            f"{ms(rs, lambda r: r['val']['fp_per_img'], False)} | {ms(rs, lambda r: r['neg']['fp_per_img'], False)} |"
+            f"{ms(rs, lambda r: r[key]['ap50'])} | {ms(rs, lambda r: r[key]['ap'])} | {ms(rs, lambda r: r[key]['recall'])} | "
+            f"{ms(rs, lambda r: r[key]['fp_per_img'], False)} | {ms(rs, lambda r: r['neg']['fp_per_img'], False)} |"
         )
     lines.append("")
-    for src in ("kvasir", "cvc"):
-        if all(src in r["val_by_source"] for a in order for r in runs[a]):
-            lines.append(f"{src} frames only (n={runs[order[0]][0]['val_by_source'][src]['n']}):  " + "; ".join(
-                f"{a} AP50 {ms(runs[a], lambda r, s=src: r['val_by_source'][s]['ap50'])}" for a in order))
-    lines.append("")
-    lines.append("Paired bootstrap over the evaluation frames (95% CI of the difference, mean over seeds):")
+    if key == "val":
+        for src in ("kvasir", "cvc"):
+            if all(src in r["val_by_source"] for a in order for r in runs[a]):
+                lines.append(f"{src} frames only (n={runs[order[0]][0]['val_by_source'][src]['n']}):  " + "; ".join(
+                    f"{a} AP50 {ms(runs[a], lambda r, s=src: r['val_by_source'][s]['ap50'])}" for a in order))
+        lines.append("")
+    lines.append("Paired bootstrap over the evaluation frames (95% CI of the difference, mean over runs):")
     lines.append("")
     lines.append("| comparison | ΔAP50 (pts) | ΔAP50:95 (pts) | Δrecall (pts) |")
     lines.append("|---|---|---|---|")
@@ -431,7 +508,7 @@ def report(args):
         if a in runs and b in runs:
             cells = []
             for k in ("ap50", "ap", "recall"):
-                d, lo, hi = paired_bootstrap(runs[a], runs[b], metrics[k], B=args.boot)
+                d, lo, hi = paired_bootstrap(runs[a], runs[b], metrics[k], B=args.boot, key=key, block=block)
                 sig = "  *" if (lo > 0 or hi < 0) else ""
                 cells.append(f"{100 * d:+.1f} [{100 * lo:+.1f}, {100 * hi:+.1f}]{sig}")
             lines.append(f"| {a} − {b} | " + " | ".join(cells) + " |")
@@ -439,7 +516,14 @@ def report(args):
     lines.append("`*` = the 95% interval excludes 0.")
     text = "\n".join(lines)
     print(text)
-    open(os.path.join(args.dir, "report.md"), "w").write(text + "\n")
+    if args.md:
+        md = args.md
+    elif len(dirs) == 1:
+        md = os.path.join(dirs[0], "report.md" if key == "val" else "report_ext.md")
+    else:
+        md = None  # pooled report over several directories needs an explicit --md
+    if md:
+        open(md, "w").write(text + "\n")
 
 
 def main():
@@ -449,6 +533,12 @@ def main():
     r.add_argument("--arms", nargs="+", default=["real", "neg", "synth"], choices=["real", "neg", "synth", "synth_all"])
     r.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
     r.add_argument("--frac", type=float, default=1.0, help="fraction of the real training frames to use")
+    r.add_argument("--subset-seed", type=int, default=None,
+                   help="pin which draw of --frac is used (needed when the generator and gate were trained on that draw); "
+                        "default: redraw per training seed")
+    r.add_argument("--sources", nargs="+", default=None, choices=["kvasir", "cvc"], help="train only on these datasets")
+    r.add_argument("--external-eval", default=None, choices=["kvasir", "cvc"],
+                   help="also score every frame of this (untrained-on) dataset")
     r.add_argument("--n-extra", type=int, default=None, help="extra frames added (default: as many as real frames)")
     r.add_argument("--steps", type=int, default=None)
     r.add_argument("--synth-dir", default=DEFAULT_SYNTH)
@@ -456,8 +546,11 @@ def main():
     r.add_argument("--workers", type=int, default=8)
     r.add_argument("--out", required=True)
     p = sub.add_parser("report")
-    p.add_argument("--dir", required=True)
+    p.add_argument("--dir", nargs="+", required=True, help="one or more run directories (pooled)")
     p.add_argument("--boot", type=int, default=2000)
+    p.add_argument("--set", default="val", choices=["val", "ext"], help="held-out frames of the training sets, or the external dataset")
+    p.add_argument("--block", type=int, default=20, help="bootstrap block length (consecutive frames) for --set ext")
+    p.add_argument("--md", default=None, help="where to write the markdown (default: <dir>/report.md)")
     a = ap.parse_args()
     {"run": run, "report": report}[a.cmd](a)
 
